@@ -23,10 +23,8 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, notificationModule))
+    authModule()
     routing {
-        route("v1") {
-            authModule()
-        }
         get("/") {
             call.respondText("Hello World!")
         }
