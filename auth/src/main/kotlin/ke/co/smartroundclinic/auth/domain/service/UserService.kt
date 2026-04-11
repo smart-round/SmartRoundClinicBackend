@@ -6,6 +6,8 @@ import ke.co.smartroundclinic.auth.domain.usecase.SignInUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.CreateAdminUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUserUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RefreshTokenUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.RemoveProfilePictureUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.UploadProfilePictureUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RequestPasswordResetUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.ResendAccountVerificationOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.ResetPasswordUseCase
@@ -28,6 +30,8 @@ class UserService(
     private val resetPasswordUseCase: ResetPasswordUseCase,
     private val refreshTokenUseCase: RefreshTokenUseCase,
     private val revokeTokenUseCase: RevokeTokenUseCase,
+    private val uploadProfilePictureUseCase: UploadProfilePictureUseCase,
+    private val removeProfilePictureUseCase: RemoveProfilePictureUseCase,
 ) {
     suspend fun signIn(email: String, password: String) = signInUseCase(email, password)
     suspend fun createAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toModel())
@@ -47,4 +51,7 @@ class UserService(
         resetPasswordUseCase(email, otpCode, newPassword)
     suspend fun refreshToken(refreshToken: String) = refreshTokenUseCase(refreshToken)
     suspend fun revokeToken(refreshToken: String) = revokeTokenUseCase(refreshToken)
+    suspend fun uploadProfilePicture(userId: String, imageBytes: ByteArray, contentType: String) =
+        uploadProfilePictureUseCase(userId, imageBytes, contentType)
+    suspend fun removeProfilePicture(userId: String) = removeProfilePictureUseCase(userId)
 }

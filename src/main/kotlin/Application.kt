@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.infra.configureInfraModule
 import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
 import ke.co.smartroundclinic.infra.koin.httpModule
+import ke.co.smartroundclinic.infra.koin.storageModule
 import ke.co.smartroundclinic.notification.koin.notificationModule
 import org.koin.dsl.module
 
@@ -21,7 +22,7 @@ fun main() {
 }
 
 fun Application.module() {
-    configureInfraModule(listOf(appConfigModule,databaseModule, httpModule, authKoinModule, notificationModule))
+    configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, notificationModule))
     authModule()
 
     routing {

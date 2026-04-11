@@ -5,6 +5,10 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -135,6 +139,48 @@ fun Route.userController(userService: UserService) {
                     val userId = call.getUserId() ?: return@requireRole
                     val updateUserReq = call.receive<UpdateUserReq>()
                     val result = userService.updateUser(userId, updateUserReq)
+                    call.respond(
+                        status = HttpStatusCode.fromValue(result.httpStatusCode),
+                        message = result
+                    )
+                }
+            }
+        }
+
+        authenticate("auth-jwt") {
+            delete("profile-picture") {
+                call.requireRole(*UserEntity.allRoles) {
+                    val userId = call.getUserId() ?: return@requireRole
+                    val result = userService.removeProfilePicture(userId)
+                    call.respond(
+                        status = HttpStatusCode.fromValue(result.httpStatusCode),
+                        message = result
+                    )
+                }
+            }
+
+            post("profile-picture") {
+                call.requireRole(*UserEntity.allRoles) {
+                    val userId = call.getUserId() ?: return@requireRole
+
+                    var imageBytes: ByteArray? = null
+                    var contentType = "image/jpeg"
+
+                    call.receiveMultipart().forEachPart { part ->
+                        if (part is PartData.FileItem) {
+                            imageBytes = part.streamProvider().readBytes()
+                            contentType = part.contentType?.toString() ?: "image/jpeg"
+                        }
+                        part.dispose()
+                    }
+
+                    val bytes = imageBytes
+                        ?: return@requireRole call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("message" to "No image file provided")
+                        )
+
+                    val result = userService.uploadProfilePicture(userId, bytes, contentType)
                     call.respond(
                         status = HttpStatusCode.fromValue(result.httpStatusCode),
                         message = result

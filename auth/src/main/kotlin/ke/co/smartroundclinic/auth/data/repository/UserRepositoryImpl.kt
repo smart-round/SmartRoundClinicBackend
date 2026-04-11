@@ -174,6 +174,20 @@ class UserRepositoryImpl(
         }
     }
 
+    override suspend fun updateProfilePicture(userId: String, url: String?): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                val result = collection.updateOne(
+                    Filters.eq(UserEntity::id.name, userId),
+                    Updates.set(UserEntity::profilePicture.name, url)
+                )
+                if (result.matchedCount == 0L) return@withContext Resource.Error("User not found")
+                Resource.Success(data = null, message = "Profile picture updated successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to update profile picture")
+            }
+        }
+
     override suspend fun updatePassword(
         userId: String,
         newPassword: String

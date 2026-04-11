@@ -34,8 +34,26 @@ data class JwtConfig(
     val audience: String = require("JWT_AUDIENCE")
 )
 
+data class R2Config(
+    // R2 S3-compatible Access Key ID (32 chars) — generate from Cloudflare Dashboard → R2 → Manage R2 API Tokens.
+    // This is NOT the same as a general Cloudflare API token (cfat_...).
+    val accessKeyId: String = require("CLOUDFLARE_R2_ACCESS_KEY_ID"),
+    val secretAccessKey: String = require("CLOUDFLARE_R2_SECRET_ACCESS_KEY"),
+    // Used both as the S3-compatible API endpoint and as the base for public object URLs.
+    val endpointUrl: String = require("CLOUDFLARE_R2_BASE_URL"),
+    val customDomain: String = require("CLOUDFLARE_R2_CUSTOM_DOMAIN")
+) {
+    init {
+        check(accessKeyId.length == 32) {
+            "CLOUDFLARE_R2_ACCESS_KEY_ID must be 32 characters (got ${accessKeyId.length}). " +
+            "Generate an R2-specific token from Cloudflare Dashboard → R2 → Manage R2 API Tokens."
+        }
+    }
+}
+
 object AppConfig {
     val mongo = MongoDBConfig()
     val resend = ResendConfig()
     val jwt = JwtConfig()
+    val r2 = R2Config()
 }

@@ -52,6 +52,7 @@ data class UserEntity(
         dateOfBirth = dateOfBirth,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        profilePicture = profilePicture
     )
 
     companion object{
