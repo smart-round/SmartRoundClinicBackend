@@ -1,0 +1,76 @@
+package ke.co.smartroundclinic.auth.koin
+
+import ke.co.smartroundclinic.auth.data.repository.CredentialHasherImpl
+import ke.co.smartroundclinic.auth.data.repository.JwtTokenProvider
+import ke.co.smartroundclinic.auth.data.repository.TokenRepositoryImpl
+import ke.co.smartroundclinic.auth.data.repository.UserRepositoryImpl
+import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
+import ke.co.smartroundclinic.auth.domain.repository.TokenProvider
+import ke.co.smartroundclinic.auth.domain.repository.TokenRepository
+import ke.co.smartroundclinic.auth.domain.repository.UserRepository
+import ke.co.smartroundclinic.auth.domain.service.UserService
+import ke.co.smartroundclinic.auth.domain.usecase.AccountVerificationUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.SignInUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.CreateAdminUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.GetUserUserUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.RefreshTokenUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.RequestPasswordResetUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.ResendAccountVerificationOtpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.ResetPasswordUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.RevokeTokenUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.SendAccountVerificationOtpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.SignUpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.UpdateUserUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.VerifyAccountOtpUseCase
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+
+val authModule = module {
+    single<CredentialsHasher> { CredentialHasherImpl() }
+    single<TokenProvider> { JwtTokenProvider() }
+    single<UserRepository>(createdAtStart = true) {
+        UserRepositoryImpl(
+            get(named("authDb")),
+            get(),
+            get()
+        )
+    }
+    single<TokenRepository> { TokenRepositoryImpl(get(named("authDb"))) }
+
+    single { SignInUseCase(get()) }
+    single { CreateAdminUseCase(get(), get(), get()) }
+    single { UpdateUserUseCase(get()) }
+    single { GetUserUserUseCase(get()) }
+    single { VerifyAccountOtpUseCase(get(), get()) }
+    single { AccountVerificationUseCase(get(), get(), get(),get()) }
+    single { SendAccountVerificationOtpUseCase(get(), get()) }
+    single { ResendAccountVerificationOtpUseCase(get(), get(), get()) }
+    single { RequestPasswordResetUseCase(get(), get(), get(), get()) }
+    single { ResetPasswordUseCase(get(), get(), get(), get()) }
+    single { RefreshTokenUseCase(get(), get(), get()) }
+    single { RevokeTokenUseCase(get(), get()) }
+    single {
+        SignUpUseCase(
+            get(),
+            get(),
+            get()
+        )
+    }
+
+    single {
+        UserService(
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+        )
+    }
+
+}
