@@ -4,13 +4,18 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import ke.co.smartroundclinic.auth.domain.repository.AuthToken
 import ke.co.smartroundclinic.auth.domain.repository.TokenProvider
+import ke.co.smartroundclinic.infra.EnvLoader
 import java.util.*
 
 class JwtTokenProvider : TokenProvider {
-    private val jwtAudience = System.getenv("JWT_AUDIENCE")?.trim() ?: "jwt-audience"
-    private val jwtDomain = System.getenv("JWT_DOMAIN")?.trim() ?: "https://jwt-provider-domain/"
-    private val jwtSecret = System.getenv("JWT_SECRET")?.trim() ?: "secret"
-    private val refreshSecret = System.getenv("REFRESH_SECRET")?.trim() ?: "refresh-secret"
+
+    private fun require(key: String): String =
+        EnvLoader.get(key) ?: throw IllegalStateException("$key is required")
+
+    val jwtAudience = require("JWT_AUDIENCE")
+    val jwtDomain = require("JWT_DOMAIN")
+    val jwtSecret = require("JWT_SECRET")
+    private val refreshSecret = require("REFRESH_SECRET")
 
     override fun generateTokens(userId: String, role: String): AuthToken {
         val accessToken = JWT.create()

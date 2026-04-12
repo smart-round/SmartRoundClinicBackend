@@ -8,14 +8,18 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.http.*
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.infra.EnvLoader
 import ke.co.smartroundclinic.infra.storage.imageExtensionOrNull
+
+private fun require(key: String): String =
+    EnvLoader.get(key) ?: throw IllegalStateException("$key is required")
 
 fun Application.configureSecurity() {
     // Read JWT credentials from environment variables
-    val jwtAudience = System.getenv("JWT_AUDIENCE")?.trim() ?: "jwt-audience"
-    val jwtDomain = System.getenv("JWT_DOMAIN")?.trim() ?: "https://jwt-provider-domain/"
-    val jwtRealm = System.getenv("JWT_REALM")?.trim() ?: "ktor sample app"
-    val jwtSecret = System.getenv("JWT_SECRET")?.trim() ?: "secret"
+    val jwtAudience = require("JWT_AUDIENCE")
+    val jwtDomain = require("JWT_DOMAIN")
+    val jwtRealm = require("JWT_REALM")
+    val jwtSecret = require("JWT_SECRET")
     authentication {
         jwt("auth-jwt") {
             realm = jwtRealm
