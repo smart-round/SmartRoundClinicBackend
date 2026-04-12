@@ -4,6 +4,10 @@ import ke.co.smartroundclinic.admin.domain.usecase.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.CreateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.DeleteSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.DeleteSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.RemoveSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.RemoveSubSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.UploadSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.UploadSubSpecialityIconUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialityByIdUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSubSpecialitiesUseCase
@@ -24,6 +28,10 @@ class SpecialityService(
     private val getSubSpecialitiesUseCase: GetSubSpecialitiesUseCase,
     private val deleteSpecialityUseCase: DeleteSpecialityUseCase,
     private val deleteSubSpecialityUseCase: DeleteSubSpecialityUseCase,
+    private val uploadSpecialityIconUseCase: UploadSpecialityIconUseCase,
+    private val removeSpecialityIconUseCase: RemoveSpecialityIconUseCase,
+    private val uploadSubSpecialityIconUseCase: UploadSubSpecialityIconUseCase,
+    private val removeSubSpecialityIconUseCase: RemoveSubSpecialityIconUseCase,
 ) {
     suspend fun createSpeciality(requests: List<CreateSpecialityReq>) =
         createSpecialityUseCase(requests)
@@ -46,4 +54,14 @@ class SpecialityService(
     suspend fun deleteSpeciality(id: String) = deleteSpecialityUseCase(id)
 
     suspend fun deleteSubSpeciality(id: String) = deleteSubSpecialityUseCase(id)
+
+    suspend fun uploadSpecialityIcon(id: String, imageBytes: ByteArray, contentType: String) =
+        uploadSpecialityIconUseCase(id, imageBytes, contentType)
+
+    suspend fun removeSpecialityIcon(id: String) = removeSpecialityIconUseCase(id)
+
+    suspend fun uploadSubSpecialityIcon(id: String, imageBytes: ByteArray, contentType: String) =
+        uploadSubSpecialityIconUseCase(id, imageBytes, contentType)
+
+    suspend fun removeSubSpecialityIcon(id: String) = removeSubSpecialityIconUseCase(id)
 }

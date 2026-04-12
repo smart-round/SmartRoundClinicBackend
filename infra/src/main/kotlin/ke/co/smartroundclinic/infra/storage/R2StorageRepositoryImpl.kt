@@ -45,8 +45,7 @@ class R2StorageRepositoryImpl(private val config: R2Config) : StorageRepository 
                 this.contentLength = content.size.toLong()
             }
         )
-        val publicUrl = "${config.customDomain}/$key"
-        Resource.Success(data = publicUrl, message = "File uploaded successfully")
+        Resource.Success(data = key, message = "File uploaded successfully")
     } catch (e: Exception) {
         logger.error("R2 upload failed for $bucket/$key: ${e.message}")
         Resource.Error(e.localizedMessage ?: "Upload failed")

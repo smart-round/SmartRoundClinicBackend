@@ -8,6 +8,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.http.*
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.infra.storage.imageExtensionOrNull
 
 fun Application.configureSecurity() {
     // Read JWT credentials from environment variables
@@ -61,6 +62,14 @@ suspend fun ApplicationCall.requireRole(vararg allowedRoles: String, block: susp
         )
     }
 }
+
+/**
+ * Validates that [contentType] is a supported image format (PNG, JPEG, WebP).
+ * Throws [UnsupportedFileFormatException] — caught by StatusPages — if not.
+ * Returns the resolved file extension on success.
+ */
+fun requireImageContentType(contentType: String): String =
+    imageExtensionOrNull(contentType) ?: throw UnsupportedFileFormatException(contentType)
 
 suspend fun ApplicationCall.getUserId(): String? {
     val userId = principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()

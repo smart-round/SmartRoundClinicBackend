@@ -39,9 +39,10 @@ data class R2Config(
     // This is NOT the same as a general Cloudflare API token (cfat_...).
     val accessKeyId: String = require("CLOUDFLARE_R2_ACCESS_KEY_ID"),
     val secretAccessKey: String = require("CLOUDFLARE_R2_SECRET_ACCESS_KEY"),
-    // Used both as the S3-compatible API endpoint and as the base for public object URLs.
+    // S3-compatible API endpoint (account-level, not bucket-level).
     val endpointUrl: String = require("CLOUDFLARE_R2_BASE_URL"),
-    val customDomain: String = require("CLOUDFLARE_R2_CUSTOM_DOMAIN")
+    // All objects are private — access via presigned URLs only.
+    val bucket: String = require("CLOUDFLARE_R2_BUCKET"),
 ) {
     init {
         check(accessKeyId.length == 32) {

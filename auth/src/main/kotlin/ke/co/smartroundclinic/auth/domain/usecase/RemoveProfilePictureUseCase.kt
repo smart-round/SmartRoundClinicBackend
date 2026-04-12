@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.auth.presentation.dto.response.UserRes
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,12 +26,12 @@ class RemoveProfilePictureUseCase(
                         errorMessage = "User not found"
                     ) { null }
 
+                // The profilePicture field now stores the storage key directly.
                 // Delete the object from R2 fire-and-forget; a storage failure should not
                 // prevent clearing the reference on the user record.
-                user.profilePicture?.let { url ->
+                user.profilePicture?.let { key ->
                     launch {
-                        val key = "profile-pictures/$userId.${url.substringAfterLast(".")}"
-                        storageRepository.delete(bucket = BUCKET, key = key)
+                        storageRepository.delete(bucket = AppConfig.r2.bucket, key = key)
                     }
                 }
 
@@ -48,8 +49,4 @@ class RemoveProfilePictureUseCase(
                 ) { it?.toModel()?.toUserRes() }
             }
         }
-
-    companion object {
-        private const val BUCKET = "user-profiles"
-    }
 }

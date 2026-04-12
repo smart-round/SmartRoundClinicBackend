@@ -25,6 +25,7 @@ import ke.co.smartroundclinic.auth.presentation.dto.request.UpdateUserReq
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getRole
 import ke.co.smartroundclinic.infra.plugins.getUserId
+import ke.co.smartroundclinic.infra.plugins.requireImageContentType
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 fun Route.userController(userService: UserService) {
@@ -164,12 +165,12 @@ fun Route.userController(userService: UserService) {
                     val userId = call.getUserId() ?: return@requireRole
 
                     var imageBytes: ByteArray? = null
-                    var contentType = "image/jpeg"
+                    var contentType = ""
 
                     call.receiveMultipart().forEachPart { part ->
                         if (part is PartData.FileItem) {
                             imageBytes = part.streamProvider().readBytes()
-                            contentType = part.contentType?.toString() ?: "image/jpeg"
+                            contentType = part.contentType?.toString() ?: ""
                         }
                         part.dispose()
                     }
@@ -179,7 +180,7 @@ fun Route.userController(userService: UserService) {
                             HttpStatusCode.BadRequest,
                             mapOf("message" to "No image file provided")
                         )
-
+                    requireImageContentType(contentType)
                     val result = userService.uploadProfilePicture(userId, bytes, contentType)
                     call.respond(
                         status = HttpStatusCode.fromValue(result.httpStatusCode),

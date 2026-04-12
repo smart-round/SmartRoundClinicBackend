@@ -42,7 +42,7 @@ val authModule = module {
     single { SignInUseCase(get()) }
     single { CreateAdminUseCase(get(), get(), get()) }
     single { UpdateUserUseCase(get()) }
-    single { GetUserUserUseCase(get()) }
+    single { GetUserUserUseCase(get(), get()) }
     single { VerifyAccountOtpUseCase(get(), get()) }
     single { AccountVerificationUseCase(get(), get(), get(),get()) }
     single { SendAccountVerificationOtpUseCase(get(), get()) }
@@ -76,6 +76,7 @@ val authModule = module {
             get(),
             get(),
             get(),
+
         )
     }
 

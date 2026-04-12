@@ -5,6 +5,10 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -16,6 +20,7 @@ import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSubSpeciality
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateSpecialityReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateSubSpecialityReq
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
+import ke.co.smartroundclinic.infra.plugins.requireImageContentType
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
@@ -67,6 +72,36 @@ fun Route.specialityController(specialityService: SpecialityService) {
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
+
+                post("icon") {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["id"]
+                            ?: throw MissingParametersException("id path parameter is missing")
+                        var imageBytes: ByteArray? = null
+                        var contentType = ""
+                        call.receiveMultipart().forEachPart { part ->
+                            if (part is PartData.FileItem) {
+                                imageBytes = part.streamProvider().readBytes()
+                                contentType = part.contentType?.toString() ?: ""
+                            }
+                            part.dispose()
+                        }
+                        val bytes = imageBytes
+                            ?: return@requireRole call.respond(HttpStatusCode.BadRequest, mapOf("message" to "No image file provided"))
+                        requireImageContentType(contentType)
+                        val result = specialityService.uploadSpecialityIcon(id, bytes, contentType)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                delete("icon") {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["id"]
+                            ?: throw MissingParametersException("id path parameter is missing")
+                        val result = specialityService.removeSpecialityIcon(id)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
             }
             route("/sub-specialities") {
                 post {
@@ -88,11 +123,11 @@ fun Route.specialityController(specialityService: SpecialityService) {
                     }
                 }
             }
-            route("/sub-specialities") {
+            route("/sub-specialities/{subId}") {
                 put {
                     call.requireRole(ADMIN) {
-                        val id = call.parameters["id"]
-                            ?: throw MissingParametersException("id path parameter is missing")
+                        val id = call.parameters["subId"]
+                            ?: throw MissingParametersException("subId path parameter is missing")
                         val body = call.receive<UpdateSubSpecialityReq>()
                         val result = specialityService.updateSubSpeciality(id, body)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
@@ -101,9 +136,42 @@ fun Route.specialityController(specialityService: SpecialityService) {
 
                 delete {
                     call.requireRole(ADMIN) {
-                        val id = call.parameters["id"]
-                            ?: throw MissingParametersException("id path parameter is missing")
+                        val id = call.parameters["subId"]
+                            ?: throw MissingParametersException("subId path parameter is missing")
                         val result = specialityService.deleteSubSpeciality(id)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                post("icon") {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["subId"]
+                            ?: throw MissingParametersException("subId path parameter is missing")
+                        var imageBytes: ByteArray? = null
+                        var contentType = ""
+                        call.receiveMultipart().forEachPart { part ->
+                            if (part is PartData.FileItem) {
+                                imageBytes = part.streamProvider().readBytes()
+                                contentType = part.contentType?.toString() ?: ""
+                            }
+                            part.dispose()
+                        }
+                        val bytes = imageBytes
+                            ?: return@requireRole call.respond(
+                                HttpStatusCode.BadRequest,
+                                mapOf("message" to "No image file provided")
+                            )
+                        requireImageContentType(contentType)
+                        val result = specialityService.uploadSubSpecialityIcon(id, bytes, contentType)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                delete("icon") {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["subId"]
+                            ?: throw MissingParametersException("subId path parameter is missing")
+                        val result = specialityService.removeSubSpecialityIcon(id)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }

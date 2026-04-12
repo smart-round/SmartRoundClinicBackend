@@ -7,6 +7,10 @@ import ke.co.smartroundclinic.admin.domain.usecase.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.CreateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.DeleteSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.DeleteSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.RemoveSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.RemoveSubSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.UploadSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.UploadSubSpecialityIconUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialityByIdUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSubSpecialitiesUseCase
@@ -27,9 +31,17 @@ val adminModule = module {
     single { GetSubSpecialitiesUseCase(get()) }
     single { DeleteSpecialityUseCase(get()) }
     single { DeleteSubSpecialityUseCase(get()) }
+    single { UploadSpecialityIconUseCase(get(), get()) }
+    single { RemoveSpecialityIconUseCase(get(), get()) }
+    single { UploadSubSpecialityIconUseCase(get(), get()) }
+    single { RemoveSubSpecialityIconUseCase(get(), get()) }
 
     single {
         SpecialityService(
+            get(),
+            get(),
+            get(),
+            get(),
             get(),
             get(),
             get(),

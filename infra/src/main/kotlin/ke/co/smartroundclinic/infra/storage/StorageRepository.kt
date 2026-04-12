@@ -4,8 +4,8 @@ import ke.co.smartroundclinic.common.Resource
 
 interface StorageRepository {
     /**
-     * Uploads [content] to the given [bucket] under [key].
-     * Returns the public URL of the uploaded object on success.
+     * Uploads [content] to [bucket] under [key].
+     * Returns the storage key on success. Call [presignedGetUrl] to build a time-limited URL.
      */
     suspend fun upload(
         bucket: String,
