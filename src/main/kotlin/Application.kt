@@ -5,6 +5,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import ke.co.smartroundclinic.admin.adminModule
+import ke.co.smartroundclinic.admin.koin.adminModule as adminKoinModule
 import ke.co.smartroundclinic.auth.authModule
 import ke.co.smartroundclinic.auth.koin.authModule as authKoinModule
 import ke.co.smartroundclinic.infra.configureInfraModule
@@ -22,8 +24,9 @@ fun main() {
 }
 
 fun Application.module() {
-    configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, notificationModule))
+    configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, notificationModule))
     authModule()
+    adminModule()
     routing {
         get("/") {
             call.respondText("Hello World!")

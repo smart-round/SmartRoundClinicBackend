@@ -16,5 +16,11 @@ object MongoDBConstants {
     const val AUTH_USER = "auth_user"
     const val AUTH_REVOKED_TOKENS = "auth_revoked_tokens"
 
+    /**
+     * MongoDB Entities for ADMIN_DB
+     */
+    const val ADMIN_SPECIALITIES = "admin_specialities"
+    const val ADMIN_SUBSPECIALITIES = "admin_subspecialities"
+
 
 }
