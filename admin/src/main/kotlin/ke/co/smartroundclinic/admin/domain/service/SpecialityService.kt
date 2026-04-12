@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.admin.domain.service
 
 import ke.co.smartroundclinic.admin.domain.usecase.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.CreateSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.DeleteSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.DeleteSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialityByIdUseCase
@@ -21,6 +22,7 @@ class SpecialityService(
     private val createSubSpecialityUseCase: CreateSubSpecialityUseCase,
     private val updateSubSpecialityUseCase: UpdateSubSpecialityUseCase,
     private val getSubSpecialitiesUseCase: GetSubSpecialitiesUseCase,
+    private val deleteSpecialityUseCase: DeleteSpecialityUseCase,
     private val deleteSubSpecialityUseCase: DeleteSubSpecialityUseCase,
 ) {
     suspend fun createSpeciality(requests: List<CreateSpecialityReq>) =
@@ -40,6 +42,8 @@ class SpecialityService(
         updateSubSpecialityUseCase(id, body.title, body.description, body.color, body.iconUrl)
 
     suspend fun getSubSpecialities(specialityId: String) = getSubSpecialitiesUseCase(specialityId)
+
+    suspend fun deleteSpeciality(id: String) = deleteSpecialityUseCase(id)
 
     suspend fun deleteSubSpeciality(id: String) = deleteSubSpecialityUseCase(id)
 }

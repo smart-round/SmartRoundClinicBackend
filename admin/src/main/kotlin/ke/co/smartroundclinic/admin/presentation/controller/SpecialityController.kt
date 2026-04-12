@@ -53,51 +53,59 @@ fun Route.specialityController(specialityService: SpecialityService) {
                         val id = call.parameters["id"]
                             ?: throw MissingParametersException("id path parameter is missing")
                         val body = call.receive<UpdateSpecialityReq>()
+                        println(body)
                         val result = specialityService.updateSpeciality(id, body)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
 
-                route("subspecialities") {
-                    post {
-                        call.requireRole(ADMIN) {
-                            val specialityId = call.parameters["id"]
-                                ?: throw MissingParametersException("id path parameter is missing")
-                            val body = call.receive<CreateSubSpecialityReq>()
-                            val result = specialityService.createSubSpeciality(specialityId, body)
-                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-                        }
-                    }
-
-                    get {
-                        call.requireRole(ADMIN) {
-                            val specialityId = call.parameters["id"]
-                                ?: throw MissingParametersException("id path parameter is missing")
-                            val result = specialityService.getSubSpecialities(specialityId)
-                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-                        }
+                delete {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["id"]
+                            ?: throw MissingParametersException("id path parameter is missing")
+                        val result = specialityService.deleteSpeciality(id)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
             }
-        }
+            route("/sub-specialities") {
+                post {
+                    call.requireRole(ADMIN) {
+                        val specialityId = call.parameters["id"]
+                            ?: throw MissingParametersException("id path parameter is missing")
+                        val body = call.receive<CreateSubSpecialityReq>()
+                        val result = specialityService.createSubSpeciality(specialityId, body)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
 
-        route("/admin/subspecialities/{id}") {
-            put {
-                call.requireRole(ADMIN) {
-                    val id = call.parameters["id"]
-                        ?: throw MissingParametersException("id path parameter is missing")
-                    val body = call.receive<UpdateSubSpecialityReq>()
-                    val result = specialityService.updateSubSpeciality(id, body)
-                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                get {
+                    call.requireRole(ADMIN) {
+                        val specialityId = call.request.queryParameters["id"]
+                            ?: throw MissingParametersException("SpecialityId query parameter is missing")
+                        val result = specialityService.getSubSpecialities(specialityId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
                 }
             }
+            route("/sub-specialities") {
+                put {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["id"]
+                            ?: throw MissingParametersException("id path parameter is missing")
+                        val body = call.receive<UpdateSubSpecialityReq>()
+                        val result = specialityService.updateSubSpeciality(id, body)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
 
-            delete {
-                call.requireRole(ADMIN) {
-                    val id = call.parameters["id"]
-                        ?: throw MissingParametersException("id path parameter is missing")
-                    val result = specialityService.deleteSubSpeciality(id)
-                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                delete {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["id"]
+                            ?: throw MissingParametersException("id path parameter is missing")
+                        val result = specialityService.deleteSubSpeciality(id)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
                 }
             }
         }

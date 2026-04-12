@@ -133,6 +133,16 @@ class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
             specialities.find(Filters.eq(SpecialityEntity::id.name, specialityId)).firstOrNull()
                 ?: return@withContext Resource.Error("Parent speciality not found")
 
+            val duplicate = subSpecialities.find(
+                Filters.and(
+                    Filters.eq(SubspecialtyEntity::specialityId.name, specialityId),
+                    Filters.regex(SubspecialtyEntity::title.name, "^${subspecialtyEntity.title}$", "i")
+                )
+            ).firstOrNull()
+            if (duplicate != null) {
+                return@withContext Resource.Error("Subspeciality '${subspecialtyEntity.title}' already exists under this speciality")
+            }
+
             subSpecialities.insertOne(subspecialtyEntity)
             Resource.Success(data = subspecialtyEntity, message = "Subspeciality created successfully")
         } catch (e: Exception) {
@@ -170,6 +180,18 @@ class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
             Resource.Error(e.localizedMessage ?: "Failed to update subspeciality")
         }
     }
+
+    override suspend fun deleteSpeciality(id: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                val result = specialities.deleteOne(Filters.eq(SpecialityEntity::id.name, id))
+                if (result.deletedCount == 0L) return@withContext Resource.Error("Speciality not found")
+                subSpecialities.deleteMany(Filters.eq(SubspecialtyEntity::specialityId.name, id))
+                Resource.Success(data = null, message = "Speciality deleted successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to delete speciality")
+            }
+        }
 
     override suspend fun deleteSubSpeciality(id: String): Resource<Nothing> =
         withContext(Dispatchers.IO) {

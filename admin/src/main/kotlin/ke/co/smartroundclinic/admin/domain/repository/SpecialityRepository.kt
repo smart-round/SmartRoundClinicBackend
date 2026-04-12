@@ -14,5 +14,6 @@ interface SpecialityRepository {
     suspend fun getSubSpeciality(id: String): Resource<SubspecialtyEntity?>
     suspend fun createSubSpeciality(specialityId: String, subspecialtyEntity: SubspecialtyEntity): Resource<SubspecialtyEntity>
     suspend fun updateSubSpeciality(id: String, title: String?, description: String?,color: String?, iconUrl: String?): Resource<SubspecialtyEntity>
+    suspend fun deleteSpeciality(id: String): Resource<Nothing>
     suspend fun deleteSubSpeciality(id: String): Resource<Nothing>
 }

@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.admin.domain.service.SpecialityService
 import ke.co.smartroundclinic.admin.domain.usecase.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.CreateSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.DeleteSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.DeleteSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialityByIdUseCase
@@ -24,10 +25,12 @@ val adminModule = module {
     single { CreateSubSpecialityUseCase(get()) }
     single { UpdateSubSpecialityUseCase(get()) }
     single { GetSubSpecialitiesUseCase(get()) }
+    single { DeleteSpecialityUseCase(get()) }
     single { DeleteSubSpecialityUseCase(get()) }
 
     single {
         SpecialityService(
+            get(),
             get(),
             get(),
             get(),
