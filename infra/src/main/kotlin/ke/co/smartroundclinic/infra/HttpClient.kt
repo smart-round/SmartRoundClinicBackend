@@ -49,5 +49,6 @@ suspend fun HttpResponse.logResponse(): String {
         )
     } catch (e: Exception) {
         "Failed to log response: ${e.message}"
+
     }
 }

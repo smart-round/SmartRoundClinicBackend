@@ -21,6 +21,7 @@ object MongoDBConstants {
      */
     const val ADMIN_SPECIALITIES = "admin_specialities"
     const val ADMIN_SUBSPECIALITIES = "admin_subspecialities"
+    const val ADMIN_KMPDC_PRACTITIONERS = "admin_kmpdc_practitioners"
 
 
 }

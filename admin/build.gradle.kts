@@ -7,7 +7,9 @@ kotlin {
     jvmToolchain(21)
 }
 
+
 dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
+    implementation(libs.kotlin.jsoup)
 }
