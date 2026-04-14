@@ -6,11 +6,8 @@ data class PractitionerLicenceEntity(
     val id: String,
     val complianceId: String,
     val doctorId: String,
+    val licenceName: String,
     val licenceUrl: String,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 )
-
-enum class LicenceCategory{
-
-}

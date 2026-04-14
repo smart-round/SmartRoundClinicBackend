@@ -4,6 +4,14 @@ import ke.co.smartroundclinic.admin.data.entity.KmpdcPractitionerEntity
 import org.bson.types.ObjectId
 
 
+// ── Result types ─────────────────────────────────────────────────────────────
+
+data class KmpdcRefreshSummary(
+    val newRecords: Int,
+    val totalScraped: Int,
+    val failedRegisters: List<String>,
+)
+
 // ── Shared enums ─────────────────────────────────────────────────────────────
 
 enum class KmpdcRegisterType {

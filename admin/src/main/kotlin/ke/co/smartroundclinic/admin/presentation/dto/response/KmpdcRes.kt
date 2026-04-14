@@ -30,6 +30,13 @@ data class KmpdcPageResult(
     val pages: Long,
 )
 
+@Serializable
+data class KmpdcRefreshRes(
+    val newRecords: Int,
+    val totalScraped: Int,
+    val failedRegisters: List<String>,
+)
+
 fun KmpdcPractitionerEntity.toRes() = KmpdcPractitionerRes(
     id = id,
     fullName = fullName,

@@ -2,11 +2,13 @@ package ke.co.smartroundclinic.admin.data.repository
 
 import com.mongodb.client.model.BulkWriteOptions
 import com.mongodb.client.model.Filters
-import com.mongodb.client.model.ReplaceOneModel
-import com.mongodb.client.model.ReplaceOptions
+import com.mongodb.client.model.UpdateOneModel
+import com.mongodb.client.model.UpdateOptions
+import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.admin.data.entity.KmpdcPractitionerEntity
 import ke.co.smartroundclinic.admin.domain.model.DoctorLicenceStatus
+import ke.co.smartroundclinic.admin.domain.model.KmpdcRefreshSummary
 import ke.co.smartroundclinic.admin.domain.model.KmpdcRegisterType
 import ke.co.smartroundclinic.admin.domain.model.toEntity
 import ke.co.smartroundclinic.admin.domain.repository.KmpdcRepository
@@ -31,8 +33,11 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import org.bson.conversions.Bson
 import org.jsoup.Jsoup
+import org.slf4j.LoggerFactory
 
 class KmpdcRepositoryImpl(database: MongoDatabase) : KmpdcRepository {
+
+    private val log = LoggerFactory.getLogger(KmpdcRepositoryImpl::class.java)
 
     private val collection =
         database.getCollection<KmpdcPractitionerEntity>(MongoDBConstants.ADMIN_KMPDC_PRACTITIONERS)
@@ -60,43 +65,110 @@ class KmpdcRepositoryImpl(database: MongoDatabase) : KmpdcRepository {
             .outerHtml()
     }
 
+    // ── Fetch helpers ─────────────────────────────────────────────────────────
+
+    /** Fetches and parses one register. Returns null records on failure. */
+    private suspend fun fetchRegister(
+        name: String,
+        url: String,
+        parse: (String) -> List<KmpdcPractitionerEntity>,
+    ): Pair<String, List<KmpdcPractitionerEntity>?> {
+        log.info("[KMPDC] [$name] Fetching — $url")
+        return try {
+            val records = parse(fetchHtml(url))
+            log.info("[KMPDC] [$name] OK — parsed ${records.size} records")
+            name to records
+        } catch (e: Exception) {
+            log.error("[KMPDC] [$name] FAILED — ${e.message}")
+            name to null
+        }
+    }
+
     // ── KmpdcRepository ───────────────────────────────────────────────────────
 
-    private suspend fun safeFetch(url: String, parse: (String) -> List<KmpdcPractitionerEntity>): List<KmpdcPractitionerEntity> =
-        try { parse(fetchHtml(url)) } catch (e: Exception) {
-            println("[KMPDC] Skipped $url — ${e.message}")
-            emptyList()
-        }
+    override suspend fun refreshAll(): Resource<KmpdcRefreshSummary> = try {
+        log.info("[KMPDC] Starting full register refresh — fetching 10 registers concurrently")
+        val startMs = System.currentTimeMillis()
 
-    override suspend fun refreshAll(): Resource<Int> = try {
-        val all: List<KmpdcPractitionerEntity> = coroutineScope {
+        val results: List<Pair<String, List<KmpdcPractitionerEntity>?>> = coroutineScope {
             listOf(
-                async { safeFetch(Urls.MEDICAL_MASTER)           { parseMedicalMasterHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.MEDICAL_GP)               { parseMedicalGpHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.MEDICAL_REGISTRAR)        { parseMedicalRegistrarHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.MEDICAL_SENIOR_REGISTRAR) { parseMedicalSeniorRegistrarHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.MEDICAL_SPECIALIST)       { parseMedicalSpecialistHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.DENTAL_MASTER)            { parseDentalMasterHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.DENTAL_GP)                { parseDentalGpHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.DENTAL_REGISTRAR)         { parseDentalRegistrarHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.DENTAL_SENIOR_REGISTRAR)  { parseDentalSeniorRegistrarHtml(it).map { r -> r.toEntity() } } },
-                async { safeFetch(Urls.DENTAL_SPECIALIST)        { parseDentalSpecialistHtml(it).map { r -> r.toEntity() } } },
-            ).awaitAll().flatten()
+                async { fetchRegister("MEDICAL_MASTER",           Urls.MEDICAL_MASTER)           { parseMedicalMasterHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("MEDICAL_GP",               Urls.MEDICAL_GP)               { parseMedicalGpHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("MEDICAL_REGISTRAR",        Urls.MEDICAL_REGISTRAR)        { parseMedicalRegistrarHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("MEDICAL_SENIOR_REGISTRAR", Urls.MEDICAL_SENIOR_REGISTRAR) { parseMedicalSeniorRegistrarHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("MEDICAL_SPECIALIST",       Urls.MEDICAL_SPECIALIST)       { parseMedicalSpecialistHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("DENTAL_MASTER",            Urls.DENTAL_MASTER)            { parseDentalMasterHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("DENTAL_GP",                Urls.DENTAL_GP)                { parseDentalGpHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("DENTAL_REGISTRAR",         Urls.DENTAL_REGISTRAR)         { parseDentalRegistrarHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("DENTAL_SENIOR_REGISTRAR",  Urls.DENTAL_SENIOR_REGISTRAR)  { parseDentalSeniorRegistrarHtml(it).map { r -> r.toEntity() } } },
+                async { fetchRegister("DENTAL_SPECIALIST",        Urls.DENTAL_SPECIALIST)        { parseDentalSpecialistHtml(it).map { r -> r.toEntity() } } },
+            ).awaitAll()
         }
 
-        if (all.isEmpty()) return Resource.Success(0, "No records found on KMPDC website")
+        val fetchDurationMs = System.currentTimeMillis() - startMs
+        log.info("[KMPDC] All fetches completed in ${fetchDurationMs}ms")
 
-        val writes = all.map { entity ->
+        val failedRegisters = results.filter { it.second == null }.map { it.first }
+        val all = results.mapNotNull { it.second }.flatten()
+
+        results.forEach { (name, records) ->
+            if (records != null) log.info("[KMPDC] [$name] OK — ${records.size} records")
+            else                 log.warn("[KMPDC] [$name] FAILED — 0 records (skipped)")
+        }
+
+        if (all.isEmpty()) {
+            log.warn("[KMPDC] No records scraped from any register — aborting DB write")
+            return Resource.Success(
+                KmpdcRefreshSummary(newRecords = 0, totalScraped = 0, failedRegisters = failedRegisters),
+                "No records scraped from KMPDC",
+            )
+        }
+
+        log.info("[KMPDC] Total scraped: ${all.size} records — writing new records to DB (existing untouched)")
+
+        // Use $setOnInsert so existing documents are never touched — only NEW records are written.
+        val writes: List<UpdateOneModel<KmpdcPractitionerEntity>> = all.map { entity ->
             val filter = Filters.and(
                 Filters.eq("regNumber", entity.regNumber),
                 Filters.eq("registerType", entity.registerType),
             )
-            ReplaceOneModel(filter, entity, ReplaceOptions().upsert(true))
+            val update = Updates.combine(
+                Updates.setOnInsert("id",              entity.id),
+                Updates.setOnInsert("fullName",         entity.fullName),
+                Updates.setOnInsert("regNumber",        entity.regNumber),
+                Updates.setOnInsert("address",          entity.address),
+                Updates.setOnInsert("qualifications",   entity.qualifications),
+                Updates.setOnInsert("status",           entity.status),
+                Updates.setOnInsert("practitionerType", entity.practitionerType),
+                Updates.setOnInsert("registerType",     entity.registerType),
+                Updates.setOnInsert("speciality",       entity.speciality),
+                Updates.setOnInsert("subSpeciality",    entity.subSpeciality),
+                Updates.setOnInsert("licenceType",      entity.licenceType),
+                Updates.setOnInsert("discipline",       entity.discipline),
+                Updates.setOnInsert("specialty",        entity.specialty),
+                Updates.setOnInsert("lastRefreshedAt",  entity.lastRefreshedAt),
+            )
+            UpdateOneModel<KmpdcPractitionerEntity>(filter, update, UpdateOptions().upsert(true))
         }
 
-        collection.bulkWrite(writes, BulkWriteOptions().ordered(false))
-        Resource.Success(all.size, "Refreshed ${all.size} records from KMPDC")
+        val bulkResult = collection.bulkWrite(writes, BulkWriteOptions().ordered(false))
+        val newCount = bulkResult.upserts.size
+        val skipped = all.size - newCount
+        val totalDurationMs = System.currentTimeMillis() - startMs
+
+        log.info("[KMPDC] DB write complete — new: $newCount, already existed (skipped): $skipped")
+        if (failedRegisters.isNotEmpty()) log.warn("[KMPDC] Failed registers: $failedRegisters")
+        log.info("[KMPDC] Refresh finished in ${totalDurationMs}ms")
+
+        Resource.Success(
+            KmpdcRefreshSummary(
+                newRecords = newCount,
+                totalScraped = all.size,
+                failedRegisters = failedRegisters,
+            ),
+        )
     } catch (e: Exception) {
+        log.error("[KMPDC] Refresh aborted with unexpected error — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to refresh KMPDC data")
     }
 

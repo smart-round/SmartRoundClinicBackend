@@ -9,6 +9,8 @@ import ke.co.smartroundclinic.admin.adminModule
 import ke.co.smartroundclinic.admin.koin.adminModule as adminKoinModule
 import ke.co.smartroundclinic.auth.authModule
 import ke.co.smartroundclinic.auth.koin.authModule as authKoinModule
+import ke.co.smartroundclinic.doctor.doctorModule
+import ke.co.smartroundclinic.doctor.koin.doctorModule as doctorKoinModule
 import ke.co.smartroundclinic.infra.configureInfraModule
 import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
@@ -24,9 +26,10 @@ fun main() {
 }
 
 fun Application.module() {
-    configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, notificationModule))
+    configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule))
     authModule()
     adminModule()
+    doctorModule()
     routing {
         get("/") {
             call.respondText("Hello World!")
