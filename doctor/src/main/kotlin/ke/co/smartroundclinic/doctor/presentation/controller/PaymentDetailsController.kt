@@ -2,8 +2,8 @@ package ke.co.smartroundclinic.doctor.presentation.controller
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import ke.co.smartroundclinic.infra.plugins.receiveValidated
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -32,7 +32,7 @@ fun Route.paymentDetailsController(service: PaymentDetailsService) {
             post {
                 call.requireRole(DOCTOR) {
                     val doctorId = call.getUserId() ?: return@requireRole
-                    val body = call.receiveValidated<AddPaymentDetailsReq>()
+                    val body = call.receive<AddPaymentDetailsReq>()
                     val result = service.add(body.toModel(doctorId).toEntity())
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
@@ -53,7 +53,7 @@ fun Route.paymentDetailsController(service: PaymentDetailsService) {
             put {
                 call.requireRole(DOCTOR) {
                     val doctorId = call.getUserId() ?: return@requireRole
-                    val body = call.receiveValidated<UpdatePaymentDetailsReq>()
+                    val body = call.receive<UpdatePaymentDetailsReq>()
                     val result = service.update(doctorId, body.accountName, body.accountNumber, body.bankCode, body.branchCode, body.bankName, body.branchName)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
@@ -86,9 +86,10 @@ fun Route.paymentDetailsController(service: PaymentDetailsService) {
 
             // GET /admin/payment-details/{id}
             // Get a single payment-details record by its id.
-            get("doctor") {
+
+            get("{id}") {
                 call.requireRole(ADMIN) {
-                    val id = call.parameters["id"]
+                    val id = call.parameters["id"] 
                         ?: throw MissingParametersException("id path parameter is required")
                     val result = service.getById(id)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)

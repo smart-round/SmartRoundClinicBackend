@@ -14,12 +14,10 @@ import ke.co.smartroundclinic.doctor.presentation.controller.localBankController
 import ke.co.smartroundclinic.doctor.presentation.controller.paymentDetailsController
 import ke.co.smartroundclinic.doctor.presentation.controller.practitionerLicenceController
 import ke.co.smartroundclinic.doctor.presentation.controller.practitionerProfileController
-import ke.co.smartroundclinic.doctor.validation.registerDoctorValidators
 import org.koin.ktor.ext.inject
 import kotlin.getValue
 
 fun Application.doctorModule() {
-    registerDoctorValidators()
     val profileService: PractitionerProfileService by inject()
     val certificationService: CertificationService by inject()
     val licenceService: PractitionerLicenceService by inject()

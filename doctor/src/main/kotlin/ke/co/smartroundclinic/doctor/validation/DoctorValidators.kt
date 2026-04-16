@@ -1,31 +1,38 @@
 package ke.co.smartroundclinic.doctor.validation
 
-import io.ktor.server.application.Application
+import io.ktor.server.plugins.requestvalidation.RequestValidationConfig
+import io.ktor.server.plugins.requestvalidation.ValidationResult
 import ke.co.smartroundclinic.doctor.presentation.dto.request.AddPaymentDetailsReq
 import ke.co.smartroundclinic.doctor.presentation.dto.request.UpdatePaymentDetailsReq
-import ke.co.smartroundclinic.infra.plugins.registerValidator
 
-fun Application.registerDoctorValidators() {
+fun RequestValidationConfig.registerDoctorValidators() {
 
-    registerValidator<AddPaymentDetailsReq> { req ->
-        require(req.bankName.isNotBlank())      { "bankName is required" }
-        require(req.branchName.isNotBlank())    { "branchName is required" }
-        require(req.bankCode.isNotBlank())      { "bankCode is required" }
-        require(req.branchCode.isNotBlank())    { "branchCode is required" }
-        require(req.accountNumber.isNotBlank()) { "accountNumber is required" }
-        require(req.accountName.isNotBlank())   { "accountName is required" }
+    validate<AddPaymentDetailsReq> { req ->
+        val errors = buildList {
+            if (req.bankName.isBlank())      add("bankName is required")
+            if (req.branchName.isBlank())    add("branchName is required")
+            if (req.bankCode.isBlank())      add("bankCode is required")
+            if (req.branchCode.isBlank())    add("branchCode is required")
+            if (req.accountNumber.isBlank()) add("accountNumber is required")
+            if (req.accountName.isBlank())   add("accountName is required")
+        }
+        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
     }
 
-    registerValidator<UpdatePaymentDetailsReq> { req ->
+    validate<UpdatePaymentDetailsReq> { req ->
         val allNull = req.bankName == null && req.branchName == null &&
             req.bankCode == null && req.branchCode == null &&
             req.accountNumber == null && req.accountName == null
-        require(!allNull) { "At least one field must be provided for update" }
-        req.bankName?.let     { require(it.isNotBlank()) { "bankName cannot be blank" } }
-        req.branchName?.let   { require(it.isNotBlank()) { "branchName cannot be blank" } }
-        req.bankCode?.let     { require(it.isNotBlank()) { "bankCode cannot be blank" } }
-        req.branchCode?.let   { require(it.isNotBlank()) { "branchCode cannot be blank" } }
-        req.accountNumber?.let { require(it.isNotBlank()) { "accountNumber cannot be blank" } }
-        req.accountName?.let  { require(it.isNotBlank()) { "accountName cannot be blank" } }
+        if (allNull) return@validate ValidationResult.Invalid("At least one field must be provided for update")
+
+        val errors = buildList {
+            req.bankName?.let      { if (it.isBlank()) add("bankName cannot be blank") }
+            req.branchName?.let    { if (it.isBlank()) add("branchName cannot be blank") }
+            req.bankCode?.let      { if (it.isBlank()) add("bankCode cannot be blank") }
+            req.branchCode?.let    { if (it.isBlank()) add("branchCode cannot be blank") }
+            req.accountNumber?.let { if (it.isBlank()) add("accountNumber cannot be blank") }
+            req.accountName?.let   { if (it.isBlank()) add("accountName cannot be blank") }
+        }
+        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
     }
 }

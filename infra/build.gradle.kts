@@ -22,6 +22,7 @@ dependencies {
     api(libs.koin.ktor)
     api(libs.koin.logger.slf4j)
     api(libs.ktor.server.status.pages)
+    api(libs.ktor.server.request.validation)
     api(libs.ktor.server.call.logging)
     api(libs.ktor.server.metrics.micrometer)
     api(libs.micrometer.registry.prometheus)

@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.ktor.serialization.gson.gson
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.UnsupportedMediaTypeException
+import io.ktor.server.plugins.requestvalidation.RequestValidationException
 import ke.co.smartroundclinic.common.Resource
 import kotlinx.serialization.SerializationException
 
@@ -18,6 +19,13 @@ fun Application.configureSerialization() {
     }
 
     install(StatusPages) {
+        exception<RequestValidationException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                Resource.Error(data = null, message = cause.reasons.joinToString("; "))
+                    .toDefaultResponse(HttpStatusCode.BadRequest.value) { null }
+            )
+        }
         exception<MissingParametersException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

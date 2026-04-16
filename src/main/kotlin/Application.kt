@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.auth.authModule
 import ke.co.smartroundclinic.auth.koin.authModule as authKoinModule
 import ke.co.smartroundclinic.doctor.doctorModule
 import ke.co.smartroundclinic.doctor.koin.doctorModule as doctorKoinModule
+import ke.co.smartroundclinic.doctor.validation.registerDoctorValidators
 import ke.co.smartroundclinic.infra.configureInfraModule
 import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
@@ -26,7 +27,12 @@ fun main() {
 }
 
 fun Application.module() {
-    configureInfraModule(listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule))
+    configureInfraModule(
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule),
+        validators = {
+            registerDoctorValidators()
+        }
+    )
     authModule()
     adminModule()
     doctorModule()
