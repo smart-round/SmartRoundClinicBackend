@@ -1,4 +1,4 @@
-package ke.co.smartroundclinic.doctor.domain.usecase
+package ke.co.smartroundclinic.doctor.domain.usecase.profile
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
@@ -12,8 +12,8 @@ import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
 class CreatePractitionerProfileUseCase(private val repository: PractitionerProfileRepository) {
     suspend operator fun invoke(model: PractitionerProfile): DefaultResponse<PractitionerProfileRes?> =
         repository.create(model.toEntity()).toDefaultResponse(
-            successStatusCode = HttpStatusCode.Created.value,
-            failedStatusCode = HttpStatusCode.Conflict.value,
+            successStatusCode = HttpStatusCode.Companion.Created.value,
+            failedStatusCode = HttpStatusCode.Companion.Conflict.value,
             successMessage = "Profile created successfully",
         ) { it?.toModel()?.toRes() }
 }

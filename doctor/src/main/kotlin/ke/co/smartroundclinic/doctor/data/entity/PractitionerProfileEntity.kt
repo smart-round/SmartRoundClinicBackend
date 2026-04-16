@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.doctor.data.entity
 
 import org.bson.types.ObjectId
+import kotlin.time.Clock
 
 data class PractitionerProfileEntity(
     val id: String = ObjectId().toString(),
@@ -14,6 +15,6 @@ data class PractitionerProfileEntity(
     val averageRating: Double = 0.0,
     val totalReviews: Int = 0,
     val totalConsultations: Int = 0,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null,
+    val createdAt: String = Clock.System.now().toString(),
+    val updatedAt: String? = null,
 )

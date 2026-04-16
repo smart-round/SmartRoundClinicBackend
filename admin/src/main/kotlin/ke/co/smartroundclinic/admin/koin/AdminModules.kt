@@ -68,4 +68,5 @@ val adminModule = module {
     single { FindKmpdcByRegNumberUseCase(get()) }
     single { SearchKmpdcByNameUseCase(get()) }
     single { KmpdcService(get(), get(), get(), get()) }
+
 }

@@ -1,4 +1,4 @@
-package ke.co.smartroundclinic.doctor.domain.usecase
+package ke.co.smartroundclinic.doctor.domain.usecase.profile
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
@@ -14,7 +14,7 @@ class UpdatePractitionerProfileUseCase(private val repository: PractitionerProfi
         update: PractitionerProfileUpdate,
     ): DefaultResponse<PractitionerProfileRes?> =
         repository.update(doctorId, update).toDefaultResponse(
-            failedStatusCode = HttpStatusCode.InternalServerError.value,
+            failedStatusCode = HttpStatusCode.Companion.InternalServerError.value,
             successMessage = "Profile updated successfully",
         ) { it?.toModel()?.toRes() }
 }

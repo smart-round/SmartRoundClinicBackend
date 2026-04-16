@@ -4,6 +4,7 @@ import ke.co.smartroundclinic.doctor.domain.model.PractitionerProfile
 import ke.co.smartroundclinic.doctor.domain.model.PractitionerProfileUpdate
 import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
+import kotlin.time.Clock
 
 @Serializable
 data class CreatePractitionerProfileReq(
@@ -26,7 +27,7 @@ data class CreatePractitionerProfileReq(
         averageRating = 0.0,
         totalReviews = 0,
         totalConsultations = 0,
-        createdAt = System.currentTimeMillis(),
+        createdAt = Clock.System.now().toString(),
         updatedAt = null,
     )
 }

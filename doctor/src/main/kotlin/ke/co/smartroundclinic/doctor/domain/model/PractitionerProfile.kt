@@ -14,8 +14,8 @@ data class PractitionerProfile(
     val averageRating: Double,
     val totalReviews: Int,
     val totalConsultations: Int,
-    val createdAt: Long,
-    val updatedAt: Long?,
+    val createdAt: String,
+    val updatedAt: String?,
 )
 
 fun PractitionerProfileEntity.toModel() = PractitionerProfile(

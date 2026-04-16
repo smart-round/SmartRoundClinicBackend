@@ -35,26 +35,27 @@ data class JwtConfig(
 )
 
 data class R2Config(
-    // R2 S3-compatible Access Key ID (32 chars) — generate from Cloudflare Dashboard → R2 → Manage R2 API Tokens.
-    // This is NOT the same as a general Cloudflare API token (cfat_...).
     val accessKeyId: String = require("CLOUDFLARE_R2_ACCESS_KEY_ID"),
     val secretAccessKey: String = require("CLOUDFLARE_R2_SECRET_ACCESS_KEY"),
-    // S3-compatible API endpoint (account-level, not bucket-level).
     val endpointUrl: String = require("CLOUDFLARE_R2_BASE_URL"),
-    // All objects are private — access via presigned URLs only.
     val bucket: String = require("CLOUDFLARE_R2_BUCKET"),
 ) {
     init {
         check(accessKeyId.length == 32) {
             "CLOUDFLARE_R2_ACCESS_KEY_ID must be 32 characters (got ${accessKeyId.length}). " +
-            "Generate an R2-specific token from Cloudflare Dashboard → R2 → Manage R2 API Tokens."
+            "Generate an R2-specific token from Cloudflare Dashboard -> R2 -> Manage R2 API Tokens."
         }
     }
 }
+
+data class StaticAssetsConfig(
+    val kenyanBanksJsonUrl: String = require("KENYAN_BANKS_JSON_URL"),
+)
 
 object AppConfig {
     val mongo = MongoDBConfig()
     val resend = ResendConfig()
     val jwt = JwtConfig()
     val r2 = R2Config()
+    val staticAssets = StaticAssetsConfig()
 }

@@ -1,17 +1,17 @@
-package ke.co.smartroundclinic.doctor.domain.usecase
+package ke.co.smartroundclinic.doctor.domain.usecase.compliance
 
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.doctor.domain.model.toModel
-import ke.co.smartroundclinic.doctor.domain.repository.PractitionerProfileRepository
-import ke.co.smartroundclinic.doctor.presentation.dto.response.PractitionerProfilePageResult
+import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
+import ke.co.smartroundclinic.doctor.presentation.dto.response.CompliancePageResult
 import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
 import kotlin.math.ceil
 
-class GetPractitionerProfilesUseCase(private val repository: PractitionerProfileRepository) {
-    suspend operator fun invoke(page: Int, size: Int): DefaultResponse<PractitionerProfilePageResult?> =
+class GetAllComplianceUseCase(private val repository: ComplianceRepository) {
+    suspend operator fun invoke(page: Int, size: Int): DefaultResponse<CompliancePageResult?> =
         repository.getAll(page, size).toDefaultResponse { pair ->
             pair?.let { (items, total) ->
-                PractitionerProfilePageResult(
+                CompliancePageResult(
                     items = items.map { it.toModel().toRes() },
                     total = total,
                     page = page,

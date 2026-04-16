@@ -2,11 +2,11 @@ package ke.co.smartroundclinic.doctor.domain.service
 
 import ke.co.smartroundclinic.doctor.domain.model.PractitionerProfile
 import ke.co.smartroundclinic.doctor.domain.model.PractitionerProfileUpdate
-import ke.co.smartroundclinic.doctor.domain.usecase.CreatePractitionerProfileUseCase
-import ke.co.smartroundclinic.doctor.domain.usecase.GetMyProfileUseCase
-import ke.co.smartroundclinic.doctor.domain.usecase.GetPractitionerProfileByIdUseCase
-import ke.co.smartroundclinic.doctor.domain.usecase.GetPractitionerProfilesUseCase
-import ke.co.smartroundclinic.doctor.domain.usecase.UpdatePractitionerProfileUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.profile.CreatePractitionerProfileUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetMyProfileUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetPractitionerProfileByIdUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetPractitionerProfilesUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.profile.UpdatePractitionerProfileUseCase
 
 class PractitionerProfileService(
     private val createUseCase: CreatePractitionerProfileUseCase,

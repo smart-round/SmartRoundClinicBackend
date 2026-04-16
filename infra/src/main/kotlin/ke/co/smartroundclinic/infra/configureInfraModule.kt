@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.infra
 
 import io.ktor.server.application.Application
 import ke.co.smartroundclinic.infra.plugins.configureHTTP
+import ke.co.smartroundclinic.infra.plugins.configureRequestBodyValidation
 import ke.co.smartroundclinic.infra.plugins.configureKoin
 import ke.co.smartroundclinic.infra.plugins.configureMonitoring
 import ke.co.smartroundclinic.infra.plugins.configureSecurity
@@ -16,4 +17,5 @@ fun Application.configureInfraModule(appModules: List<Module> = emptyList()) {
     configureSecurity()
     configureMonitoring()
     configureSockets()
+    configureRequestBodyValidation()
 }
