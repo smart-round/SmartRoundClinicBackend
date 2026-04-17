@@ -61,7 +61,7 @@ fun Route.complianceController(service: ComplianceService) {
 
             // GET /admin/compliance/{id}
             // Admin gets a single compliance record by id.
-            get("{id}") {
+            get {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id path parameter is required")
@@ -72,7 +72,7 @@ fun Route.complianceController(service: ComplianceService) {
 
             // PUT /admin/compliance/{id}/approve
             // Admin approves a doctor.
-            put("{id}/approve") {
+            put("approve") {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id path parameter is required")
@@ -84,7 +84,7 @@ fun Route.complianceController(service: ComplianceService) {
 
             // PUT /admin/compliance/{id}/reject
             // Admin rejects a doctor with a reason.
-            put("{id}/reject") {
+            put("reject") {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id path parameter is required")

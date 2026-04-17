@@ -12,6 +12,7 @@ import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
+import kotlin.time.Clock
 
 class
 ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
@@ -35,7 +36,11 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
     }
 
     override suspend fun approve(id: String, adminId: String): Resource<ComplianceEntity?> = try {
-        val now = System.currentTimeMillis()
+        val now = Clock.System.now().toString()
+        val isApproved = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull() ?:
+        return Resource.Error("No compliance record found with id=$id")
+        if (isApproved.isApproved)  return Resource.Error("Compliance record already approved")
+
         val updated = col.findOneAndUpdate(
             Filters.eq(ComplianceEntity::id.name, id),
             Updates.combine(
@@ -56,7 +61,11 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
     }
 
     override suspend fun reject(id: String, adminId: String, reason: String): Resource<ComplianceEntity?> = try {
-        val now = System.currentTimeMillis()
+        val now = Clock.System.now().toString()
+        val isApproved = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull() ?:
+        return Resource.Error("No compliance record found with id=$id")
+        if (!isApproved.isApproved)  return Resource.Error("Compliance record already rejected")
+
         val updated = col.findOneAndUpdate(
             Filters.eq(ComplianceEntity::id.name, id),
             Updates.combine(

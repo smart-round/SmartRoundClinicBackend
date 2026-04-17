@@ -17,4 +17,7 @@ data class EmailConfig(
     val passwordResetTemplateId: String = require("RESEND_RESET_EMAIL"),
     val passwordResetRequestTemplateId: String = require("RESEND_PASSWORD_RESET_REQUEST_TEMPLATE_ID"),
     val passwordResetConfirmationTemplateId: String = require("RESEND_PASSWORD_RESET_CONFIRMATION_TEMPLATE_ID"),
+    val resendDoctorApplicationRequestTemplateId: String = require("RESEND_DOCTOR_APPLICATION_REQUEST_TEMPLATE_ID"),
+    val resendDoctorApplicationRequestApprovedTemplateId: String = require("RESEND_DOCTOR_APPLICATION_REQUEST_APPROVED_TEMPLATE_ID"),
+    val resendDoctorApplicationRequestRejectedTemplateId: String = require("RESEND_DOCTOR_APPLICATION_REQUEST_REJECTED_TEMPLATE_ID"),
 )

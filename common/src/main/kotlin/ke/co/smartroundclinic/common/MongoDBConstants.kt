@@ -20,7 +20,7 @@ object MongoDBConstants {
      * MongoDB Entities for ADMIN_DB
      */
     const val ADMIN_SPECIALITIES = "admin_specialities"
-    const val ADMIN_SUBSPECIALITIES = "admin_subspecialities"
+    const val ADMIN_SUB_SPECIALITIES = "admin_subspecialities"
     const val ADMIN_KMPDC_PRACTITIONERS = "admin_kmpdc_practitioners"
     const val ADMIN_LOCAL_BANKS = "admin_local_banks"
 

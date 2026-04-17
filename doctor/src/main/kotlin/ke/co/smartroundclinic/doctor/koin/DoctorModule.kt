@@ -55,6 +55,7 @@ import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBankByCodeUseC
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBanksByBranchCodeUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.GetAllLocalBanksUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.SearchLocalBanksByNameUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ComplianceCheckUseCase
 import ke.co.smartroundclinic.infra.AppConfig
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -100,12 +101,13 @@ val doctorModule = module {
     /**
      * Compliance
      * */
-    single { ApproveComplianceUseCase(get()) }
+    single { ApproveComplianceUseCase(get(),get(),get()) }
     single { GetAllComplianceUseCase(get()) }
     single { GetComplianceByIdUseCase(get()) }
     single { GetMyComplianceStatusUseCase(get()) }
-    single { RejectComplianceUseCase(get()) }
-    single { SubmitComplianceUseCase(get()) }
+    single { RejectComplianceUseCase(get(),get(),get()) }
+    single { SubmitComplianceUseCase(get(),get(),get(),get()) }
+    single { ComplianceCheckUseCase(get(), get()) }
 
     /**
      * Specialization

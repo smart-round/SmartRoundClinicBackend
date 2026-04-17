@@ -6,7 +6,7 @@ data class Compliance(
     val id: String,
     val doctorId: String,
     val isApproved: Boolean,
-    val approvedAt: Long?,
+    val approvedAt: String?,
     val approvedBy: String?,
     val failedApprovalReason: String?,
     val createdAt: String,

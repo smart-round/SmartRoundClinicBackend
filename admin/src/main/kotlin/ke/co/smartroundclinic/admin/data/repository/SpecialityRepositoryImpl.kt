@@ -19,7 +19,7 @@ import org.bson.conversions.Bson
 class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
 
     private val specialities = database.getCollection<SpecialityEntity>(MongoDBConstants.ADMIN_SPECIALITIES)
-    private val subSpecialities = database.getCollection<SubspecialtyEntity>(MongoDBConstants.ADMIN_SUBSPECIALITIES)
+    private val subSpecialities = database.getCollection<SubspecialtyEntity>(MongoDBConstants.ADMIN_SUB_SPECIALITIES)
 
     private fun seed() {
         CoroutineScope(Dispatchers.IO).launch {

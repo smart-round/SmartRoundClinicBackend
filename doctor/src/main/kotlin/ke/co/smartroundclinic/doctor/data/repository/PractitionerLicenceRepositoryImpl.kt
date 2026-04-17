@@ -21,7 +21,8 @@ class PractitionerLicenceRepositoryImpl(database: MongoDatabase) : PractitionerL
     private val col = database.getCollection<PractitionerLicenceEntity>(MongoDBConstants.DOCTOR_LICENCES)
 
     override suspend fun add(entity: PractitionerLicenceEntity): Resource<PractitionerLicenceEntity> = try {
-        val existingLicence = col.find(Filters.eq(PractitionerLicenceEntity::licenceName.name, entity.licenceName)).firstOrNull()
+        val existingLicence =
+            col.find(Filters.eq(PractitionerLicenceEntity::licenceName.name, entity.licenceName)).firstOrNull()
         if (existingLicence != null) {
             log.warn("Licence already exists for doctorId=${entity.doctorId}")
             return Resource.Error("Licence already exists")
@@ -93,6 +94,16 @@ class PractitionerLicenceRepositoryImpl(database: MongoDatabase) : PractitionerL
         Resource.Success(result)
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch licence")
+    }
+
+    override suspend fun getByIdDoctorId(doctorId: String): Resource<PractitionerLicenceEntity?> = try {
+        val result = col.find(
+            Filters.and( Filters.eq(PractitionerLicenceEntity::doctorId.name, doctorId))
+        ).firstOrNull() ?: return Resource.Error("No licence found")
+        Resource.Success(result)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch licence")
+
     }
 
     override suspend fun updateUrl(

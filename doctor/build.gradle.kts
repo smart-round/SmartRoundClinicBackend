@@ -10,4 +10,6 @@ kotlin {
 dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
+    implementation(project(":notification"))
+    implementation(project(":auth"))
 }
