@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":doctor"))
     implementation(project(":patient"))
     implementation(project(":notification"))
+    implementation(project(":scheduling"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

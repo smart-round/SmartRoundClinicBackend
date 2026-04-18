@@ -19,7 +19,9 @@ import ke.co.smartroundclinic.infra.koin.databaseModule
 import ke.co.smartroundclinic.infra.koin.httpModule
 import ke.co.smartroundclinic.infra.koin.storageModule
 import ke.co.smartroundclinic.notification.koin.notificationModule
-import org.koin.dsl.module
+import ke.co.smartroundclinic.scheduling.schedulingModule
+import ke.co.smartroundclinic.scheduling.koin.schedulingKoinModule
+import ke.co.smartroundclinic.scheduling.presentation.validation.registerSchedulingValidators
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -29,15 +31,17 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(
-        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule),
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule, schedulingKoinModule),
         validators = {
             registerDoctorValidators()
             registerAdminValidators()
+            registerSchedulingValidators()
         }
     )
     authModule()
     adminModule()
     doctorModule()
+    schedulingModule()
     routing {
         get("/") {
             call.respondText("Hello World!")

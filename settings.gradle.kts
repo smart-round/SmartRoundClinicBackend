@@ -7,6 +7,7 @@ include(":notification")
 include(":auth")
 include(":infra")
 include(":common")
+include(":scheduling")
 
 dependencyResolutionManagement {
     repositories {

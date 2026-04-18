@@ -35,5 +35,12 @@ object MongoDBConstants {
     const val DOCTOR_CERTIFICATIONS = "doctor_certifications"
     const val DOCTOR_PAYMENT_DETAILS = "doctor_payment_details"
 
+    /**
+     * MongoDB Databases and Entities for SCHEDULING
+     */
+    const val SCHEDULING_DB = "src_scheduling"
+    const val DOCTOR_SCHEDULES = "doctor_schedules"
+    const val SLOT_OVERRIDES = "slot_overrides"
+    const val APPOINTMENTS = "appointments"
 
 }

@@ -15,6 +15,7 @@ fun Application.configureHTTP() {
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHost("smartroundclinic.co.ke", schemes = listOf("https"))
+        allowHost("admin.smartroundclinic.co.ke", schemes = listOf("https"))
         allowHost("www.smartroundclinic.co.ke", schemes = listOf("https"))
         allowHost("localhost:5173", schemes = listOf("http"))
         allowHost("localhost:3000", schemes = listOf("http"))
