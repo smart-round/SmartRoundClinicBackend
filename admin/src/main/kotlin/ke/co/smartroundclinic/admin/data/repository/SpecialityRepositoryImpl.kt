@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.admin.data.repository
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
+import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.admin.data.entity.SpecialityEntity
 import ke.co.smartroundclinic.admin.data.entity.SubspecialtyEntity
@@ -16,7 +17,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bson.conversions.Bson
 
-class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
+class SpecialityRepositoryImpl(
+    private val client: MongoClient,
+    database: MongoDatabase,
+) : SpecialityRepository {
 
     private val specialities = database.getCollection<SpecialityEntity>(MongoDBConstants.ADMIN_SPECIALITIES)
     private val subSpecialities = database.getCollection<SubspecialtyEntity>(MongoDBConstants.ADMIN_SUB_SPECIALITIES)
@@ -481,6 +485,38 @@ class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
                 Resource.Success(data = null, message = "Subspeciality deleted successfully")
             } catch (e: Exception) {
                 Resource.Error(e.localizedMessage ?: "Failed to delete subspeciality")
+            }
+        }
+
+    override suspend fun deleteAllSubSpecialityBySpecialityId(specialityId: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                val result = subSpecialities.deleteMany(Filters.eq(SubspecialtyEntity::specialityId.name, specialityId))
+                if (result.deletedCount == 0L) return@withContext Resource.Error("No sub-specialities found for speciality")
+                Resource.Success(data = null, message = "Sub-specialities deleted successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to delete sub-specialities")
+            }
+        }
+
+    override suspend fun deleteSpecialityWithSubSpecialities(id: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            val session = client.startSession()
+            try {
+                session.startTransaction()
+                val specialityResult = specialities.deleteOne(session, Filters.eq(SpecialityEntity::id.name, id))
+                if (specialityResult.deletedCount == 0L) {
+                    session.abortTransaction()
+                    return@withContext Resource.Error("Speciality not found")
+                }
+                subSpecialities.deleteMany(session, Filters.eq(SubspecialtyEntity::specialityId.name, id))
+                session.commitTransaction()
+                Resource.Success(data = null, message = "Speciality and its sub-specialities deleted successfully")
+            } catch (e: Exception) {
+                runCatching { session.abortTransaction() }
+                Resource.Error(e.localizedMessage ?: "Failed to delete speciality")
+            } finally {
+                session.close()
             }
         }
 }

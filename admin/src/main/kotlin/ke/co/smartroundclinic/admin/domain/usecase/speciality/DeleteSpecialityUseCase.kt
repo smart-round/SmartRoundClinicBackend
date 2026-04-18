@@ -7,6 +7,6 @@ class DeleteSpecialityUseCase(
     private val specialityRepository: SpecialityRepository,
 ) {
     suspend operator fun invoke(id: String): DefaultResponse<Nothing?> =
-        specialityRepository.deleteSpeciality(id)
-            .toDefaultResponse { it }
+        specialityRepository.deleteSpecialityWithSubSpecialities(id)
+            .toDefaultResponse { null }
 }

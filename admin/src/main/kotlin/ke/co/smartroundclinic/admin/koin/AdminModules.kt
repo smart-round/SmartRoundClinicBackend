@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.admin.koin
 
+import com.mongodb.kotlin.client.coroutine.MongoClient
 import ke.co.smartroundclinic.admin.data.repository.KmpdcRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.ServiceTierRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.SpecialityRepositoryImpl
@@ -35,7 +36,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val adminModule = module {
-    single<SpecialityRepository> { SpecialityRepositoryImpl(get(named("adminDb"))) }
+    single<SpecialityRepository> { SpecialityRepositoryImpl(get<MongoClient>(), get(named("adminDb"))) }
     single<KmpdcRepository> { KmpdcRepositoryImpl(get(named("adminDb"))) }
     single<ServiceTierRepository> { ServiceTierRepositoryImpl(get(named("adminDb"))) }
 
