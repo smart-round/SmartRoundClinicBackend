@@ -8,6 +8,7 @@ import kotlin.time.Clock
 @Serializable
 data class BookAppointmentReq(
     val doctorId: String,
+    val specialityId: String,
     val date: String,
     val slotStart: String,
     val notes: String? = null,
@@ -16,6 +17,7 @@ data class BookAppointmentReq(
         id = ObjectId().toString(),
         doctorId = doctorId,
         patientId = patientId,
+        specialityId = specialityId,
         date = date,
         slotStart = slotStart,
         slotEnd = slotEnd,

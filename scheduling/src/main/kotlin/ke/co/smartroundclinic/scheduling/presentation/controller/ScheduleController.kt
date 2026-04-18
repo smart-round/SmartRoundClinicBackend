@@ -25,7 +25,7 @@ fun Route.scheduleController(scheduleService: ScheduleService) {
         route("/scheduling/availability") {
 
             post {
-                call.requireRole(DOCTOR, ADMIN) {
+                call.requireRole(DOCTOR) {
                     val doctorId = call.getUserId() ?: return@requireRole
                     val body = call.receive<UpsertScheduleReq>()
                     val result = scheduleService.upsert(body, doctorId)
@@ -33,9 +33,10 @@ fun Route.scheduleController(scheduleService: ScheduleService) {
                 }
             }
 
-            get("/{doctorId}") {
+            get {
                 call.requireRole(DOCTOR, PATIENT, ADMIN) {
-                    val doctorId = call.parameters["doctorId"] ?: run {
+                    val id = call.getUserId()
+                    val doctorId =  (id ?: call.parameters["doctorId"]) ?: run {
                         call.respond(HttpStatusCode.BadRequest, "doctorId is required")
                         return@requireRole
                     }
@@ -49,9 +50,10 @@ fun Route.scheduleController(scheduleService: ScheduleService) {
                 }
             }
 
-            put("/{doctorId}") {
+            put {
                 call.requireRole(DOCTOR, ADMIN) {
-                    val doctorId = call.parameters["doctorId"] ?: run {
+                    val id = call.getUserId()
+                    val doctorId =  (id ?: call.parameters["doctorId"]) ?: run {
                         call.respond(HttpStatusCode.BadRequest, "doctorId is required")
                         return@requireRole
                     }
@@ -65,9 +67,10 @@ fun Route.scheduleController(scheduleService: ScheduleService) {
                 }
             }
 
-            delete("/{doctorId}") {
+            delete {
                 call.requireRole(DOCTOR, ADMIN) {
-                    val doctorId = call.parameters["doctorId"] ?: run {
+                    val id = call.getUserId()
+                    val doctorId =  (id ?: call.parameters["doctorId"]) ?: run {
                         call.respond(HttpStatusCode.BadRequest, "doctorId is required")
                         return@requireRole
                     }

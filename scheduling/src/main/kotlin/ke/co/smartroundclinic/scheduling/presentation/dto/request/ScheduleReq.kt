@@ -6,10 +6,9 @@ import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
 import kotlin.time.Clock
 
-@Serializable
 data class BreakBlockReq(val start: String, val end: String)
 
-@Serializable
+
 data class UpsertScheduleReq(
     val dayOfWeek: Int,
     val windowStart: String,
@@ -33,7 +32,6 @@ data class UpsertScheduleReq(
     )
 }
 
-@Serializable
 data class UpdateScheduleDayReq(
     val windowStart: String? = null,
     val windowEnd: String? = null,

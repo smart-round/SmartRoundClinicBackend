@@ -10,6 +10,7 @@ kotlin {
 dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
+    implementation(project(":admin"))
     implementation(libs.kotlinx.datetime)
     testImplementation(libs.kotlin.test.junit)
 }
