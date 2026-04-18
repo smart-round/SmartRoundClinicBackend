@@ -23,6 +23,7 @@ object MongoDBConstants {
     const val ADMIN_SUB_SPECIALITIES = "admin_subspecialities"
     const val ADMIN_KMPDC_PRACTITIONERS = "admin_kmpdc_practitioners"
     const val ADMIN_LOCAL_BANKS = "admin_local_banks"
+    const val ADMIN_SERVICE_TIERS = "admin_service_tiers"
 
     /**
      * MongoDB Entities for DOCTOR_DB

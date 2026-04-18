@@ -1,4 +1,4 @@
-package ke.co.smartroundclinic.admin.domain.usecase
+package ke.co.smartroundclinic.admin.domain.usecase.kmpdc
 
 import ke.co.smartroundclinic.admin.domain.model.DoctorLicenceStatus
 import ke.co.smartroundclinic.admin.domain.model.KmpdcRegisterType

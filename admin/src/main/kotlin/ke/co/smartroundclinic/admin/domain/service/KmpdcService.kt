@@ -2,10 +2,10 @@ package ke.co.smartroundclinic.admin.domain.service
 
 import ke.co.smartroundclinic.admin.domain.model.DoctorLicenceStatus
 import ke.co.smartroundclinic.admin.domain.model.KmpdcRegisterType
-import ke.co.smartroundclinic.admin.domain.usecase.FindKmpdcByRegNumberUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.GetKmpdcPractitionersUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.RefreshKmpdcRegisterUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.SearchKmpdcByNameUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.FindKmpdcByRegNumberUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.GetKmpdcPractitionersUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.RefreshKmpdcRegisterUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.SearchKmpdcByNameUseCase
 
 class KmpdcService(
     private val refreshKmpdcRegisterUseCase: RefreshKmpdcRegisterUseCase,

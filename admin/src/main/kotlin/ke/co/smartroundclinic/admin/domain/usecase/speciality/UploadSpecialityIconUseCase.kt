@@ -1,8 +1,9 @@
-package ke.co.smartroundclinic.admin.domain.usecase
+package ke.co.smartroundclinic.admin.domain.usecase.speciality
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.admin.presentation.dto.response.SpecialityRes
+import ke.co.smartroundclinic.admin.presentation.dto.response.toRes
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.AppConfig

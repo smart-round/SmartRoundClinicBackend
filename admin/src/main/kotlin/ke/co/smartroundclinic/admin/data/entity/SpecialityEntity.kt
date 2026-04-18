@@ -6,6 +6,7 @@ import org.bson.types.ObjectId
 
 data class SpecialityEntity(
     val id: String = ObjectId().toString(),
+    val serviceTierId: String? = null,
     val title: String,
     val description: String,
     val color: String = "#FFFFFF",
@@ -13,6 +14,7 @@ data class SpecialityEntity(
 ) {
     fun toModel() = Speciality(
         id = id,
+        serviceTierId = serviceTierId,
         title = title,
         description = description,
         color = color,
@@ -38,3 +40,20 @@ data class SubspecialtyEntity(
     )
 }
 
+fun Speciality.toEntity() = SpecialityEntity(
+    id = id,
+    serviceTierId = serviceTierId,
+    title = title,
+    description = description,
+    color = color,
+    iconUrl = iconUrl,
+)
+
+fun Subspecialty.toEntity() = SubspecialtyEntity(
+    id = id,
+    specialityId = specialityId,
+    title = title,
+    description = description,
+    color = color,
+    iconUrl = iconUrl,
+)

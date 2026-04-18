@@ -1,4 +1,4 @@
-package ke.co.smartroundclinic.admin.domain.usecase
+package ke.co.smartroundclinic.admin.domain.usecase.kmpdc
 
 import ke.co.smartroundclinic.admin.domain.repository.KmpdcRepository
 import ke.co.smartroundclinic.admin.presentation.dto.response.KmpdcPageResult

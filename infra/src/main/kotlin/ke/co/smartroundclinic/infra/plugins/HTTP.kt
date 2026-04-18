@@ -7,11 +7,16 @@ import io.ktor.server.plugins.cors.routing.*
 fun Application.configureHTTP() {
     install(CORS) {
         allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Patch)
         allowHeader(HttpHeaders.Authorization)
-        allowHeader("MyCustomHeader")
-        anyHost() // @TODO: Don't do this in production if possible. Try to limit it.
+        allowHeader(HttpHeaders.ContentType)
+        allowHost("smartroundclinic.co.ke", schemes = listOf("https"))
+        allowHost("www.smartroundclinic.co.ke", schemes = listOf("https"))
+        allowHost("localhost:5173", schemes = listOf("http"))
+        allowHost("localhost:3000", schemes = listOf("http"))
     }
 }

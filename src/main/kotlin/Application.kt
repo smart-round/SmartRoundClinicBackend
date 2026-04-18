@@ -6,6 +6,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import ke.co.smartroundclinic.admin.adminModule
+import ke.co.smartroundclinic.admin.validation.registerAdminValidators
 import ke.co.smartroundclinic.admin.koin.adminModule as adminKoinModule
 import ke.co.smartroundclinic.auth.authModule
 import ke.co.smartroundclinic.auth.koin.authModule as authKoinModule
@@ -31,6 +32,7 @@ fun Application.module() {
         appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule),
         validators = {
             registerDoctorValidators()
+            registerAdminValidators()
         }
     )
     authModule()

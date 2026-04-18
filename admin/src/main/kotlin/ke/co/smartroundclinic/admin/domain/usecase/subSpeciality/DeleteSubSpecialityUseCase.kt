@@ -1,4 +1,4 @@
-package ke.co.smartroundclinic.admin.domain.usecase
+package ke.co.smartroundclinic.admin.domain.usecase.subSpeciality
 
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.common.DefaultResponse

@@ -278,7 +278,7 @@ class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
                 }
 
                 this@SpecialityRepositoryImpl.specialities.insertMany(specialities)
-                Resource.Success(data = null, message = "Specialit${if (specialities.size > 1) "ies" else "y"} created successfully")
+                Resource.Success(data = null, message = "Speciality ${if (specialities.size > 1) "ies" else "y"} created successfully")
             } catch (e: Exception) {
                 Resource.Error(e.localizedMessage ?: "Failed to create speciality")
             }
@@ -287,6 +287,7 @@ class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
     override suspend fun updateSpeciality(
         id: String,
         title: String?,
+        serviceTierId: String?,
         description: String?,
         color: String?,
         iconUrl: String?,
@@ -304,6 +305,8 @@ class SpecialityRepositoryImpl(database: MongoDatabase) : SpecialityRepository {
                 ?.let { updates.add(Updates.set(SpecialityEntity::color.name, it)) }
             iconUrl?.trim()?.takeIf { it != existing.iconUrl }
                 ?.let { updates.add(Updates.set(SpecialityEntity::iconUrl.name, it)) }
+            serviceTierId?.trim()?.takeIf { it.isNotBlank() && it != existing.serviceTierId}
+                ?.let { updates.add(Updates.set(SpecialityEntity::serviceTierId.name, it)) }
 
             if (updates.isEmpty()) return@withContext Resource.Success(data = null, message = "No changes detected")
 

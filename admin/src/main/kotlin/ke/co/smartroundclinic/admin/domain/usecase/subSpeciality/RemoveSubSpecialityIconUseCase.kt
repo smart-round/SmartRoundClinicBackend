@@ -1,38 +1,39 @@
-package ke.co.smartroundclinic.admin.domain.usecase
+package ke.co.smartroundclinic.admin.domain.usecase.subSpeciality
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
-import ke.co.smartroundclinic.admin.presentation.dto.response.SpecialityRes
+import ke.co.smartroundclinic.admin.presentation.dto.response.SubSpecialityRes
+import ke.co.smartroundclinic.admin.presentation.dto.response.toRes
 import ke.co.smartroundclinic.common.DefaultResponse
-import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 
-class RemoveSpecialityIconUseCase(
+class RemoveSubSpecialityIconUseCase(
     private val specialityRepository: SpecialityRepository,
     private val storageRepository: StorageRepository,
 ) {
-    suspend operator fun invoke(id: String): DefaultResponse<SpecialityRes?> =
+    suspend operator fun invoke(id: String): DefaultResponse<SubSpecialityRes?> =
         withContext(Dispatchers.IO) {
             supervisorScope {
-                val existing = specialityRepository.getSpecialityById(id)
-                val speciality = existing.data
+                val existing = specialityRepository.getSubSpeciality(id)
+                val subspeciality = existing.data
                     ?: return@supervisorScope existing.toDefaultResponse(
                         failedStatusCode = HttpStatusCode.NotFound.value,
-                        errorMessage = "Speciality not found"
+                        errorMessage = "Subspeciality not found"
                     ) { null }
 
-                speciality.iconUrl?.let { url ->
+                subspeciality.iconUrl?.let { url ->
                     launch {
-                        val key = "speciality-icons/$id.${url.substringAfterLast(".")}"
+                        val key = "subspeciality-icons/$id.${url.substringAfterLast(".")}"
                         storageRepository.delete(bucket = BUCKET, key = key)
                     }
                 }
 
-                specialityRepository.updateSpecialityIcon(id, null)
+                specialityRepository.updateSubSpecialityIcon(id, null)
                     .toDefaultResponse(
                         successStatusCode = HttpStatusCode.OK.value,
                         successMessage = "Icon removed successfully"
@@ -41,6 +42,6 @@ class RemoveSpecialityIconUseCase(
         }
 
     companion object {
-        private val BUCKET get() = ke.co.smartroundclinic.infra.AppConfig.r2.bucket
+        private val BUCKET get() = AppConfig.r2.bucket
     }
 }

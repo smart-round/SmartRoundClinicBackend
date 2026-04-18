@@ -1,18 +1,18 @@
 package ke.co.smartroundclinic.admin.domain.service
 
-import ke.co.smartroundclinic.admin.domain.usecase.CreateSpecialityUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.CreateSubSpecialityUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.DeleteSpecialityUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.DeleteSubSpecialityUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.RemoveSpecialityIconUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.RemoveSubSpecialityIconUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.UploadSpecialityIconUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.UploadSubSpecialityIconUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialitiesUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.GetSpecialityByIdUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.GetSubSpecialitiesUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.UpdateSpecialityUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.UpdateSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.CreateSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.CreateSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.DeleteSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.DeleteSubSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.RemoveSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.RemoveSubSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.UploadSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.UploadSubSpecialityIconUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialitiesUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityByIdUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.GetSubSpecialitiesUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.UpdateSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.UpdateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSpecialityReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSubSpecialityReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateSpecialityReq
@@ -37,7 +37,7 @@ class SpecialityService(
         createSpecialityUseCase(requests)
 
     suspend fun updateSpeciality(id: String, body: UpdateSpecialityReq) =
-        updateSpecialityUseCase(id, body.title, body.description, body.color, body.iconUrl)
+        updateSpecialityUseCase(id, serviceTierId = body.serviceTierId,body.title,  body.description, body.color, body.iconUrl)
 
     suspend fun getSpecialities() = getSpecialitiesUseCase()
 
