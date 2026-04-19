@@ -27,7 +27,7 @@ class SignUpUseCase(
         supervisorScope {
             val otpCode = OtpCodeGenerator().generateOtpCode()
             val hashedOtpCode = credentialsHasher.hash(otpCode)
-            val otpExpiresAt = Clock.System.now().plus(2.minutes).toEpochMilliseconds() // always UTC
+            val otpExpiresAt = Clock.System.now().plus(15.minutes).toEpochMilliseconds() // always UTC
 
             val createUser = userRepository.create(user.toEntity().copy(otpCode = hashedOtpCode, otpExpiresAt = otpExpiresAt))
             if (createUser is Resource.Success) launch {

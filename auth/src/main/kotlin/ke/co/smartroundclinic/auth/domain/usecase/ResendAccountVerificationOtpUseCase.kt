@@ -41,7 +41,7 @@ class ResendAccountVerificationOtpUseCase(
 
             val otpCode = OtpCodeGenerator().generateOtpCode()
             val hashedOtpCode = credentialsHasher.hash(otpCode)
-            val otpExpiresAt = Clock.System.now().plus(2.minutes).toEpochMilliseconds()
+            val otpExpiresAt = Clock.System.now().plus(15.minutes).toEpochMilliseconds()
 
             userRepository.updateOtp(
                 userId = user.id, otpCode = hashedOtpCode, otpExpiresAt = otpExpiresAt
