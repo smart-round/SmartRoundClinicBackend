@@ -32,6 +32,7 @@ object MongoDBConstants {
     const val SUPPORT_DB = "src_support"
     const val SUPPORT_ISSUE_CATEGORIES = "support_issue_categories"
     const val SUPPORT_TICKETS = "support_tickets"
+    const val SUPPORT_TICKET_CHATS = "support_ticket_chats"
 
     /**
      * MongoDB Entities for DOCTOR_DB
