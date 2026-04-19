@@ -24,6 +24,14 @@ object MongoDBConstants {
     const val ADMIN_KMPDC_PRACTITIONERS = "admin_kmpdc_practitioners"
     const val ADMIN_LOCAL_BANKS = "admin_local_banks"
     const val ADMIN_SERVICE_TIERS = "admin_service_tiers"
+    const val ADMIN_COMMISSION_RATES = "admin_commission_rates"
+
+    /**
+     * MongoDB Database and Entities for SUPPORT_DB
+     */
+    const val SUPPORT_DB = "src_support"
+    const val SUPPORT_ISSUE_CATEGORIES = "support_issue_categories"
+    const val SUPPORT_TICKETS = "support_tickets"
 
     /**
      * MongoDB Entities for DOCTOR_DB

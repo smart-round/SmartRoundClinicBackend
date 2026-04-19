@@ -8,6 +8,7 @@ include(":auth")
 include(":infra")
 include(":common")
 include(":scheduling")
+include(":support")
 
 dependencyResolutionManagement {
     repositories {

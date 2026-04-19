@@ -2,18 +2,15 @@ package ke.co.smartroundclinic.admin.presentation.dto.request
 
 import ke.co.smartroundclinic.admin.domain.model.Speciality
 import ke.co.smartroundclinic.admin.domain.model.Subspecialty
-import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
 
-@Serializable
 data class CreateSpecialityReq(
     val serviceTierId: String? = null,
     val title: String,
     val description: String,
     val color: String = "#FFFFFF",
-    val iconUrl: String? = null,
 ) {
-    fun toModel() = Speciality(
+    fun toModel(iconUrl: String? = null) = Speciality(
         id = ObjectId().toString(),
         serviceTierId = serviceTierId,
         title = title,
@@ -23,23 +20,19 @@ data class CreateSpecialityReq(
     )
 }
 
-@Serializable
 data class UpdateSpecialityReq(
     val serviceTierId: String? = null,
     val title: String? = null,
     val description: String? = null,
     val color: String? = null,
-    val iconUrl: String? = null,
 )
 
-@Serializable
 data class CreateSubSpecialityReq(
     val title: String,
     val description: String,
     val color: String = "#FFFFFF",
-    val iconUrl: String? = null,
 ) {
-    fun toModel(specialityId: String) = Subspecialty(
+    fun toModel(specialityId: String, iconUrl: String? = null) = Subspecialty(
         id = ObjectId().toString(),
         specialityId = specialityId,
         title = title,
@@ -49,10 +42,8 @@ data class CreateSubSpecialityReq(
     )
 }
 
-@Serializable
 data class UpdateSubSpecialityReq(
     val title: String? = null,
     val description: String? = null,
     val color: String? = null,
-    val iconUrl: String? = null,
 )

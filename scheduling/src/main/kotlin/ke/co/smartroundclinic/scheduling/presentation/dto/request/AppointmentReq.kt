@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
 import kotlin.time.Clock
 
-@Serializable
 data class BookAppointmentReq(
     val doctorId: String,
     val specialityId: String,
@@ -27,5 +26,4 @@ data class BookAppointmentReq(
     )
 }
 
-@Serializable
 data class CancelAppointmentReq(val reason: String? = null)

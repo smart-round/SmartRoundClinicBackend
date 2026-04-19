@@ -2,14 +2,27 @@ package ke.co.smartroundclinic.admin.validation
 
 import io.ktor.server.plugins.requestvalidation.RequestValidationConfig
 import io.ktor.server.plugins.requestvalidation.ValidationResult
+import ke.co.smartroundclinic.admin.presentation.dto.request.CreateCommissionRateReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateServiceTierReq
-import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSpecialityReq
-import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSubSpecialityReq
+import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateCommissionRateReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateServiceTierReq
-import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateSpecialityReq
-import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateSubSpecialityReq
 
 fun RequestValidationConfig.registerAdminValidators() {
+
+    validate<CreateCommissionRateReq> { req ->
+        val errors = buildList {
+            if (req.commissionRate < 0 || req.commissionRate > 100) add("commissionRate must be between 0 and 100")
+        }
+        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
+    }
+
+    validate<UpdateCommissionRateReq> { req ->
+        if (req.commissionRate == null) return@validate ValidationResult.Invalid("commissionRate is required for update")
+        val errors = buildList {
+            req.commissionRate.let { if (it < 0 || it > 100) add("commissionRate must be between 0 and 100") }
+        }
+        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
+    }
 
     validate<CreateServiceTierReq> { req ->
         val errors = buildList {
@@ -42,48 +55,4 @@ fun RequestValidationConfig.registerAdminValidators() {
         if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
     }
 
-    validate<CreateSpecialityReq> { req ->
-        val errors = buildList {
-            if (req.serviceTierId.isNullOrBlank()) add("serviceTierId is required")
-            if (req.title.isNullOrBlank())       add("title is required")
-            if (req.description.isNullOrBlank()) add("description is required")
-            if (req.color.isNullOrBlank())       add("color is required")
-        }
-        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
-    }
-
-    validate<UpdateSpecialityReq> { req ->
-        val allNull = req.title == null && req.serviceTierId == null && req.description == null &&
-            req.color == null && req.iconUrl == null
-        if (allNull) return@validate ValidationResult.Invalid("At least one field must be provided for update")
-
-        val errors = buildList {
-            req.serviceTierId?.let { if (it.isBlank()) add("serviceTierId cannot be blank") }
-            req.title?.let       { if (it.isBlank()) add("title cannot be blank") }
-            req.description?.let { if (it.isBlank()) add("description cannot be blank") }
-            req.color?.let       { if (it.isBlank()) add("color cannot be blank") }
-        }
-        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
-    }
-
-    validate<CreateSubSpecialityReq> { req ->
-        val errors = buildList {
-            if (req.title.isNullOrBlank())       add("title is required")
-            if (req.description.isNullOrBlank()) add("description is required")
-        }
-        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
-    }
-
-    validate<UpdateSubSpecialityReq> { req ->
-        val allNull = req.title == null && req.description == null &&
-            req.color == null && req.iconUrl == null
-        if (allNull) return@validate ValidationResult.Invalid("At least one field must be provided for update")
-
-        val errors = buildList {
-            req.title?.let       { if (it.isBlank()) add("title cannot be blank") }
-            req.description?.let { if (it.isBlank()) add("description cannot be blank") }
-            req.color?.let       { if (it.isBlank()) add("color cannot be blank") }
-        }
-        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
-    }
 }
