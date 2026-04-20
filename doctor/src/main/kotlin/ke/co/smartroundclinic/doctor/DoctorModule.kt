@@ -8,12 +8,14 @@ import ke.co.smartroundclinic.doctor.domain.service.LocalBankService
 import ke.co.smartroundclinic.doctor.domain.service.PaymentDetailsService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerLicenceService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerProfileService
+import ke.co.smartroundclinic.doctor.domain.service.SpecializationService
 import ke.co.smartroundclinic.doctor.presentation.controller.certificationController
 import ke.co.smartroundclinic.doctor.presentation.controller.complianceController
 import ke.co.smartroundclinic.doctor.presentation.controller.localBankController
 import ke.co.smartroundclinic.doctor.presentation.controller.paymentDetailsController
 import ke.co.smartroundclinic.doctor.presentation.controller.practitionerLicenceController
 import ke.co.smartroundclinic.doctor.presentation.controller.practitionerProfileController
+import ke.co.smartroundclinic.doctor.presentation.controller.specializationController
 import org.koin.ktor.ext.inject
 import kotlin.getValue
 
@@ -24,6 +26,7 @@ fun Application.doctorModule() {
     val complianceService: ComplianceService by inject()
     val paymentDetailsService: PaymentDetailsService by inject()
     val localBankService: LocalBankService by inject()
+    val specializationService: SpecializationService by inject()
     routing {
         practitionerProfileController(profileService)
         certificationController(certificationService)
@@ -31,5 +34,6 @@ fun Application.doctorModule() {
         practitionerLicenceController(licenceService)
         paymentDetailsController(paymentDetailsService)
         localBankController(localBankService)
+        specializationController(specializationService)
     }
 }

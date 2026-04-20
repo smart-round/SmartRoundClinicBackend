@@ -2,6 +2,9 @@ package ke.co.smartroundclinic.auth.domain.service
 
 import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.usecase.AccountVerificationUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SignInUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.CreateAdminUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUserUserUseCase
@@ -14,6 +17,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.ResetPasswordUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RevokeTokenUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SignUpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UpdateUserUseCase
+import ke.co.smartroundclinic.auth.presentation.dto.request.AdminUpdateUserReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.CreateAdminReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.SignUpReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.UpdateUserReq
@@ -32,6 +36,9 @@ class UserService(
     private val revokeTokenUseCase: RevokeTokenUseCase,
     private val uploadProfilePictureUseCase: UploadProfilePictureUseCase,
     private val removeProfilePictureUseCase: RemoveProfilePictureUseCase,
+    private val getUsersByRoleUseCase: GetUsersByRoleUseCase,
+    private val adminUpdateUserUseCase: AdminUpdateUserUseCase,
+    private val filterUsersByRoleUseCase: FilterUsersByRoleUseCase,
 ) {
     suspend fun signIn(email: String, password: String) = signInUseCase(email, password)
     suspend fun createAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toModel())
@@ -54,4 +61,16 @@ class UserService(
     suspend fun uploadProfilePicture(userId: String, imageBytes: ByteArray, contentType: String) =
         uploadProfilePictureUseCase(userId, imageBytes, contentType)
     suspend fun removeProfilePicture(userId: String) = removeProfilePictureUseCase(userId)
+    suspend fun getUsersByRole(role: UserEntity.Role, page: Int, size: Int, search: String?) =
+        getUsersByRoleUseCase(role, page, size, search)
+    suspend fun adminUpdateUser(userId: String, body: AdminUpdateUserReq) =
+        adminUpdateUserUseCase(userId, body.accountStatus, body.verificationStatus)
+    suspend fun filterUsers(
+        role: UserEntity.Role,
+        page: Int,
+        size: Int,
+        accountStatus: UserEntity.AccountStatus?,
+        createdFrom: String?,
+        createdTo: String?,
+    ) = filterUsersByRoleUseCase(role, page, size, accountStatus, createdFrom, createdTo)
 }

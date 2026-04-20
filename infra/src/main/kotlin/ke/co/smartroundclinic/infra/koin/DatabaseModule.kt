@@ -31,4 +31,7 @@ val databaseModule = module {
     single(named("supportDb")) {
         get<MongoClient>().getDatabase(MongoDBConstants.SUPPORT_DB)
     }
+    single(named("patientDb")) {
+        get<MongoClient>().getDatabase(MongoDBConstants.PATIENT_DB)
+    }
 }

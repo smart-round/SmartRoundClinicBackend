@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.scheduling.data.repository
 
+import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoClient
@@ -9,7 +10,9 @@ import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.AppointmentEntity
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import org.bson.conversions.Bson
@@ -92,6 +95,37 @@ class AppointmentRepositoryImpl(
                 Resource.Error(e.localizedMessage ?: "Failed to fetch appointments")
             }
         }
+
+    override suspend fun getByDoctorAndDateRange(
+        doctorId: String,
+        from: String,
+        to: String,
+    ): Resource<List<AppointmentEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val items = col.find(
+                Filters.and(
+                    Filters.eq(AppointmentEntity::doctorId.name, doctorId),
+                    Filters.gte(AppointmentEntity::date.name, from),
+                    Filters.lte(AppointmentEntity::date.name, to),
+                )
+            ).toList()
+            Resource.Success(data = items, message = "Appointments retrieved successfully")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to fetch appointments")
+        }
+    }
+
+    override fun watchByDoctorId(doctorId: String): Flow<AppointmentEntity> =
+        col.watch(
+            listOf(
+                Aggregates.match(
+                    Filters.and(
+                        Filters.`in`("operationType", "insert", "update", "replace"),
+                        Filters.eq("fullDocument.doctorId", doctorId),
+                    )
+                )
+            )
+        ).mapNotNull { it.fullDocument }
 
     override suspend fun updateStatus(
         id: String,

@@ -19,4 +19,23 @@ interface UserRepository {
     suspend fun updatePassword(userId:String,newPassword:String): Resource<Nothing>
     suspend fun updateProfilePicture(userId: String, url: String?): Resource<Nothing>
     suspend fun emailSignIn(email: String, password: String): Resource<AuthToken?>
+    suspend fun getUsersByRole(
+        role: UserEntity.Role,
+        page: Int,
+        size: Int,
+        search: String?,
+    ): Resource<Pair<List<UserEntity>, Long>>
+    suspend fun adminUpdateUser(
+        userId: String,
+        accountStatus: UserEntity.AccountStatus?,
+        verificationStatus: UserEntity.VerificationStatus?,
+    ): Resource<UserEntity?>
+    suspend fun filterUsers(
+        role: UserEntity.Role,
+        page: Int,
+        size: Int,
+        accountStatus: UserEntity.AccountStatus?,
+        createdFrom: String?,
+        createdTo: String?,
+    ): Resource<Pair<List<UserEntity>, Long>>
 }

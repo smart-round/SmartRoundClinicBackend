@@ -8,17 +8,27 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctor.data.entity.PractitionerProfileEntity
+import ke.co.smartroundclinic.doctor.data.entity.SpecializationEntity
 import ke.co.smartroundclinic.doctor.domain.model.PractitionerProfileUpdate
 import ke.co.smartroundclinic.doctor.domain.repository.PractitionerProfileRepository
+import ke.co.smartroundclinic.doctor.presentation.dto.response.PractitionerProfileWithSpecializationsRes
+import ke.co.smartroundclinic.doctor.presentation.dto.response.SpecializationWithNamesRes
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import org.bson.Document
 import org.bson.conversions.Bson
 import org.slf4j.LoggerFactory
 
-class PractitionerProfileRepositoryImpl(database: MongoDatabase) : PractitionerProfileRepository {
+class PractitionerProfileRepositoryImpl(
+    database: MongoDatabase,
+    adminDb: MongoDatabase,
+) : PractitionerProfileRepository {
 
     private val log = LoggerFactory.getLogger(PractitionerProfileRepositoryImpl::class.java)
     private val col = database.getCollection<PractitionerProfileEntity>(MongoDBConstants.DOCTOR_PROFILES)
+    private val specializationsCol = database.getCollection<SpecializationEntity>(MongoDBConstants.DOCTOR_SPECIALIZATIONS)
+    private val specialitiesCol = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SPECIALITIES)
+    private val subSpecialitiesCol = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SUB_SPECIALITIES)
 
     override suspend fun create(entity: PractitionerProfileEntity): Resource<PractitionerProfileEntity> = try {
         val existing = col.find(Filters.eq(PractitionerProfileEntity::doctorId.name, entity.doctorId)).firstOrNull()
@@ -86,6 +96,49 @@ class PractitionerProfileRepositoryImpl(database: MongoDatabase) : PractitionerP
         Resource.Success(items to total)
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch profiles")
+    }
+
+    override suspend fun getByIdWithSpecializations(id: String): Resource<PractitionerProfileWithSpecializationsRes?> = try {
+        val profile = col.find(Filters.eq(PractitionerProfileEntity::id.name, id)).firstOrNull()
+            ?: return Resource.Success(null)
+        val specializationEntities = specializationsCol
+            .find(Filters.eq(SpecializationEntity::doctorId.name, profile.doctorId))
+            .toList()
+        val specializationDetails = specializationEntities.map { spec ->
+            val specialityName = specialitiesCol
+                .find(Filters.eq("id", spec.specializationId))
+                .firstOrNull()?.getString("title") ?: spec.specializationId
+            val subSpecialityName = spec.subSpecializationId?.let { subId ->
+                subSpecialitiesCol.find(Filters.eq("id", subId)).firstOrNull()?.getString("title")
+            }
+            SpecializationWithNamesRes(
+                id = spec.id,
+                specializationId = spec.specializationId,
+                specializationName = specialityName,
+                subSpecializationId = spec.subSpecializationId,
+                subSpecializationName = subSpecialityName,
+            )
+        }
+        Resource.Success(
+            PractitionerProfileWithSpecializationsRes(
+                id = profile.id,
+                doctorId = profile.doctorId,
+                kmpdcRegNumber = profile.kmpdcRegNumber,
+                title = profile.title,
+                bio = profile.bio,
+                yearsOfExperience = profile.yearsOfExperience,
+                languages = profile.languages,
+                facilityName = profile.facilityName,
+                averageRating = profile.averageRating,
+                totalReviews = profile.totalReviews,
+                totalConsultations = profile.totalConsultations,
+                specializations = specializationDetails,
+                createdAt = profile.createdAt,
+                updatedAt = profile.updatedAt,
+            )
+        )
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch profile with specializations")
     }
 
 }

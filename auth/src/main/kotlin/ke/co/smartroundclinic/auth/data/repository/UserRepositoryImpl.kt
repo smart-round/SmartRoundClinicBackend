@@ -15,8 +15,10 @@ import ke.co.smartroundclinic.common.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
 import org.bson.conversions.Bson
 
 class UserRepositoryImpl(
@@ -227,6 +229,87 @@ class UserRepositoryImpl(
 
     }
 
+
+    override suspend fun getUsersByRole(
+        role: UserEntity.Role,
+        page: Int,
+        size: Int,
+        search: String?,
+    ): Resource<Pair<List<UserEntity>, Long>> = withContext(Dispatchers.IO) {
+        try {
+            val safePage = maxOf(1, page)
+            val safeSize = minOf(maxOf(1, size), 100)
+            val roleFilter = Filters.eq(UserEntity::role.name, role.name)
+            val filter = if (!search.isNullOrBlank()) {
+                val regex = search.trim()
+                Filters.and(
+                    roleFilter,
+                    Filters.or(
+                        Filters.regex(UserEntity::fullName.name, regex, "i"),
+                        Filters.regex(UserEntity::email.name, regex, "i"),
+                    )
+                )
+            } else {
+                roleFilter
+            }
+            val total = collection.countDocuments(filter)
+            val items = collection.find(filter)
+                .skip((safePage - 1) * safeSize)
+                .limit(safeSize)
+                .toList()
+            Resource.Success(data = Pair(items, total), message = "Users fetched successfully")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to fetch users")
+        }
+    }
+
+    override suspend fun adminUpdateUser(
+        userId: String,
+        accountStatus: UserEntity.AccountStatus?,
+        verificationStatus: UserEntity.VerificationStatus?,
+    ): Resource<UserEntity?> = withContext(Dispatchers.IO) {
+        try {
+            collection.find(Filters.eq(UserEntity::id.name, userId)).firstOrNull()
+                ?: return@withContext Resource.Error("User not found")
+            val updates = mutableListOf<Bson>()
+            accountStatus?.let { updates.add(Updates.set(UserEntity::accountStatus.name, it.name)) }
+            verificationStatus?.let { updates.add(Updates.set(UserEntity::verificationStatus.name, it.name)) }
+            if (updates.isEmpty()) return@withContext Resource.Error("At least one field must be provided")
+            updates.add(Updates.set(UserEntity::updatedAt.name, Clock.System.now().toString()))
+            collection.updateOne(Filters.eq(UserEntity::id.name, userId), Updates.combine(updates))
+            val updated = collection.find(Filters.eq(UserEntity::id.name, userId)).firstOrNull()
+            Resource.Success(data = updated, message = "User updated successfully")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to update user")
+        }
+    }
+
+    override suspend fun filterUsers(
+        role: UserEntity.Role,
+        page: Int,
+        size: Int,
+        accountStatus: UserEntity.AccountStatus?,
+        createdFrom: String?,
+        createdTo: String?,
+    ): Resource<Pair<List<UserEntity>, Long>> = withContext(Dispatchers.IO) {
+        try {
+            val safePage = maxOf(1, page)
+            val safeSize = minOf(maxOf(1, size), 100)
+            val conditions = mutableListOf<Bson>(Filters.eq(UserEntity::role.name, role.name))
+            accountStatus?.let { conditions.add(Filters.eq(UserEntity::accountStatus.name, it.name)) }
+            createdFrom?.takeIf { it.isNotBlank() }?.let { conditions.add(Filters.gte(UserEntity::createdAt.name, it)) }
+            createdTo?.takeIf { it.isNotBlank() }?.let { conditions.add(Filters.lte(UserEntity::createdAt.name, it)) }
+            val filter = Filters.and(conditions)
+            val total = collection.countDocuments(filter)
+            val items = collection.find(filter)
+                .skip((safePage - 1) * safeSize)
+                .limit(safeSize)
+                .toList()
+            Resource.Success(data = Pair(items, total), message = "Users fetched successfully")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to fetch users")
+        }
+    }
 
     /**
      * Initialize an admin account if none exists

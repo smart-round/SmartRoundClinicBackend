@@ -10,6 +10,7 @@ import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.SlotOverrideRepository
 import ke.co.smartroundclinic.scheduling.domain.service.AppointmentService
+import ke.co.smartroundclinic.scheduling.domain.service.CalendarService
 import ke.co.smartroundclinic.scheduling.domain.service.ScheduleService
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.BookAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CancelAppointmentUseCase
@@ -21,6 +22,7 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAp
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.DeactivateDayUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetAvailableSlotsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetCalendarRangeUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetScheduleUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.UpdateScheduleDayUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.UpsertScheduleUseCase
@@ -48,8 +50,10 @@ val schedulingKoinModule = module {
     single { UpdateScheduleDayUseCase(get()) }
     single { DeactivateDayUseCase(get()) }
     single { GetAvailableSlotsUseCase(get(), get(), get()) }
+    single { GetCalendarRangeUseCase(get(), get(), get()) }
 
     // Services
     single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { ScheduleService(get(), get(), get(), get(), get()) }
+    single { CalendarService(get(), get()) }
 }

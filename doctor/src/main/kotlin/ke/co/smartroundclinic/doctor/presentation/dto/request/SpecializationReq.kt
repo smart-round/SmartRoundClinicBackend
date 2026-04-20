@@ -18,3 +18,9 @@ data class AddSpecializationReq(
         createdAt = Clock.System.now().toString(),
     )
 }
+
+@Serializable
+data class UpdateSpecializationReq(
+    val specializationId: String,
+    val subSpecializationId: String? = null,
+)

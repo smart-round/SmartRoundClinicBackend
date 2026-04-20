@@ -38,6 +38,7 @@ import ke.co.smartroundclinic.doctor.domain.usecase.profile.CreatePractitionerPr
 import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetMyProfileUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetPractitionerProfileByIdUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetPractitionerProfilesUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.profile.GetPractitionerProfileWithSpecializationsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.profile.UpdatePractitionerProfileUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.payment.AddPaymentDetailsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.payment.DeletePaymentDetailsUseCase
@@ -47,7 +48,9 @@ import ke.co.smartroundclinic.doctor.domain.usecase.payment.GetPaymentDetailsUse
 import ke.co.smartroundclinic.doctor.domain.usecase.payment.UpdatePaymentDetailsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.specialization.AddSpecializationUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.specialization.GetMySpecializationsUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.specialization.GetMySpecializationsWithDetailsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.specialization.RemoveSpecializationUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.specialization.UpdateSpecializationUseCase
 import ke.co.smartroundclinic.doctor.data.repository.LocalBankRepositoryImpl
 import ke.co.smartroundclinic.doctor.domain.repository.LocalBankRepository
 import ke.co.smartroundclinic.doctor.domain.service.LocalBankService
@@ -64,11 +67,11 @@ val doctorModule = module {
     /**
      * Repositories
      * */
-    single<PractitionerProfileRepository> { PractitionerProfileRepositoryImpl(get(named("doctorDb"))) }
+    single<PractitionerProfileRepository> { PractitionerProfileRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<CertificationRepository> { CertificationRepositoryImpl(get(named("doctorDb"))) }
     single<ComplianceRepository> { ComplianceRepositoryImpl(get(named("doctorDb"))) }
     single<PractitionerLicenceRepository> { PractitionerLicenceRepositoryImpl(get(named("doctorDb"))) }
-    single<SpecializationRepository> { SpecializationRepositoryImpl(get(named("doctorDb"))) }
+    single<SpecializationRepository> { SpecializationRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<PaymentDetailsRepository> { PaymentDetailsRepositoryImpl(get(named("doctorDb"))) }
 
     /**
@@ -79,6 +82,7 @@ val doctorModule = module {
     single { GetMyProfileUseCase(get()) }
     single { GetPractitionerProfileByIdUseCase(get()) }
     single { GetPractitionerProfilesUseCase(get()) }
+    single { GetPractitionerProfileWithSpecializationsUseCase(get()) }
 
     /**
      * Certifications
@@ -114,7 +118,9 @@ val doctorModule = module {
      * */
     single { AddSpecializationUseCase(get()) }
     single { GetMySpecializationsUseCase(get()) }
+    single { GetMySpecializationsWithDetailsUseCase(get()) }
     single { RemoveSpecializationUseCase(get()) }
+    single { UpdateSpecializationUseCase(get()) }
 
     /**
      * Payment Details
@@ -135,7 +141,8 @@ val doctorModule = module {
             get(),
             get(),
             get(),
-            get()
+            get(),
+            get(),
         )
     }
     single {
@@ -171,7 +178,9 @@ val doctorModule = module {
         SpecializationService(
             get(),
             get(),
-            get()
+            get(),
+            get(),
+            get(),
         )
     }
 

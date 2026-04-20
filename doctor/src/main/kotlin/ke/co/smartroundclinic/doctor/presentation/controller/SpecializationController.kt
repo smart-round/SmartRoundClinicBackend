@@ -8,9 +8,11 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ke.co.smartroundclinic.doctor.domain.service.SpecializationService
 import ke.co.smartroundclinic.doctor.presentation.dto.request.AddSpecializationReq
+import ke.co.smartroundclinic.doctor.presentation.dto.request.UpdateSpecializationReq
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
@@ -22,7 +24,6 @@ fun Route.specializationController(service: SpecializationService) {
         route("/doctor/specializations") {
 
             // POST /doctor/specializations
-            // Add a specialization to the doctor's profile.
             post {
                 call.requireRole(DOCTOR) {
                     val doctorId = call.getUserId() ?: return@requireRole
@@ -33,21 +34,31 @@ fun Route.specializationController(service: SpecializationService) {
             }
 
             // GET /doctor/specializations
-            // List all my specializations.
             get {
                 call.requireRole(DOCTOR) {
                     val doctorId = call.getUserId() ?: return@requireRole
-                    val result = service.getMy(doctorId)
+                    val result = service.getMyWithDetails(doctorId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
 
-            // DELETE /doctor/specializations/{id}
-            // Remove a specialization.
-            delete("{id}") {
+            // PUT /doctor/specializations?id={id}
+            put {
                 call.requireRole(DOCTOR) {
-                    val id = call.parameters["id"]
-                        ?: throw MissingParametersException("id path parameter is required")
+                    val id = call.request.queryParameters["id"]
+                        ?: throw MissingParametersException("id query parameter is required")
+                    val doctorId = call.getUserId() ?: return@requireRole
+                    val body = call.receive<UpdateSpecializationReq>()
+                    val result = service.update(id, doctorId, body.specializationId, body.subSpecializationId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // DELETE /doctor/specializations?id={id}
+            delete {
+                call.requireRole(DOCTOR) {
+                    val id = call.request.queryParameters["id"]
+                        ?: throw MissingParametersException("id query parameter is required")
                     val doctorId = call.getUserId() ?: return@requireRole
                     val result = service.remove(id, doctorId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)

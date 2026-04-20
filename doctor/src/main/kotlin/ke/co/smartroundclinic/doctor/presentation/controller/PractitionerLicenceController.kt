@@ -29,7 +29,6 @@ private const val ADMIN = "ADMIN"
 fun Route.practitionerLicenceController(service: PractitionerLicenceService) {
     authenticate("auth-jwt") {
         route("/doctor/licence") {
-
             // POST /doctor/licences
             // Upload a new licence document.
             post {
@@ -75,20 +74,19 @@ fun Route.practitionerLicenceController(service: PractitionerLicenceService) {
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
-
             // GET /doctor/licences/{id}
             // Get a single licence document.
             get {
-                call.requireRole(DOCTOR) {
+                call.requireRole(ADMIN,DOCTOR) {
                     val id = call.parameters["id"]
-                        ?: throw MissingParametersException("id path parameter is required")
-                    val doctorId = call.getUserId() ?: return@requireRole
+                        ?: throw MissingParametersException("licence id path parameter is required")
+                    val getDocId = call.parameters["doctorId"]
+                    val doctorId = (getDocId ?: call.getUserId()) ?: return@requireRole
+
                     val result = service.getById(id, doctorId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
-
-
             // DELETE /doctor/licences/{id}
             // Delete a licence document.
             delete {

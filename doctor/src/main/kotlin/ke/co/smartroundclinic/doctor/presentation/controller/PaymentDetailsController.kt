@@ -40,9 +40,10 @@ fun Route.paymentDetailsController(service: PaymentDetailsService) {
 
             // GET /doctor/payment-details/me
             // Fetch the authenticated doctor's own payment details.
-            get("me") {
-                call.requireRole(DOCTOR) {
-                    val doctorId = call.getUserId() ?: return@requireRole
+            get {
+                call.requireRole(DOCTOR,ADMIN) {
+                    val id = call.parameters["id"]
+                    val doctorId = (id ?: call.getUserId()) ?: return@requireRole
                     val result = service.get(doctorId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
@@ -75,7 +76,7 @@ fun Route.paymentDetailsController(service: PaymentDetailsService) {
 
             // GET /admin/payment-details?page=1&size=20
             // Paginated list of all practitioners' payment details.
-            get {
+            get("all") {
                 call.requireRole(ADMIN) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                     val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
@@ -87,7 +88,7 @@ fun Route.paymentDetailsController(service: PaymentDetailsService) {
             // GET /admin/payment-details/{id}
             // Get a single payment-details record by its id.
 
-            get("{id}") {
+            get {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"] 
                         ?: throw MissingParametersException("id path parameter is required")

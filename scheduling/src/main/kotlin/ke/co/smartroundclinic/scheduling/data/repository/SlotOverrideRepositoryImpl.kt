@@ -44,6 +44,25 @@ class SlotOverrideRepositoryImpl(database: MongoDatabase) : SlotOverrideReposito
             }
         }
 
+    override suspend fun getByDoctorAndDateRange(
+        doctorId: String,
+        from: String,
+        to: String,
+    ): Resource<List<SlotOverrideEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val items = col.find(
+                Filters.and(
+                    Filters.eq(SlotOverrideEntity::doctorId.name, doctorId),
+                    Filters.gte(SlotOverrideEntity::date.name, from),
+                    Filters.lte(SlotOverrideEntity::date.name, to),
+                )
+            ).toList()
+            Resource.Success(data = items, message = "Slot overrides retrieved successfully")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to fetch slot overrides")
+        }
+    }
+
     override suspend fun delete(id: String): Resource<Nothing?> =
         withContext(Dispatchers.IO) {
             try {

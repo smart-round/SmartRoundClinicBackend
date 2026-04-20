@@ -9,6 +9,7 @@ object MongoDBConstants {
     const val ADMIN_DB = "src_admin"
     const val DOCTOR_DB = "src_doctor"
     const val PATIENT_DB = "src_patient"
+    const val PATIENT_PERSONAL_INFORMATION = "patient_personal_information"
 
     /**
      *  MongoDB Entities for AUTH_DB

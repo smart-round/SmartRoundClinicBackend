@@ -24,6 +24,9 @@ import ke.co.smartroundclinic.auth.domain.usecase.SendAccountVerificationOtpUseC
 import ke.co.smartroundclinic.auth.domain.usecase.SignUpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.VerifyAccountOtpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -53,6 +56,9 @@ val authModule = module {
     single { RevokeTokenUseCase(get(), get()) }
     single { UploadProfilePictureUseCase(get(), get()) }
     single { RemoveProfilePictureUseCase(get(), get()) }
+    single { GetUsersByRoleUseCase(get()) }
+    single { AdminUpdateUserUseCase(get()) }
+    single { FilterUsersByRoleUseCase(get()) }
     single {
         SignUpUseCase(
             get(),
@@ -76,7 +82,9 @@ val authModule = module {
             get(),
             get(),
             get(),
-
+            get(),
+            get(),
+            get(),
         )
     }
 

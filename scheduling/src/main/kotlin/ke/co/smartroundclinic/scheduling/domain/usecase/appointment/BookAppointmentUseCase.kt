@@ -60,7 +60,7 @@ class BookAppointmentUseCase(
                 .toDefaultResponse(failedStatusCode = 404) { null }
         }
 
-        val totalSlotMinutes = (serviceTier.consultationDuration + serviceTier.gracePeriod).toInt()
+        val totalSlotMinutes = ((serviceTier.consultationDuration + serviceTier.gracePeriod) / 60_000L).toInt()
         val slotEnd = addMinutes(req.slotStart, totalSlotMinutes)
 
         return appointmentRepository.book(req.toModel(patientId, slotEnd).toEntity())

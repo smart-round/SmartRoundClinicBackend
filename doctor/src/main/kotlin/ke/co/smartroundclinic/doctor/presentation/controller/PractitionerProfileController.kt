@@ -61,21 +61,18 @@ fun Route.practitionerProfileController(service: PractitionerProfileService) {
         route("/doctor/profiles") {
 
             // GET /doctor/profiles?page=1&size=20
-            // Paginated list of all practitioners (visible to patients & admins).
+            // Paginated list of all practitioners.
             get {
-                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                val result = service.getAll(page, size)
-                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-            }
-
-            // GET /doctor/profiles/{id}
-            // Get a single practitioner profile by id.
-            get {
-                val id = call.parameters["id"]
-                    ?: throw MissingParametersException("id path parameter is required")
-                val result = service.getById(id)
-                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                val id = call.request.queryParameters["id"]
+                if (id != null) {
+                    val result = service.getByIdWithSpecializations(id)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                } else {
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val result = service.getAll(page, size)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
             }
         }
     }

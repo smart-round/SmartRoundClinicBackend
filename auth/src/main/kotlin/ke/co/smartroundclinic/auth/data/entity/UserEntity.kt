@@ -1,6 +1,5 @@
 package ke.co.smartroundclinic.auth.data.entity
 
-import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.model.User
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -36,7 +35,7 @@ data class UserEntity(
         ACTIVE,INACTIVE,SUSPENDED
     }
     enum class VerificationStatus{
-        VERIFIED,UNVERIFIED, PENDING_APPROVAL
+        VERIFIED, UNVERIFIED, PENDING_APPROVAL
     }
 
     fun toModel(): User  = User(
