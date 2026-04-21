@@ -9,6 +9,8 @@ import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.principal
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import io.ktor.server.routing.PathSegmentConstantRouteSelector
 import io.ktor.server.routing.PathSegmentParameterRouteSelector
@@ -23,6 +25,7 @@ private fun require(key: String): String =
     EnvLoader.get(key) ?: throw IllegalStateException("$key is required")
 
 private const val SUPER_ADMIN_ROLE = "SUPER_ADMIN"
+private const val ADMIN_ROLE = "ADMIN"
 
 fun Application.configureSecurity() {
     val jwtAudience = require("JWT_AUDIENCE")
@@ -66,24 +69,72 @@ fun ApplicationCall.getPermissions(): List<String> {
     return raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 }
 
-// SUPER_ADMIN satisfies any role check automatically.
+// Converts a permission key template like "GET:/admin/patients/{id}" into a regex that matches
+// actual request paths like "GET:/admin/patients/abc123".
+private fun permissionKeyToRegex(key: String): Regex {
+    val pattern = key
+        .replace(".", "\\.")            // escape dots
+        .replace(Regex("\\{[^}]+}"), "[^/]+")  // {param} → one path segment
+        .replace("*", ".*")             // wildcard support
+    return Regex("^$pattern$")
+}
+
+// Returns true if the actual "METHOD:/real/path" matches any stored permission template.
+private fun matchesPermissions(actualKey: String, permissions: List<String>): Boolean =
+    permissions.any { permissionKeyToRegex(it).matches(actualKey) }
+
+// Role guard.
+// - SUPER_ADMIN bypasses all checks.
+// - ADMIN: role check passes, then permissions are validated dynamically against the
+//   actual request path. The stored permission templates use {param} for path parameters,
+//   so "GET:/admin/patients/{id}" matches "GET:/admin/patients/abc123".
+// - DOCTOR / PATIENT: role check only, no permission lookup.
 suspend fun ApplicationCall.requireRole(vararg allowedRoles: String, block: suspend () -> Unit) {
     val role = getRole()
-    if (role != null && (role == SUPER_ADMIN_ROLE || allowedRoles.contains(role))) {
+
+    if (role == SUPER_ADMIN_ROLE) { block(); return }
+
+    if (role == null || !allowedRoles.contains(role)) {
+        respondForbidden(); return
+    }
+
+    if (role == ADMIN_ROLE) {
+        val actualKey = "${request.httpMethod.value}:${request.path()}"
+        if (matchesPermissions(actualKey, getPermissions())) {
+            block()
+        } else {
+            respondForbidden()
+        }
+        return
+    }
+
+    // DOCTOR, PATIENT — role check is sufficient.
+    block()
+}
+
+// Explicit permission guard using stored route-key strings.
+// Use when you need to check a specific permission outside a role-guarded context.
+suspend fun ApplicationCall.requirePermission(vararg keys: String, block: suspend () -> Unit) {
+    val role = getRole()
+    if (role == SUPER_ADMIN_ROLE) { block(); return }
+    val actualKey = "${request.httpMethod.value}:${request.path()}"
+    if (keys.any { permissionKeyToRegex(it).matches(actualKey) }) {
         block()
     } else {
-        respond(
-            HttpStatusCode.Forbidden,
-            Resource.Error<Nothing>(message = "Access denied: insufficient permissions")
-                .toDefaultResponse(HttpStatusCode.Forbidden.value) { null }
-        )
+        respondForbidden()
     }
 }
 
-
+private suspend fun ApplicationCall.respondForbidden() {
+    respond(
+        HttpStatusCode.Forbidden,
+        Resource.Error<Nothing>(message = "Access denied: insufficient permissions")
+            .toDefaultResponse(HttpStatusCode.Forbidden.value) { null }
+    )
+}
 
 // Walks up the route parent chain to reconstruct the full path template.
-// Used by PermissionCatalogSync and anywhere a route key needs to be derived programmatically.
+// Used by PermissionCatalogSync to derive route keys.
 internal fun buildPathTemplate(route: Route): String {
     val segments = mutableListOf<String>()
     var node: Route? = route

@@ -14,6 +14,7 @@ import ke.co.smartroundclinic.doctor.doctorModule
 import ke.co.smartroundclinic.doctor.koin.doctorModule as doctorKoinModule
 import ke.co.smartroundclinic.doctor.validation.registerDoctorValidators
 import ke.co.smartroundclinic.infra.configureInfraModule
+import ke.co.smartroundclinic.admin.seeder.seedDefaultPolicyGroups
 import ke.co.smartroundclinic.infra.syncPermissionCatalog
 import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
@@ -58,5 +59,7 @@ fun Application.module() {
             call.respondText("Hello World!")
         }
     }
-    syncPermissionCatalog(root)
+    syncPermissionCatalog(root) { catalog ->
+        seedDefaultPolicyGroups(catalog)
+    }
 }

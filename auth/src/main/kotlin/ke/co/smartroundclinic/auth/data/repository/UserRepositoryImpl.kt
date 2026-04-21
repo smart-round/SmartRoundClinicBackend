@@ -224,8 +224,8 @@ class UserRepositoryImpl(
             val isPasswordValid = credentialsHasher.verify(hashed = user.password, text = password)
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
-            val permissions = if (user.role == Role.ADMIN && user.policyGroupId != null) {
-                permissionResolver?.resolvePermissions(user.policyGroupId) ?: emptyList()
+            val permissions = if (user.role == Role.ADMIN && user.policyGroupIds.isNotEmpty()) {
+                permissionResolver?.resolvePermissions(user.policyGroupIds) ?: emptyList()
             } else emptyList()
 
             val token = tokenProvider.generateTokens(userId = user.id, role = user.role.name, permissions = permissions)
@@ -316,20 +316,6 @@ class UserRepositoryImpl(
             Resource.Error(e.localizedMessage ?: "Failed to fetch users")
         }
     }
-
-    override suspend fun updateAdminPolicyGroup(userId: String, policyGroupId: String?): Resource<Nothing> =
-        withContext(Dispatchers.IO) {
-            try {
-                val result = collection.updateOne(
-                    Filters.eq(UserEntity::id.name, userId),
-                    Updates.set(UserEntity::policyGroupId.name, policyGroupId)
-                )
-                if (result.matchedCount == 0L) return@withContext Resource.Error("User not found")
-                Resource.Success(data = null, message = "Policy group updated successfully")
-            } catch (e: Exception) {
-                Resource.Error(e.localizedMessage ?: "Failed to update policy group")
-            }
-        }
 
     /**
      * Initialize an admin account if none exists

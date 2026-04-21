@@ -7,6 +7,7 @@ import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.DeletePolicyGroup
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.GetPolicyGroupUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.ListPolicyGroupsUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.RemoveAdminFromPolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.ReplaceAdminPolicyGroupsUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.UpdatePolicyGroupUseCase
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreatePolicyGroupReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdatePolicyGroupReq
@@ -19,6 +20,7 @@ class PolicyGroupService(
     private val deleteUseCase: DeletePolicyGroupUseCase,
     private val assignUseCase: AssignAdminToPolicyGroupUseCase,
     private val removeUseCase: RemoveAdminFromPolicyGroupUseCase,
+    private val replaceUseCase: ReplaceAdminPolicyGroupsUseCase,
     private val getPermissionCatalogUseCase: GetPermissionCatalogUseCase,
 ) {
     suspend fun create(req: CreatePolicyGroupReq, createdBy: String) = createUseCase(req.toModel(createdBy))
@@ -28,5 +30,6 @@ class PolicyGroupService(
     suspend fun delete(id: String) = deleteUseCase(id)
     suspend fun assignAdmin(policyGroupId: String, adminUserId: String) = assignUseCase(policyGroupId, adminUserId)
     suspend fun removeAdmin(policyGroupId: String, adminUserId: String) = removeUseCase(policyGroupId, adminUserId)
+    suspend fun replaceAdminPolicyGroups(adminUserId: String, policyGroupIds: List<String>) = replaceUseCase(adminUserId, policyGroupIds)
     suspend fun getPermissionCatalog() = getPermissionCatalogUseCase()
 }

@@ -11,5 +11,8 @@ interface PolicyGroupRepository {
     suspend fun delete(id: String): Resource<Nothing>
     suspend fun assignAdmin(policyGroupId: String, adminUserId: String): Resource<Nothing>
     suspend fun removeAdmin(policyGroupId: String, adminUserId: String): Resource<Nothing>
-    suspend fun resolvePermissions(policyGroupId: String): List<String>
+    suspend fun resolvePermissions(policyGroupIds: List<String>): List<String>
+    suspend fun upsertByName(name: String, description: String?, permissions: List<String>, createdBy: String): Resource<PolicyGroup?>
+    suspend fun replaceAdminPolicyGroups(adminUserId: String, policyGroupIds: List<String>): Resource<Nothing>
+    suspend fun getAdminPolicyGroups(adminUserId: String): Resource<List<PolicyGroup>>
 }

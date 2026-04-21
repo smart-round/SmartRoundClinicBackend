@@ -38,5 +38,4 @@ interface UserRepository {
         createdFrom: String?,
         createdTo: String?,
     ): Resource<Pair<List<UserEntity>, Long>>
-    suspend fun updateAdminPolicyGroup(userId: String, policyGroupId: String?): Resource<Nothing>
 }

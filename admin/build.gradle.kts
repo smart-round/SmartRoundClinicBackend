@@ -11,5 +11,6 @@ kotlin {
 dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
+    implementation(project(":auth"))
     implementation(libs.kotlin.jsoup)
 }

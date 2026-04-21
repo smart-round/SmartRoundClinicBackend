@@ -24,3 +24,8 @@ data class UpdatePolicyGroupReq(
     val description: String? = null,
     val permissions: List<String>? = null,
 )
+
+data class ReplaceAdminPolicyGroupsReq(
+    val adminId: String,
+    val policyGroupIds: List<String> = emptyList(),
+)

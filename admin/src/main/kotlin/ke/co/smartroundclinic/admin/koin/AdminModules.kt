@@ -42,6 +42,7 @@ import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.DeletePolicyGroup
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.GetPolicyGroupUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.ListPolicyGroupsUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.RemoveAdminFromPolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.ReplaceAdminPolicyGroupsUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.UpdatePolicyGroupUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityByIdUseCase
@@ -72,7 +73,8 @@ val adminModule = module {
     single { DeletePolicyGroupUseCase(get()) }
     single { AssignAdminToPolicyGroupUseCase(get()) }
     single { RemoveAdminFromPolicyGroupUseCase(get()) }
-    single { PolicyGroupService(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { ReplaceAdminPolicyGroupsUseCase(get()) }
+    single { PolicyGroupService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     single { CreateSpecialityUseCase(get(), get()) }
     single { UpdateSpecialityUseCase(get(), get()) }
