@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.TokenProvider
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.MongoDBConstants
+import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
 import ke.co.smartroundclinic.common.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ import org.bson.conversions.Bson
 class UserRepositoryImpl(
     private val database: MongoDatabase,
     private val credentialsHasher: CredentialsHasher,
-    private val tokenProvider: TokenProvider
+    private val tokenProvider: TokenProvider,
+    private val permissionResolver: PolicyGroupPermissionResolver? = null,
 ) : UserRepository {
 
     private val collection = database.getCollection<UserEntity>(MongoDBConstants.AUTH_USER)
@@ -222,7 +224,11 @@ class UserRepositoryImpl(
             val isPasswordValid = credentialsHasher.verify(hashed = user.password, text = password)
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
-            val token = tokenProvider.generateTokens(userId = user.id, role = user.role.name)
+            val permissions = if (user.role == Role.ADMIN && user.policyGroupId != null) {
+                permissionResolver?.resolvePermissions(user.policyGroupId) ?: emptyList()
+            } else emptyList()
+
+            val token = tokenProvider.generateTokens(userId = user.id, role = user.role.name, permissions = permissions)
             Resource.Success(message = "Login successful", data = token)
 
         } ?: return@withContext Resource.Error(message = "Invalid email or password")
@@ -311,6 +317,20 @@ class UserRepositoryImpl(
         }
     }
 
+    override suspend fun updateAdminPolicyGroup(userId: String, policyGroupId: String?): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                val result = collection.updateOne(
+                    Filters.eq(UserEntity::id.name, userId),
+                    Updates.set(UserEntity::policyGroupId.name, policyGroupId)
+                )
+                if (result.matchedCount == 0L) return@withContext Resource.Error("User not found")
+                Resource.Success(data = null, message = "Policy group updated successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to update policy group")
+            }
+        }
+
     /**
      * Initialize an admin account if none exists
      * */
@@ -323,7 +343,7 @@ class UserRepositoryImpl(
                         email = "admin@smartroundclinic.co.ke",
                         password = "admin",
                         fullName = "Admin",
-                        role = Role.ADMIN,
+                        role = Role.SUPER_ADMIN,
                         accountStatus = UserEntity.AccountStatus.ACTIVE,
                         verificationStatus = UserEntity.VerificationStatus.VERIFIED
                     )

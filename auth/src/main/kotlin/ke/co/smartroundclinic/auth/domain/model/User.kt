@@ -17,6 +17,7 @@ data class User(
     val password: String,
     val phoneNumber: String?,
     val profilePicture: String? = null,
+    val policyGroupId: String? = null,
     val dateOfBirth: String?,
     val createdAt: String = "",
     val updatedAt: String? = null,
@@ -31,8 +32,8 @@ data class User(
         phoneNumber = phoneNumber,
         dateOfBirth = dateOfBirth,
         password = password,
-        profilePicture = profilePicture
-
+        profilePicture = profilePicture,
+        policyGroupId = policyGroupId,
     )
     fun toUserRes() = UserRes(
         id = id,

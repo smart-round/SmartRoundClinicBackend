@@ -20,6 +20,8 @@ object MongoDBConstants {
     /**
      * MongoDB Entities for ADMIN_DB
      */
+    const val ADMIN_POLICY_GROUPS = "admin_policy_groups"
+    const val ADMIN_PERMISSIONS_CATALOG = "admin_permissions_catalog"
     const val ADMIN_SPECIALITIES = "admin_specialities"
     const val ADMIN_SUB_SPECIALITIES = "admin_subspecialities"
     const val ADMIN_KMPDC_PRACTITIONERS = "admin_kmpdc_practitioners"

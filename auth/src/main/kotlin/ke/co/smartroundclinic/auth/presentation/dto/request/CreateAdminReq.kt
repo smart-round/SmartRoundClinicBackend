@@ -24,4 +24,16 @@ data class CreateAdminReq(
         phoneNumber = phoneNumber,
         dateOfBirth = dateOfBirth,
     )
+
+    fun toSuperAdminModel() = User(
+        fullName = fullName,
+        email = email,
+        gender = gender,
+        role = Role.SUPER_ADMIN,
+        accountStatus = UserEntity.AccountStatus.ACTIVE,
+        verificationStatus = UserEntity.VerificationStatus.VERIFIED,
+        password = password,
+        phoneNumber = phoneNumber,
+        dateOfBirth = dateOfBirth,
+    )
 }

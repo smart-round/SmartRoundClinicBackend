@@ -41,9 +41,20 @@ fun Route.userController(userService: UserService) {
 
         authenticate("auth-jwt") {
             post("create-admin") {
-                call.requireRole(UserEntity.Role.ADMIN.name) {
+                call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
                     val createAdminReq = call.receive<CreateAdminReq>()
                     val result = userService.createAdmin(createAdminReq)
+                    call.respond(
+                        status = HttpStatusCode.fromValue(result.httpStatusCode),
+                        message = result
+                    )
+                }
+            }
+
+            post("create-super-admin") {
+                call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
+                    val createAdminReq = call.receive<CreateAdminReq>()
+                    val result = userService.createSuperAdmin(createAdminReq)
                     call.respond(
                         status = HttpStatusCode.fromValue(result.httpStatusCode),
                         message = result

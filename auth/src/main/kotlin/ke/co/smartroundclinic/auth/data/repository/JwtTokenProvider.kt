@@ -17,12 +17,13 @@ class JwtTokenProvider : TokenProvider {
     val jwtSecret = require("JWT_SECRET")
     private val refreshSecret = require("REFRESH_SECRET")
 
-    override fun generateTokens(userId: String, role: String): AuthToken {
+    override fun generateTokens(userId: String, role: String, permissions: List<String>): AuthToken {
         val accessToken = JWT.create()
             .withAudience(jwtAudience)
             .withIssuer(jwtDomain)
             .withClaim("userId", userId)
             .withClaim("role", role)
+            .withClaim("permissions", permissions.joinToString(","))
             .withExpiresAt(Date(System.currentTimeMillis() + 3600000 * 24)) // 24 hours
             .sign(Algorithm.HMAC256(jwtSecret))
 

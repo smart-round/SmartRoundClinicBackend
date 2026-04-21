@@ -7,6 +7,6 @@ data class AuthToken(
 )
 
 interface TokenProvider {
-    fun generateTokens(userId: String, role: String): AuthToken
-    fun verifyRefreshToken(token: String): String? // returns userId if valid
+    fun generateTokens(userId: String, role: String, permissions: List<String> = emptyList()): AuthToken
+    fun verifyRefreshToken(token: String): String?
 }

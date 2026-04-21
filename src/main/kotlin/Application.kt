@@ -14,6 +14,7 @@ import ke.co.smartroundclinic.doctor.doctorModule
 import ke.co.smartroundclinic.doctor.koin.doctorModule as doctorKoinModule
 import ke.co.smartroundclinic.doctor.validation.registerDoctorValidators
 import ke.co.smartroundclinic.infra.configureInfraModule
+import ke.co.smartroundclinic.infra.syncPermissionCatalog
 import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
 import ke.co.smartroundclinic.infra.koin.httpModule
@@ -52,9 +53,10 @@ fun Application.module() {
     schedulingModule()
     supportModule()
     patientModule()
-    routing {
+    val root = routing {
         get("/") {
             call.respondText("Hello World!")
         }
     }
+    syncPermissionCatalog(root)
 }

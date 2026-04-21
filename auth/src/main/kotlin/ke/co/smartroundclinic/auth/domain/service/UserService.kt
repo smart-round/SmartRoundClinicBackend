@@ -42,6 +42,7 @@ class UserService(
 ) {
     suspend fun signIn(email: String, password: String) = signInUseCase(email, password)
     suspend fun createAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toModel())
+    suspend fun createSuperAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toSuperAdminModel())
     suspend fun signUp(role: String, body: SignUpReq) = signUpUseCase(body.toModel(UserEntity.Role.valueOf(role)))
     suspend fun accountVerification(email: String, otpCode: String) = accountVerificationUseCase(email, otpCode)
     suspend fun resendAccountVerificationOtp(email: String) = resendAccountVerificationOtpUseCase(email)

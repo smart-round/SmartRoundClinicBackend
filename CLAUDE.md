@@ -29,17 +29,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-Kotlin/Ktor REST API backend with 8 Gradle modules:
+Kotlin/Ktor REST API backend with 9 Gradle modules:
 
 ```
-:common        — Shared DTOs, enums, constants, Resource<T>, DefaultResponse<T>
-:infra         — Ktor plugins, MongoDB client, Koin DI bootstrap, JWT, Cloudflare R2
-:auth          — Reference implementation: full auth flow with JWT
-:admin         — Specialities, sub-specialities, service tiers, KMPDC practitioners
+:common        — Shared DTOs, enums, constants, Resource<T>, DefaultResponse<T>, Permission enum, PolicyGroupPermissionResolver interface
+:infra         — Ktor plugins, MongoDB client, Koin DI bootstrap, JWT, Cloudflare R2, authorization guards
+:auth          — Reference implementation: full auth flow with JWT, user management
+:admin         — Specialities, sub-specialities, service tiers, KMPDC practitioners, policy groups
 :doctor        — Practitioner profiles, compliance, licences, certifications, payments
-:patient       — Stub (skeleton only)
+:patient       — Patient profiles (stub)
 :scheduling    — Appointments + doctor availability
 :notification  — Transactional email via Resend API (no REST endpoints)
+:support       — Support tickets and chat
 src/           — Root module: wires everything together, entry point
 ```
 
@@ -47,7 +48,7 @@ Entry point: `src/main/kotlin/Application.kt` → Netty on `0.0.0.0:8080`.
 
 ### Layer Rules
 
-Each feature module follows three layers (package convention: `ke.co.smartroundclinic.{module}.{layer}`):
+Each feature module follows four layers (package convention: `ke.co.smartroundclinic.{module}.{layer}`):
 
 - **Domain** — use cases, repository interfaces, domain models. No external deps.
 - **Data** — repository implementations, entity classes, MongoDB queries.
@@ -67,14 +68,14 @@ Rules:
 - `toEntity()` lives as an extension function in the entity file (on the domain model)
 - `toRes()` lives as an extension function in the response file (on the domain model)
 - Domain models in `domain/model/` must NOT import from `presentation/`
-- IDs (`ObjectId().toString()`) and timestamps (`Instant.now()`) are set in `toModel()` on request DTOs, not in entities
+- IDs (`ObjectId().toString()`) and timestamps (`Clock.System.now().toString()`) are set in `toModel()` on request DTOs, not in entities
 
 ### Response Wrapper
 
 All use cases return `DefaultResponse<T>`. The conversion chain:
 
 1. Repository returns `Resource<T>` (sealed class: `Resource.Success` / `Resource.Error`)
-2. Use case calls `.toDefaultResponse { transform }` to produce `DefaultResponse<T>`
+2. Use case calls `.toDefaultResponse(statusCode) { transform }` to produce `DefaultResponse<T?>`  — note the return type is always `DefaultResponse<T?>` (nullable)
 3. Controller calls `call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)`
 
 `Resource<T>` and `DefaultResponse<T>` are defined in `:common`.
@@ -89,6 +90,7 @@ get(named("adminDb"))      // src_admin
 get(named("doctorDb"))     // src_doctor
 get(named("patientDb"))    // src_patient
 get(named("schedulingDb")) // src_scheduling
+get(named("supportDb"))    // src_support
 ```
 
 All feature Koin modules are registered in `Application.kt` via `configureInfraModule(appModules = listOf(...))`. Validators are registered there too:
@@ -100,13 +102,37 @@ configureInfraModule(
 )
 ```
 
-### Authentication
+### Authentication & Authorization
 
 JWT (HMAC256). Two token types:
-- **Access token**: 24h expiry, carries `userId` and `role` claims
+- **Access token**: 24h expiry, carries `userId`, `role`, and `permissions` claims
 - **Refresh token**: 30-day expiry
 
-Role-based access: `call.requireRole("ADMIN")`, `call.getRole()`, `call.getUserId()`. Three roles: `ADMIN`, `DOCTOR`, `PATIENT`.
+Four roles: `SUPER_ADMIN`, `ADMIN`, `DOCTOR`, `PATIENT`.
+
+Authorization guards live in `infra/plugins/Security.kt`:
+
+```kotlin
+// Role guard — SUPER_ADMIN automatically satisfies any role check
+call.requireRole("ADMIN") { ... }
+
+// Permission guard — SUPER_ADMIN bypasses; ADMIN must hold all listed permissions
+call.requirePermission(Permission.MANAGE_PATIENTS) { ... }
+
+call.getRole()        // String? from JWT
+call.getUserId()      // String? from JWT, responds 401 if missing
+call.getPermissions() // List<Permission> from JWT permissions claim
+```
+
+#### RBAC for Admins
+
+`SUPER_ADMIN` has unrestricted access. Regular `ADMIN` users are assigned to a **policy group** (managed in `:admin`). When an admin signs in, their policy group's permissions are resolved and embedded as a comma-joined `permissions` claim in the JWT. Permissions take effect on the next sign-in after assignment (max 24h lag).
+
+The cross-module resolution path: `PolicyGroupPermissionResolver` interface lives in `:common`; `PolicyGroupRepositoryImpl` in `:admin` implements it; `UserRepositoryImpl` in `:auth` receives it via Koin's `getOrNull<PolicyGroupPermissionResolver>()` and calls it during `emailSignIn`.
+
+The `PolicyGroupRepositoryImpl` holds both `adminDb` (for policy group documents) and `authDb` (for updating user `policyGroupId` field via raw `Document` updates — no type-safe `UserEntity` is imported in `:admin`).
+
+OTPs expire in 15 minutes, hashed with JBCrypt.
 
 ### Request Validation
 
@@ -114,7 +140,7 @@ Uses Ktor's `RequestValidation` plugin. Each module defines a `fun RequestValida
 
 ### MongoDB
 
-MongoDB Atlas (replica set required for transactions). Collection name constants in `common/MongoDBConstants.kt`. Schema-less — no migration tooling. On first run, `UserRepositoryImpl.initAdmin()` seeds `admin@smartroundclinic.co.ke`.
+MongoDB Atlas (replica set required for transactions). Collection name constants in `common/MongoDBConstants.kt`. Schema-less — no migration tooling. On first run, `UserRepositoryImpl.initAdmin()` seeds `admin@smartroundclinic.co.ke` as `SUPER_ADMIN`.
 
 For multi-step operations requiring atomicity, use manual client session transactions:
 ```kotlin
@@ -129,7 +155,7 @@ try {
     session.close()
 }
 ```
-Note: `withTransaction {}` does NOT exist in the MongoDB Kotlin coroutine driver (5.6.4).
+`withTransaction {}` does NOT exist in the MongoDB Kotlin coroutine driver (5.6.4).
 
 ### Storage
 
@@ -146,13 +172,31 @@ Resend API with template IDs. Called asynchronously from auth use cases. No rout
 |--------|------|------|
 | POST | `/auth/user/sign-up?role=DOCTOR\|PATIENT` | None |
 | POST | `/auth/user/sign-in` | None |
-| POST | `/auth/user/create-admin` | ADMIN |
+| POST | `/auth/user/create-admin` | SUPER_ADMIN |
+| POST | `/auth/user/create-super-admin` | SUPER_ADMIN |
 | GET | `/auth/user/account-verification?email=X&otpCode=Y` | None |
 | GET | `/auth/user/account-verification/resend-otp?email=X` | None |
 | PUT | `/auth/user` | JWT |
 | GET | `/auth/user` | JWT |
+| POST | `/auth/user/password-reset/request?email=X` | None |
+| POST | `/auth/user/password-reset` | None |
+| POST | `/auth/user/token/refresh` | None |
+| DELETE | `/auth/user/token/revoke` | JWT |
 
-OTPs expire in 2 minutes, hashed with JBCrypt.
+### Admin — Policy Groups (`/admin/policy-groups`)
+All endpoints require `SUPER_ADMIN`.
+
+| Method | Path |
+|--------|------|
+| POST | `/admin/policy-groups` |
+| GET | `/admin/policy-groups` |
+| GET | `/admin/policy-groups/{id}` |
+| PUT | `/admin/policy-groups/{id}` |
+| DELETE | `/admin/policy-groups/{id}` |
+| POST | `/admin/policy-groups/{id}/assign/{adminId}` |
+| DELETE | `/admin/policy-groups/{id}/assign/{adminId}` |
+
+Available permissions (defined in `common/Permission.kt`): `VIEW_PATIENTS`, `MANAGE_PATIENTS`, `VIEW_DOCTORS`, `MANAGE_DOCTORS`, `MANAGE_SPECIALITIES`, `VIEW_APPOINTMENTS`, `MANAGE_APPOINTMENTS`, `VIEW_REPORTS`, `MANAGE_ADMINS`.
 
 ### Scheduling (`/scheduling`)
 | Method | Path |
@@ -181,6 +225,7 @@ MONGODB_HOST, MONGODB_USER, MONGODB_PASSWORD
 JWT_SECRET, REFRESH_SECRET
 JWT_AUDIENCE   # default: "smartroundclinic"
 JWT_DOMAIN     # default: "smartroundclinic.co.ke"
+JWT_REALM
 
 # Resend (email)
 RESEND_BASE_URL, RESEND_API_KEY

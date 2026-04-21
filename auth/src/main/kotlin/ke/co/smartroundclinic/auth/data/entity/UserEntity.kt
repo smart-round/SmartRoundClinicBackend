@@ -19,17 +19,16 @@ data class UserEntity(
     val phoneNumber: String? = null,
     val dateOfBirth: String? = null,
     val profilePicture: String? = null,
+    val policyGroupId: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
-
-
-    ) {
+) {
 
     enum class Gender {
         MALE, FEMALE, NON_BINARY
     }
     enum class Role{
-        ADMIN,PATIENT,DOCTOR
+        SUPER_ADMIN, ADMIN, PATIENT, DOCTOR
     }
     enum class AccountStatus{
         ACTIVE,INACTIVE,SUSPENDED

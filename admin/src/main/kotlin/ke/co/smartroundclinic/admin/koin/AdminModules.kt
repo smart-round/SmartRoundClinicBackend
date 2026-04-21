@@ -3,14 +3,19 @@ package ke.co.smartroundclinic.admin.koin
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import ke.co.smartroundclinic.admin.data.repository.CommissionRateRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.KmpdcRepositoryImpl
+import ke.co.smartroundclinic.admin.data.repository.PermissionCatalogRepositoryImpl
+import ke.co.smartroundclinic.admin.data.repository.PolicyGroupRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.ServiceTierRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.SpecialityRepositoryImpl
 import ke.co.smartroundclinic.admin.domain.repository.CommissionRateRepository
 import ke.co.smartroundclinic.admin.domain.repository.KmpdcRepository
+import ke.co.smartroundclinic.admin.domain.repository.PermissionCatalogRepository
+import ke.co.smartroundclinic.admin.domain.repository.PolicyGroupRepository
 import ke.co.smartroundclinic.admin.domain.repository.ServiceTierRepository
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.admin.domain.service.CommissionRateService
 import ke.co.smartroundclinic.admin.domain.service.KmpdcService
+import ke.co.smartroundclinic.admin.domain.service.PolicyGroupService
 import ke.co.smartroundclinic.admin.domain.service.ServiceTierService
 import ke.co.smartroundclinic.admin.domain.service.SpecialityService
 import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.CreateCommissionRateUseCase
@@ -30,11 +35,20 @@ import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.FindKmpdcByRegNumberUse
 import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.GetKmpdcPractitionersUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.RefreshKmpdcRegisterUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.kmpdc.SearchKmpdcByNameUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.permissionCatalog.GetPermissionCatalogUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.AssignAdminToPolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.CreatePolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.DeletePolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.GetPolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.ListPolicyGroupsUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.RemoveAdminFromPolicyGroupUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.UpdatePolicyGroupUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityByIdUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.GetSubSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.UpdateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.UpdateSubSpecialityUseCase
+import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -43,6 +57,22 @@ val adminModule = module {
     single<KmpdcRepository> { KmpdcRepositoryImpl(get(named("adminDb"))) }
     single<ServiceTierRepository> { ServiceTierRepositoryImpl(get(named("adminDb"))) }
     single<CommissionRateRepository> { CommissionRateRepositoryImpl(get(named("adminDb"))) }
+
+    single { PolicyGroupRepositoryImpl(get(named("adminDb")), get(named("authDb"))) }
+    single<PolicyGroupRepository> { get<PolicyGroupRepositoryImpl>() }
+    single<PolicyGroupPermissionResolver> { get<PolicyGroupRepositoryImpl>() }
+
+    single<PermissionCatalogRepository> { PermissionCatalogRepositoryImpl(get(named("adminDb"))) }
+    single { GetPermissionCatalogUseCase(get()) }
+
+    single { CreatePolicyGroupUseCase(get()) }
+    single { GetPolicyGroupUseCase(get(), get()) }
+    single { ListPolicyGroupsUseCase(get(), get()) }
+    single { UpdatePolicyGroupUseCase(get()) }
+    single { DeletePolicyGroupUseCase(get()) }
+    single { AssignAdminToPolicyGroupUseCase(get()) }
+    single { RemoveAdminFromPolicyGroupUseCase(get()) }
+    single { PolicyGroupService(get(), get(), get(), get(), get(), get(), get(), get()) }
 
     single { CreateSpecialityUseCase(get(), get()) }
     single { UpdateSpecialityUseCase(get(), get()) }

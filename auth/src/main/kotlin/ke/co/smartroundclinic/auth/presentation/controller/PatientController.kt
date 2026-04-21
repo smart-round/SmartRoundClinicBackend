@@ -38,7 +38,7 @@ fun Route.patientController(userService: UserService) {
                         ?.takeIf { it.isNotBlank() }
                         ?.let { runCatching { UserEntity.AccountStatus.valueOf(it) }.getOrNull() }
                     val createdFrom = call.parameters["createdFrom"]?.takeIf { it.isNotBlank() }
-                    val createdTo = call.parameters["createdFrom"]?.takeIf { it.isNotBlank() }
+                    val createdTo = call.parameters["createdTo"]?.takeIf { it.isNotBlank() }
                     val result = userService.filterUsers(
                         role = UserEntity.Role.PATIENT,
                         page = page,

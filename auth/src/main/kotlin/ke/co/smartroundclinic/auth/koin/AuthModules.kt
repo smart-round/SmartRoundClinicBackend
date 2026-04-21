@@ -27,6 +27,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.VerifyAccountOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
+import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -37,7 +38,8 @@ val authModule = module {
         UserRepositoryImpl(
             get(named("authDb")),
             get(),
-            get()
+            get(),
+            getOrNull<PolicyGroupPermissionResolver>(),
         )
     }
     single<TokenRepository> { TokenRepositoryImpl(get(named("authDb"))) }
