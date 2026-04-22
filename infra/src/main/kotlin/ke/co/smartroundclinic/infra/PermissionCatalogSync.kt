@@ -16,10 +16,6 @@ import org.koin.ktor.ext.getKoin
 
 private val logger = KtorSimpleLogger("PermissionCatalogSync")
 
-/**
- * Only routes nested inside an authenticate("auth-jwt") block are catalogued.
- * Public endpoints (sign-in, sign-up, health, metrics) are excluded.
- */
 private fun Route.isAuthenticated(): Boolean {
     var node: Route? = this
     while (node != null) {
@@ -27,6 +23,14 @@ private fun Route.isAuthenticated(): Boolean {
         node = node.parent
     }
     return false
+}
+
+private fun methodToAction(method: String) = when (method) {
+    "GET"           -> "read"
+    "POST"          -> "write"
+    "PUT", "PATCH"  -> "update"
+    "DELETE"        -> "delete"
+    else            -> "write"
 }
 
 fun Application.syncPermissionCatalog(
@@ -38,19 +42,21 @@ fun Application.syncPermissionCatalog(
 
     launch(Dispatchers.IO) {
         try {
+            val seen = mutableSetOf<String>()
             val entries = mutableListOf<PermissionCatalogEntry>()
 
             fun walk(node: Route) {
                 val method = (node.selector as? HttpMethodRouteSelector)?.method?.value
                 if (method != null && node.isAuthenticated()) {
                     val path = buildPathTemplate(node)
-                    val module = path.trimStart('/').split("/").firstOrNull() ?: "root"
-                    entries.add(PermissionCatalogEntry(
-                        key = "$method:$path",
-                        method = method,
-                        path = path,
-                        module = module,
-                    ))
+                    val segments = path.trimStart('/').split("/")
+                    val module = segments.getOrNull(0) ?: "root"
+                    val controller = segments.getOrNull(1) ?: module
+                    val action = methodToAction(method)
+                    val key = "$module:$controller:$action"
+                    if (seen.add(key)) {
+                        entries.add(PermissionCatalogEntry(key = key, module = module, controller = controller, action = action))
+                    }
                 }
                 node.children.forEach { walk(it) }
             }
@@ -62,7 +68,7 @@ fun Application.syncPermissionCatalog(
                 catalog.insertMany(entries)
             }
 
-            logger.info("Permission catalog synced — ${entries.size} authenticated routes indexed")
+            logger.info("Permission catalog synced — ${entries.size} coarse permissions indexed")
             afterSync?.invoke(this@syncPermissionCatalog, entries)
         } catch (e: Exception) {
             logger.error("Permission catalog sync failed: ${e.message}")

@@ -9,6 +9,7 @@ import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.principal
+import io.ktor.http.HttpMethod
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.response.respond
@@ -62,32 +63,32 @@ fun Application.configureSecurity() {
 fun ApplicationCall.getRole(): String? =
     principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString()
 
-// Returns the permissions claim as a list of route-key strings e.g. ["GET:/admin/kmpdc/{id}"].
+// Returns the permissions claim as a list of coarse keys e.g. ["admin:read", "patient:write"].
 fun ApplicationCall.getPermissions(): List<String> {
     val raw = principal<JWTPrincipal>()?.payload?.getClaim("permissions")?.asString()
     if (raw.isNullOrBlank()) return emptyList()
     return raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 }
 
-// Converts a permission key template like "GET:/admin/patients/{id}" into a regex that matches
-// actual request paths like "GET:/admin/patients/abc123".
-private fun permissionKeyToRegex(key: String): Regex {
-    val pattern = key
-        .replace(".", "\\.")            // escape dots
-        .replace(Regex("\\{[^}]+}"), "[^/]+")  // {param} → one path segment
-        .replace("*", ".*")             // wildcard support
-    return Regex("^$pattern$")
+// Derives "module:action" from the actual request.
+// GET → read, everything else (POST/PUT/PATCH/DELETE) → write.
+private fun ApplicationCall.permissionKey(): String {
+    val segments = request.path().trimStart('/').split("/")
+    val module = segments.getOrNull(0) ?: ""
+    val controller = segments.getOrNull(1) ?: module
+    val action = when (request.httpMethod) {
+        HttpMethod.Get              -> "read"
+        HttpMethod.Post             -> "write"
+        HttpMethod.Put, HttpMethod.Patch -> "update"
+        HttpMethod.Delete           -> "delete"
+        else                        -> "write"
+    }
+    return "$module:$controller:$action"
 }
-
-// Returns true if the actual "METHOD:/real/path" matches any stored permission template.
-private fun matchesPermissions(actualKey: String, permissions: List<String>): Boolean =
-    permissions.any { permissionKeyToRegex(it).matches(actualKey) }
 
 // Role guard.
 // - SUPER_ADMIN bypasses all checks.
-// - ADMIN: role check passes, then permissions are validated dynamically against the
-//   actual request path. The stored permission templates use {param} for path parameters,
-//   so "GET:/admin/patients/{id}" matches "GET:/admin/patients/abc123".
+// - ADMIN: derives module:action from the request, checks against JWT permissions.
 // - DOCTOR / PATIENT: role check only, no permission lookup.
 suspend fun ApplicationCall.requireRole(vararg allowedRoles: String, block: suspend () -> Unit) {
     val role = getRole()
@@ -99,12 +100,7 @@ suspend fun ApplicationCall.requireRole(vararg allowedRoles: String, block: susp
     }
 
     if (role == ADMIN_ROLE) {
-        val actualKey = "${request.httpMethod.value}:${request.path()}"
-        if (matchesPermissions(actualKey, getPermissions())) {
-            block()
-        } else {
-            respondForbidden()
-        }
+        if (getPermissions().contains(permissionKey())) block() else respondForbidden()
         return
     }
 
@@ -112,17 +108,12 @@ suspend fun ApplicationCall.requireRole(vararg allowedRoles: String, block: susp
     block()
 }
 
-// Explicit permission guard using stored route-key strings.
-// Use when you need to check a specific permission outside a role-guarded context.
+// Explicit coarse permission guard. Keys use "module:action" format e.g. "admin:read".
 suspend fun ApplicationCall.requirePermission(vararg keys: String, block: suspend () -> Unit) {
     val role = getRole()
     if (role == SUPER_ADMIN_ROLE) { block(); return }
-    val actualKey = "${request.httpMethod.value}:${request.path()}"
-    if (keys.any { permissionKeyToRegex(it).matches(actualKey) }) {
-        block()
-    } else {
-        respondForbidden()
-    }
+    val permissions = getPermissions()
+    if (keys.any { permissions.contains(it) }) block() else respondForbidden()
 }
 
 private suspend fun ApplicationCall.respondForbidden() {

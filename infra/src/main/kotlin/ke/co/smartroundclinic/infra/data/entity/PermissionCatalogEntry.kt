@@ -1,8 +1,8 @@
 package ke.co.smartroundclinic.infra.data.entity
 
 data class PermissionCatalogEntry(
-    val key: String,
-    val method: String,
-    val path: String,
-    val module: String,
+    val key: String,        // "admin:commission-rates:read"
+    val module: String,     // "admin"
+    val controller: String, // "commission-rates"
+    val action: String,     // "read" | "write" | "update" | "delete"
 )
