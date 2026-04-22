@@ -127,7 +127,7 @@ class PolicyGroupRepositoryImpl(
                 val user = users.find(Filters.eq(UserEntity::id.name, adminUserId)).firstOrNull()
                     ?: return@withContext Resource.Error("Admin user not found")
                 val ids = user.policyGroupIds
-                if (ids.isEmpty()) return@withContext Resource.Success(data = emptyList(), message = "No policy groups assigned")
+                if (ids?.isEmpty() ?: true) return@withContext Resource.Success(data = emptyList(), message = "No policy groups assigned")
                 val result = groups.find(Filters.`in`(PolicyGroupEntity::id.name, ids)).toList().map { it.toModel() }
                 Resource.Success(data = result, message = "Policy groups fetched successfully")
             } catch (e: Exception) {

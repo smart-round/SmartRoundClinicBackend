@@ -224,7 +224,7 @@ class UserRepositoryImpl(
             val isPasswordValid = credentialsHasher.verify(hashed = user.password, text = password)
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
-            val permissions = if (user.role == Role.ADMIN && user.policyGroupIds.isNotEmpty()) {
+            val permissions = if (user.role == Role.ADMIN && (user.policyGroupIds?.isNotEmpty() ?: false)) {
                 permissionResolver?.resolvePermissions(user.policyGroupIds) ?: emptyList()
             } else emptyList()
 

@@ -19,7 +19,7 @@ data class UserEntity(
     val phoneNumber: String? = null,
     val dateOfBirth: String? = null,
     val profilePicture: String? = null,
-    val policyGroupIds: List<String> = emptyList(),
+    val policyGroupIds: List<String>? = emptyList(),
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
