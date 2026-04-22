@@ -224,11 +224,13 @@ class UserRepositoryImpl(
             val isPasswordValid = credentialsHasher.verify(hashed = user.password, text = password)
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
-            val permissions = if (user.role == Role.ADMIN && (user.policyGroupIds?.isNotEmpty() ?: false)) {
-                permissionResolver?.resolvePermissions(user.policyGroupIds) ?: emptyList()
+            val groupIds = user.policyGroupIds?.takeIf { it.isNotEmpty() } ?: emptyList()
+            val permissions = if (user.role == Role.ADMIN && groupIds.isNotEmpty()) {
+                permissionResolver?.resolvePermissions(groupIds) ?: emptyList()
             } else emptyList()
 
             val token = tokenProvider.generateTokens(userId = user.id, role = user.role.name, permissions = permissions)
+                .copy(policyGroupIds = groupIds, permissions = permissions)
             Resource.Success(message = "Login successful", data = token)
 
         } ?: return@withContext Resource.Error(message = "Invalid email or password")
