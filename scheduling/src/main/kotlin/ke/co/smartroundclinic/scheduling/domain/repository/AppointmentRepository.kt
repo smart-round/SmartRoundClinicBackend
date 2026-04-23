@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.Flow
 interface AppointmentRepository {
     suspend fun book(entity: AppointmentEntity): Resource<AppointmentEntity?>
     suspend fun getById(id: String): Resource<AppointmentEntity?>
+    suspend fun getAll(): Resource<List<AppointmentEntity>>
     suspend fun getByPatient(patientId: String): Resource<List<AppointmentEntity>>
+    suspend fun getByDoctor(doctorId: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctorAndDate(doctorId: String, date: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctorAndDateRange(doctorId: String, from: String, to: String): Resource<List<AppointmentEntity>>
     suspend fun updateStatus(

@@ -70,6 +70,27 @@ class AppointmentRepositoryImpl(
             }
         }
 
+    override suspend fun getAll(): Resource<List<AppointmentEntity>> =
+        withContext(Dispatchers.IO) {
+            try {
+                Resource.Success(data = col.find().toList(), message = "Appointments retrieved successfully")
+            } catch (e: Exception) {
+                log.error("Failed to fetch all appointments — ${e.message}", e)
+                Resource.Error(e.localizedMessage ?: "Failed to fetch appointments")
+            }
+        }
+
+    override suspend fun getByDoctor(doctorId: String): Resource<List<AppointmentEntity>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val items = col.find(Filters.eq(AppointmentEntity::doctorId.name, doctorId)).toList()
+                Resource.Success(data = items, message = "Appointments retrieved successfully")
+            } catch (e: Exception) {
+                log.error("Failed to fetch appointments for doctorId=$doctorId — ${e.message}", e)
+                Resource.Error(e.localizedMessage ?: "Failed to fetch appointments")
+            }
+        }
+
     override suspend fun getByPatient(patientId: String): Resource<List<AppointmentEntity>> =
         withContext(Dispatchers.IO) {
             try {

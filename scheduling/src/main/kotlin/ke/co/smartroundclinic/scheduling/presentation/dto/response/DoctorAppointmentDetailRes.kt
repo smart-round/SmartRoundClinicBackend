@@ -1,13 +1,13 @@
 package ke.co.smartroundclinic.scheduling.presentation.dto.response
 
 import ke.co.smartroundclinic.scheduling.domain.model.Appointment
-import kotlinx.serialization.Serializable
 
-@Serializable
-data class AppointmentRes(
+data class DoctorAppointmentDetailRes(
     val id: String,
     val doctorId: String,
     val patientId: String,
+    val patientName: String?,
+    val doctorSpecialities: List<String>,
     val date: String,
     val slotStart: String,
     val slotEnd: String,
@@ -19,10 +19,12 @@ data class AppointmentRes(
     val updatedAt: String?,
 )
 
-fun Appointment.toRes() = AppointmentRes(
+fun Appointment.toDetailRes(patientName: String?, doctorSpecialities: List<String>) = DoctorAppointmentDetailRes(
     id = id,
     doctorId = doctorId,
     patientId = patientId,
+    patientName = patientName,
+    doctorSpecialities = doctorSpecialities,
     date = date,
     slotStart = slotStart,
     slotEnd = slotEnd,

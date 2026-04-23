@@ -9,14 +9,17 @@ import ke.co.smartroundclinic.patient.data.entity.PersonalInformationEntity
 import ke.co.smartroundclinic.patient.data.entity.WeightIn
 import ke.co.smartroundclinic.patient.domain.repository.PersonalInformationRepository
 import ke.co.smartroundclinic.common.MongoDBConstants
+import ke.co.smartroundclinic.common.PatientProfile
+import ke.co.smartroundclinic.common.PatientProfileResolver
 import ke.co.smartroundclinic.common.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import org.bson.conversions.Bson
 import java.time.Instant
 
-class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInformationRepository {
+class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInformationRepository, PatientProfileResolver {
 
     private val collection = database.getCollection<PersonalInformationEntity>(
         MongoDBConstants.PATIENT_PERSONAL_INFORMATION
@@ -47,6 +50,46 @@ class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInfor
                 Resource.Success(data = entity, message = "Personal information retrieved successfully")
             } catch (e: Exception) {
                 Resource.Error(e.localizedMessage ?: "Failed to retrieve personal information")
+            }
+        }
+
+    override suspend fun getAll(): Resource<List<PersonalInformationEntity>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val entities = collection.find().toList()
+                Resource.Success(data = entities, message = "Personal information retrieved successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to retrieve personal information")
+            }
+        }
+
+    override suspend fun getProfilesByPatientIds(patientIds: List<String>): Map<String, PatientProfile> =
+        withContext(Dispatchers.IO) {
+            if (patientIds.isEmpty()) return@withContext emptyMap()
+            try {
+                collection
+                    .find(Filters.`in`(PersonalInformationEntity::patientId.name, patientIds))
+                    .toList()
+                    .associate { entity ->
+                        entity.patientId to PatientProfile(
+                            id = entity.id,
+                            patientId = entity.patientId,
+                            gender = entity.gender.name,
+                            phoneNumber = entity.phoneNumber,
+                            countryCode = entity.countryCode,
+                            bloodGroup = entity.bloodGroup,
+                            dateOfBirth = entity.dateOfBirth,
+                            weight = entity.weight,
+                            weightIn = entity.weightIn?.name,
+                            height = entity.height,
+                            heightIn = entity.heightIn?.name,
+                            maritalStatus = entity.maritalStatus?.name,
+                            createdAt = entity.createdAt,
+                            updatedAt = entity.updatedAt,
+                        )
+                    }
+            } catch (e: Exception) {
+                emptyMap()
             }
         }
 

@@ -4,6 +4,8 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.BookAppointm
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CancelAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CompleteAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.ConfirmAppointmentUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAllAppointmentsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentDetailsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAppointmentByIdUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
@@ -14,6 +16,8 @@ import ke.co.smartroundclinic.scheduling.presentation.dto.request.CancelAppointm
 class AppointmentService(
     private val bookAppointmentUseCase: BookAppointmentUseCase,
     private val getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+    private val getAllAppointmentsUseCase: GetAllAppointmentsUseCase,
+    private val getDoctorAppointmentDetailsUseCase: GetDoctorAppointmentDetailsUseCase,
     private val getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
     private val getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase,
     private val confirmAppointmentUseCase: ConfirmAppointmentUseCase,
@@ -23,6 +27,8 @@ class AppointmentService(
 ) {
     suspend fun book(req: BookAppointmentReq, patientId: String) = bookAppointmentUseCase(req, patientId)
     suspend fun getById(id: String) = getAppointmentByIdUseCase(id)
+    suspend fun getAll() = getAllAppointmentsUseCase()
+    suspend fun getDoctorAppointmentDetails(doctorId: String) = getDoctorAppointmentDetailsUseCase(doctorId)
     suspend fun getByPatient(patientId: String) = getPatientAppointmentsUseCase(patientId)
     suspend fun getByDoctor(doctorId: String, date: String) = getDoctorAppointmentsUseCase(doctorId, date)
     suspend fun confirm(id: String, doctorId: String) = confirmAppointmentUseCase(id, doctorId)

@@ -47,10 +47,10 @@ fun Application.configureSerialization() {
                     .toDefaultResponse(HttpStatusCode.UnprocessableEntity.value) { null }
             )
         }
-        exception<BadRequestException> { call, _ ->
+        exception<BadRequestException> { call, message ->
             call.respond(
                 HttpStatusCode.BadRequest,
-                Resource.Error(data = null, message = "Invalid request format")
+                Resource.Error(data = null, message = message.message ?: "Invalid request")
                     .toDefaultResponse(HttpStatusCode.BadRequest.value) { null }
             )
         }

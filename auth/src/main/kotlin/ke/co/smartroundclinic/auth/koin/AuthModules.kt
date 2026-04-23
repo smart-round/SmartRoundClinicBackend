@@ -27,6 +27,8 @@ import ke.co.smartroundclinic.auth.domain.usecase.VerifyAccountOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
+import ke.co.smartroundclinic.common.PatientNameResolver
+import ke.co.smartroundclinic.common.PatientProfileResolver
 import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -34,7 +36,7 @@ import org.koin.dsl.module
 val authModule = module {
     single<CredentialsHasher> { CredentialHasherImpl() }
     single<TokenProvider> { JwtTokenProvider() }
-    single<UserRepository>(createdAtStart = true) {
+    single<UserRepositoryImpl>(createdAtStart = true) {
         UserRepositoryImpl(
             get(named("authDb")),
             get(),
@@ -42,6 +44,8 @@ val authModule = module {
             getOrNull<PolicyGroupPermissionResolver>(),
         )
     }
+    single<UserRepository> { get<UserRepositoryImpl>() }
+    single<PatientNameResolver> { get<UserRepositoryImpl>() }
     single<TokenRepository> { TokenRepositoryImpl(get(named("authDb"))) }
 
     single { SignInUseCase(get()) }
@@ -58,9 +62,9 @@ val authModule = module {
     single { RevokeTokenUseCase(get(), get()) }
     single { UploadProfilePictureUseCase(get(), get()) }
     single { RemoveProfilePictureUseCase(get(), get()) }
-    single { GetUsersByRoleUseCase(get()) }
+    single { GetUsersByRoleUseCase(get(), get(), getOrNull<PatientProfileResolver>()) }
     single { AdminUpdateUserUseCase(get()) }
-    single { FilterUsersByRoleUseCase(get()) }
+    single { FilterUsersByRoleUseCase(get(), get(), getOrNull<PatientProfileResolver>()) }
     single {
         SignUpUseCase(
             get(),

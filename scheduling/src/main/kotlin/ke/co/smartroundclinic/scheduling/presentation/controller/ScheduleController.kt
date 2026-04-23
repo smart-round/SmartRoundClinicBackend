@@ -34,18 +34,10 @@ fun Route.scheduleController(scheduleService: ScheduleService) {
             }
 
             get {
-                call.requireRole(DOCTOR, PATIENT, ADMIN) {
-                    val id = call.getUserId()
-                    val doctorId =  (id ?: call.parameters["doctorId"]) ?: run {
-                        call.respond(HttpStatusCode.BadRequest, "doctorId is required")
-                        return@requireRole
-                    }
-                    val date = call.request.queryParameters["date"]
-                    val result = if (date != null) {
-                        scheduleService.getAvailableSlots(doctorId, date)
-                    } else {
-                        scheduleService.getSchedule(doctorId)
-                    }
+                call.requireRole(PATIENT) {
+                    val doctorId =  (call.parameters["doctorId"]) ?: throw Exception("doctorId is required")
+                    val date = call.parameters["date"] ?: throw Exception("date is required in YYYY-MM-DD format")
+                    val result = scheduleService.getAvailableSlots(doctorId, date)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }

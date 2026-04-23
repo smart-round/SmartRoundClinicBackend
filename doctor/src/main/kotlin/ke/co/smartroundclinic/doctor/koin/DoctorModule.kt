@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.doctor.data.repository.ComplianceRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PaymentDetailsRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PractitionerLicenceRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PractitionerProfileRepositoryImpl
+import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.doctor.data.repository.SpecializationRepositoryImpl
 import ke.co.smartroundclinic.doctor.domain.repository.CertificationRepository
 import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
@@ -71,7 +72,9 @@ val doctorModule = module {
     single<CertificationRepository> { CertificationRepositoryImpl(get(named("doctorDb"))) }
     single<ComplianceRepository> { ComplianceRepositoryImpl(get(named("doctorDb"))) }
     single<PractitionerLicenceRepository> { PractitionerLicenceRepositoryImpl(get(named("doctorDb"))) }
-    single<SpecializationRepository> { SpecializationRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
+    single<SpecializationRepositoryImpl> { SpecializationRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
+    single<SpecializationRepository> { get<SpecializationRepositoryImpl>() }
+    single<DoctorSpecialitiesResolver> { get<SpecializationRepositoryImpl>() }
     single<PaymentDetailsRepository> { PaymentDetailsRepositoryImpl(get(named("doctorDb"))) }
 
     /**

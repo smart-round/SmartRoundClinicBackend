@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.TokenProvider
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.MongoDBConstants
+import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
 import ke.co.smartroundclinic.common.Resource
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +28,7 @@ class UserRepositoryImpl(
     private val credentialsHasher: CredentialsHasher,
     private val tokenProvider: TokenProvider,
     private val permissionResolver: PolicyGroupPermissionResolver? = null,
-) : UserRepository {
+) : UserRepository, PatientNameResolver {
 
     private val collection = database.getCollection<UserEntity>(MongoDBConstants.AUTH_USER)
     private val logger = KtorSimpleLogger(this::class.simpleName!!)
@@ -113,6 +114,19 @@ class UserRepositoryImpl(
             ?: return@withContext Resource.Error("User not found")
         Resource.Success(data = user, message = "User found")
     }
+
+    override suspend fun getPatientNames(patientIds: List<String>): Map<String, String> =
+        withContext(Dispatchers.IO) {
+            if (patientIds.isEmpty()) return@withContext emptyMap()
+            try {
+                collection
+                    .find(Filters.`in`(UserEntity::id.name, patientIds))
+                    .toList()
+                    .associate { it.id to it.fullName }
+            } catch (_: Exception) {
+                emptyMap()
+            }
+        }
 
     override suspend fun getUserByEmail(email: String): Resource<UserEntity?>  = withContext(Dispatchers.IO){
         val user = collection.find(Filters.eq(UserEntity::email.name, email)).firstOrNull()

@@ -1,7 +1,5 @@
 package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
-import ke.co.smartroundclinic.admin.domain.repository.ServiceTierRepository
-import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.toEntity
@@ -15,8 +13,6 @@ import kotlinx.datetime.LocalDate
 class BookAppointmentUseCase(
     private val appointmentRepository: AppointmentRepository,
     private val scheduleRepository: DoctorScheduleRepository,
-    private val specialityRepository: SpecialityRepository,
-    private val serviceTierRepository: ServiceTierRepository,
 ) {
     suspend operator fun invoke(req: BookAppointmentReq, patientId: String): DefaultResponse<AppointmentRes?> {
         val localDate = try {
@@ -40,28 +36,7 @@ class BookAppointmentUseCase(
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
 
-        val specialityResource = specialityRepository.getSpecialityById(req.specialityId)
-        val speciality = if (specialityResource is Resource.Success && specialityResource.data != null) {
-            specialityResource.data!!.toModel()
-        } else {
-            return Resource.Error<Nothing>("Speciality not found")
-                .toDefaultResponse(failedStatusCode = 404) { null }
-        }
-
-        val serviceTierId = speciality.serviceTierId
-            ?: return Resource.Error<Nothing>("Speciality has no service tier configured")
-                .toDefaultResponse(failedStatusCode = 422) { null }
-
-        val tierResource = serviceTierRepository.getServiceTierById(serviceTierId)
-        val serviceTier = if (tierResource is Resource.Success && tierResource.data != null) {
-            tierResource.data!!.toModel()
-        } else {
-            return Resource.Error<Nothing>("Service tier not found")
-                .toDefaultResponse(failedStatusCode = 404) { null }
-        }
-
-        val totalSlotMinutes = ((serviceTier.consultationDuration + serviceTier.gracePeriod) / 60_000L).toInt()
-        val slotEnd = addMinutes(req.slotStart, totalSlotMinutes)
+        val slotEnd = addMinutes(req.slotStart, schedule.slotDuration)
 
         return appointmentRepository.book(req.toModel(patientId, slotEnd).toEntity())
             .toDefaultResponse(successStatusCode = 201, failedStatusCode = 409) { it?.toModel()?.toRes() }

@@ -5,6 +5,7 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import com.mongodb.client.model.ReturnDocument
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctor.data.entity.SpecializationEntity
@@ -21,7 +22,7 @@ import org.slf4j.LoggerFactory
 class SpecializationRepositoryImpl(
     database: MongoDatabase,
     adminDb: MongoDatabase,
-) : SpecializationRepository {
+) : SpecializationRepository, DoctorSpecialitiesResolver {
 
     private val log = LoggerFactory.getLogger(SpecializationRepositoryImpl::class.java)
     private val col = database.getCollection<SpecializationEntity>(MongoDBConstants.DOCTOR_SPECIALIZATIONS)
@@ -69,6 +70,18 @@ class SpecializationRepositoryImpl(
         )
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch specializations")
+    }
+
+    override suspend fun getDoctorSpecialityNames(doctorId: String): List<String> = try {
+        col.find(Filters.eq(SpecializationEntity::doctorId.name, doctorId))
+            .toList()
+            .mapNotNull { spec ->
+                specialitiesCol.find(Filters.eq("id", spec.specializationId))
+                    .firstOrNull()
+                    ?.getString("title")
+            }
+    } catch (_: Exception) {
+        emptyList()
     }
 
     override suspend fun update(

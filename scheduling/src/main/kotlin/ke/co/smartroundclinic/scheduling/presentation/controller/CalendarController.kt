@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.scheduling.presentation.controller
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
@@ -9,15 +10,19 @@ import io.ktor.server.routing.route
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
+import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.requireRole
 import ke.co.smartroundclinic.scheduling.domain.service.CalendarService
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -33,21 +38,13 @@ fun Route.calendarController(calendarService: CalendarService) {
             // view=month uses date as any day in that month; view=week uses Monday of that week
             get {
                 call.requireRole(DOCTOR, PATIENT) {
-                    val doctorId = call.request.queryParameters["doctorId"] ?: run {
-                        call.respond(HttpStatusCode.BadRequest, "doctorId is required")
-                        return@requireRole
-                    }
-                    val dateStr = call.request.queryParameters["date"] ?: run {
-                        call.respond(HttpStatusCode.BadRequest, "date is required (YYYY-MM-DD)")
-                        return@requireRole
-                    }
-                    val view = call.request.queryParameters["view"] ?: "day"
+                    val doctorId = call.request.queryParameters["doctorId"] ?: throw MissingParametersException("doctorId is required")
+                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val dateStr = call.request.queryParameters["date"] ?: today.toString()
+                    val view = call.request.queryParameters["view"] ?: "month"
                     val forDoctor = call.request.queryParameters["forDoctor"]?.toBoolean() ?: false
 
-                    val anchor = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: run {
-                        call.respond(HttpStatusCode.BadRequest, "date must be in YYYY-MM-DD format")
-                        return@requireRole
-                    }
+                    val anchor = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: throw BadRequestException("date must be in YYYY-MM-DD format")
 
                     val (from, to) = when (view) {
                         "week" -> {

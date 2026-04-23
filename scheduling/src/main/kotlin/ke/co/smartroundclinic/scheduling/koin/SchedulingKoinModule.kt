@@ -1,8 +1,6 @@
 package ke.co.smartroundclinic.scheduling.koin
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
-import ke.co.smartroundclinic.admin.domain.repository.ServiceTierRepository
-import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.scheduling.data.repository.AppointmentRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.DoctorScheduleRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.SlotOverrideRepositoryImpl
@@ -16,6 +14,10 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.BookAppointm
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CancelAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CompleteAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.ConfirmAppointmentUseCase
+import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
+import ke.co.smartroundclinic.common.PatientNameResolver
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAllAppointmentsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentDetailsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAppointmentByIdUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
@@ -35,7 +37,9 @@ val schedulingKoinModule = module {
     single<SlotOverrideRepository> { SlotOverrideRepositoryImpl(get(named("schedulingDb"))) }
 
     // Appointment use cases
-    single { BookAppointmentUseCase(get(), get(), get<SpecialityRepository>(), get<ServiceTierRepository>()) }
+    single { BookAppointmentUseCase(get(), get()) }
+    single { GetAllAppointmentsUseCase(get()) }
+    single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }
     single { GetAppointmentByIdUseCase(get()) }
     single { GetPatientAppointmentsUseCase(get()) }
     single { GetDoctorAppointmentsUseCase(get()) }
@@ -53,7 +57,7 @@ val schedulingKoinModule = module {
     single { GetCalendarRangeUseCase(get(), get(), get()) }
 
     // Services
-    single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single { ScheduleService(get(), get(), get(), get(), get()) }
     single { CalendarService(get(), get()) }
 }

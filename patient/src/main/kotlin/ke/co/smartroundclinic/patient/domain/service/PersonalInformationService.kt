@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.patient.domain.service
 
 import ke.co.smartroundclinic.patient.domain.model.PersonalInformation
 import ke.co.smartroundclinic.patient.domain.usecase.CreatePersonalInformationUseCase
+import ke.co.smartroundclinic.patient.domain.usecase.GetAllPersonalInformationUseCase
 import ke.co.smartroundclinic.patient.domain.usecase.GetPersonalInformationUseCase
 import ke.co.smartroundclinic.patient.domain.usecase.UpdatePersonalInformationUseCase
 import ke.co.smartroundclinic.patient.presentation.dto.request.UpdatePersonalInformationReq
@@ -9,9 +10,11 @@ import ke.co.smartroundclinic.patient.presentation.dto.request.UpdatePersonalInf
 class PersonalInformationService(
     private val createUseCase: CreatePersonalInformationUseCase,
     private val getUseCase: GetPersonalInformationUseCase,
+    private val getAllUseCase: GetAllPersonalInformationUseCase,
     private val updateUseCase: UpdatePersonalInformationUseCase,
 ) {
     suspend fun create(model: PersonalInformation) = createUseCase(model)
     suspend fun get(patientId: String) = getUseCase(patientId)
+    suspend fun getAll() = getAllUseCase()
     suspend fun update(patientId: String, req: UpdatePersonalInformationReq) = updateUseCase(patientId, req)
 }

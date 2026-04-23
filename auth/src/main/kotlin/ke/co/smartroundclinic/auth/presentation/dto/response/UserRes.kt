@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.auth.presentation.dto.response
 import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.data.entity.UserEntity.Gender
 import ke.co.smartroundclinic.auth.data.entity.UserEntity.Role
+import ke.co.smartroundclinic.common.PatientProfile
 
 data class UserRes(
     val id: String,
@@ -17,5 +18,5 @@ data class UserRes(
     val profilePicture: String?,
     val createdAt: String,
     val updatedAt: String?,
-
+    val personalInfo: PatientProfile? = null,
 )

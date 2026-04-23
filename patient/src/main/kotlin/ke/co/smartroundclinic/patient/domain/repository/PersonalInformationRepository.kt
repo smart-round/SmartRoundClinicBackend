@@ -6,6 +6,7 @@ import ke.co.smartroundclinic.common.Resource
 interface PersonalInformationRepository {
     suspend fun create(entity: PersonalInformationEntity): Resource<PersonalInformationEntity?>
     suspend fun getByPatientId(patientId: String): Resource<PersonalInformationEntity?>
+    suspend fun getAll(): Resource<List<PersonalInformationEntity>>
     suspend fun update(
         patientId: String,
         phoneNumber: String?,
