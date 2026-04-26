@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.admin.domain.model
 data class Speciality(
     val id: String,
     val serviceTierId: String? = null,
+    val serviceCategoryId: String? = null,
     val title: String,
     val description: String,
     val color: String = "#FFFFFF",

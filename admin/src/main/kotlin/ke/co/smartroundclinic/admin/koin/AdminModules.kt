@@ -5,17 +5,20 @@ import ke.co.smartroundclinic.admin.data.repository.CommissionRateRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.KmpdcRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.PermissionCatalogRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.PolicyGroupRepositoryImpl
+import ke.co.smartroundclinic.admin.data.repository.ServiceCategoryRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.ServiceTierRepositoryImpl
 import ke.co.smartroundclinic.admin.data.repository.SpecialityRepositoryImpl
 import ke.co.smartroundclinic.admin.domain.repository.CommissionRateRepository
 import ke.co.smartroundclinic.admin.domain.repository.KmpdcRepository
 import ke.co.smartroundclinic.admin.domain.repository.PermissionCatalogRepository
 import ke.co.smartroundclinic.admin.domain.repository.PolicyGroupRepository
+import ke.co.smartroundclinic.admin.domain.repository.ServiceCategoryRepository
 import ke.co.smartroundclinic.admin.domain.repository.ServiceTierRepository
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.admin.domain.service.CommissionRateService
 import ke.co.smartroundclinic.admin.domain.service.KmpdcService
 import ke.co.smartroundclinic.admin.domain.service.PolicyGroupService
+import ke.co.smartroundclinic.admin.domain.service.ServiceCategoryService
 import ke.co.smartroundclinic.admin.domain.service.ServiceTierService
 import ke.co.smartroundclinic.admin.domain.service.SpecialityService
 import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.CreateCommissionRateUseCase
@@ -27,6 +30,13 @@ import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.DeleteServiceTier
 import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.GetAllServiceTiersUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.GetServiceTierByIdUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.UpdateServiceTierUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.serviceCategory.CreateServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.serviceCategory.DeleteServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.serviceCategory.GetAllServiceCategoriesUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.serviceCategory.GetServiceCategoryByIdUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.serviceCategory.UpdateServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.CreateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.DeleteSpecialityUseCase
@@ -47,6 +57,8 @@ import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.UpdatePolicyGroup
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityByIdUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.GetSubSpecialitiesUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.UnassignSpecialityFromServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.UnassignSpecialityFromServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.UpdateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.UpdateSubSpecialityUseCase
 import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
@@ -57,6 +69,7 @@ val adminModule = module {
     single<SpecialityRepository> { SpecialityRepositoryImpl(get<MongoClient>(), get(named("adminDb"))) }
     single<KmpdcRepository> { KmpdcRepositoryImpl(get(named("adminDb"))) }
     single<ServiceTierRepository> { ServiceTierRepositoryImpl(get(named("adminDb"))) }
+    single<ServiceCategoryRepository> { ServiceCategoryRepositoryImpl(get(named("adminDb"))) }
     single<CommissionRateRepository> { CommissionRateRepositoryImpl(get(named("adminDb"))) }
 
     single { PolicyGroupRepositoryImpl(get(named("adminDb")), get(named("authDb"))) }
@@ -85,8 +98,20 @@ val adminModule = module {
     single { GetSubSpecialitiesUseCase(get()) }
     single { DeleteSpecialityUseCase(get()) }
     single { DeleteSubSpecialityUseCase(get()) }
+    single { AssignSpecialityToServiceTierUseCase(get()) }
+    single { UnassignSpecialityFromServiceTierUseCase(get()) }
+    single { AssignSpecialityToServiceCategoryUseCase(get()) }
+    single { UnassignSpecialityFromServiceCategoryUseCase(get()) }
 
-    single { SpecialityService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { SpecialityService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+
+    // Service Categories
+    single { CreateServiceCategoryUseCase(get()) }
+    single { GetServiceCategoryByIdUseCase(get()) }
+    single { GetAllServiceCategoriesUseCase(get()) }
+    single { UpdateServiceCategoryUseCase(get()) }
+    single { DeleteServiceCategoryUseCase(get()) }
+    single { ServiceCategoryService(get(), get(), get(), get(), get()) }
 
     // Service Tiers
     single { CreateServiceTierUseCase(get()) }

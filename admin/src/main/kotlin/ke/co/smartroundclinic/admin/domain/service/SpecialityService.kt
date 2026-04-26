@@ -1,5 +1,7 @@
 package ke.co.smartroundclinic.admin.domain.service
 
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.CreateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.DeleteSpecialityUseCase
@@ -7,6 +9,8 @@ import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.DeleteSubSpecia
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityByIdUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.GetSubSpecialitiesUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.UnassignSpecialityFromServiceCategoryUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.UnassignSpecialityFromServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.UpdateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.UpdateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSpecialityReq
@@ -24,6 +28,10 @@ class SpecialityService(
     private val getSubSpecialitiesUseCase: GetSubSpecialitiesUseCase,
     private val deleteSpecialityUseCase: DeleteSpecialityUseCase,
     private val deleteSubSpecialityUseCase: DeleteSubSpecialityUseCase,
+    private val assignSpecialityToServiceTierUseCase: AssignSpecialityToServiceTierUseCase,
+    private val unassignSpecialityFromServiceTierUseCase: UnassignSpecialityFromServiceTierUseCase,
+    private val assignSpecialityToServiceCategoryUseCase: AssignSpecialityToServiceCategoryUseCase,
+    private val unassignSpecialityFromServiceCategoryUseCase: UnassignSpecialityFromServiceCategoryUseCase,
 ) {
     suspend fun createSpeciality(req: CreateSpecialityReq, imageBytes: ByteArray?, contentType: String?) =
         createSpecialityUseCase(req, imageBytes, contentType)
@@ -54,4 +62,16 @@ class SpecialityService(
     suspend fun deleteSpeciality(id: String) = deleteSpecialityUseCase(id)
 
     suspend fun deleteSubSpeciality(id: String) = deleteSubSpecialityUseCase(id)
+
+    suspend fun assignToServiceTier(specialityId: String, serviceTierId: String) =
+        assignSpecialityToServiceTierUseCase(specialityId, serviceTierId)
+
+    suspend fun unassignFromServiceTier(specialityId: String) =
+        unassignSpecialityFromServiceTierUseCase(specialityId)
+
+    suspend fun assignToServiceCategory(specialityId: String, serviceCategoryId: String) =
+        assignSpecialityToServiceCategoryUseCase(specialityId, serviceCategoryId)
+
+    suspend fun unassignFromServiceCategory(specialityId: String) =
+        unassignSpecialityFromServiceCategoryUseCase(specialityId)
 }

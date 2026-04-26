@@ -4,6 +4,8 @@ import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import ke.co.smartroundclinic.admin.data.entity.ServiceCategoryEntity
+import ke.co.smartroundclinic.admin.data.entity.ServiceTierEntity
 import ke.co.smartroundclinic.admin.data.entity.SpecialityEntity
 import ke.co.smartroundclinic.admin.data.entity.SubspecialtyEntity
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
@@ -24,6 +26,8 @@ class SpecialityRepositoryImpl(
 
     private val specialities = database.getCollection<SpecialityEntity>(MongoDBConstants.ADMIN_SPECIALITIES)
     private val subSpecialities = database.getCollection<SubspecialtyEntity>(MongoDBConstants.ADMIN_SUB_SPECIALITIES)
+    private val serviceTiers = database.getCollection<ServiceTierEntity>(MongoDBConstants.ADMIN_SERVICE_TIERS)
+    private val serviceCategories = database.getCollection<ServiceCategoryEntity>(MongoDBConstants.ADMIN_SERVICE_CATEGORIES)
 
     private fun seed() {
         CoroutineScope(Dispatchers.IO).launch {
@@ -517,6 +521,74 @@ class SpecialityRepositoryImpl(
                 Resource.Error(e.localizedMessage ?: "Failed to delete speciality")
             } finally {
                 session.close()
+            }
+        }
+
+    override suspend fun assignToServiceTier(specialityId: String, serviceTierId: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                specialities.find(Filters.eq(SpecialityEntity::id.name, specialityId)).firstOrNull()
+                    ?: return@withContext Resource.Error("Speciality not found")
+                serviceTiers.find(Filters.eq(ServiceTierEntity::id.name, serviceTierId)).firstOrNull()
+                    ?: return@withContext Resource.Error("Service tier not found")
+                specialities.updateOne(
+                    Filters.eq(SpecialityEntity::id.name, specialityId),
+                    Updates.set(SpecialityEntity::serviceTierId.name, serviceTierId)
+                )
+                Resource.Success(data = null, message = "Speciality assigned to service tier successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to assign speciality to service tier")
+            }
+        }
+
+    override suspend fun unassignFromServiceTier(specialityId: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                specialities.find(Filters.eq(SpecialityEntity::id.name, specialityId)).firstOrNull()
+                    ?: return@withContext Resource.Error("Speciality not found")
+                specialities.updateOne(
+                    Filters.eq(SpecialityEntity::id.name, specialityId),
+                    Updates.unset(SpecialityEntity::serviceTierId.name)
+                )
+                Resource.Success(data = null, message = "Speciality unassigned from service tier successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to unassign speciality from service tier")
+            }
+        }
+
+    override suspend fun assignToServiceCategory(specialityId: String, serviceCategoryId: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                val speciality = specialities.find(Filters.eq(SpecialityEntity::id.name, specialityId)).firstOrNull()
+                    ?: return@withContext Resource.Error("Speciality not found")
+                if (speciality.serviceCategoryId == serviceCategoryId)
+                    return@withContext Resource.Error("Speciality is already assigned to this service category")
+                serviceCategories.find(Filters.eq(ServiceCategoryEntity::id.name, serviceCategoryId)).firstOrNull()
+                    ?: return@withContext Resource.Error("Service category not found")
+                specialities.updateOne(
+                    Filters.eq(SpecialityEntity::id.name, specialityId),
+                    Updates.set(SpecialityEntity::serviceCategoryId.name, serviceCategoryId)
+                )
+                Resource.Success(data = null, message = "Speciality assigned to service category successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to assign speciality to service category")
+            }
+        }
+
+    override suspend fun unassignFromServiceCategory(specialityId: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                val speciality = specialities.find(Filters.eq(SpecialityEntity::id.name, specialityId)).firstOrNull()
+                    ?: return@withContext Resource.Error("Speciality not found")
+                if (speciality.serviceCategoryId == null)
+                    return@withContext Resource.Error("Speciality is not assigned to any service category")
+                specialities.updateOne(
+                    Filters.eq(SpecialityEntity::id.name, specialityId),
+                    Updates.unset(SpecialityEntity::serviceCategoryId.name)
+                )
+                Resource.Success(data = null, message = "Speciality unassigned from service category successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to unassign speciality from service category")
             }
         }
 }

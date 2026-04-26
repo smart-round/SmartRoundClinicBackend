@@ -8,6 +8,8 @@ import io.ktor.server.routing.*
 import ke.co.smartroundclinic.admin.adminModule
 import ke.co.smartroundclinic.admin.validation.registerAdminValidators
 import ke.co.smartroundclinic.admin.koin.adminModule as adminKoinModule
+import ke.co.smartroundclinic.article.articleModule
+import ke.co.smartroundclinic.article.koin.articleModule as articleKoinModule
 import ke.co.smartroundclinic.auth.authModule
 import ke.co.smartroundclinic.auth.koin.authModule as authKoinModule
 import ke.co.smartroundclinic.doctor.doctorModule
@@ -20,7 +22,8 @@ import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
 import ke.co.smartroundclinic.infra.koin.httpModule
 import ke.co.smartroundclinic.infra.koin.storageModule
-import ke.co.smartroundclinic.notification.koin.notificationModule
+import ke.co.smartroundclinic.notification.notificationModule
+import ke.co.smartroundclinic.notification.koin.notificationModule as notificationKoinModule
 import ke.co.smartroundclinic.scheduling.schedulingModule
 import ke.co.smartroundclinic.scheduling.koin.schedulingKoinModule
 import ke.co.smartroundclinic.scheduling.presentation.validation.registerSchedulingValidators
@@ -39,7 +42,7 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(
-        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationModule, schedulingKoinModule, supportKoinModule, patientKoinModule),
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule),
         validators = {
             registerDoctorValidators()
             registerAdminValidators()
@@ -50,6 +53,8 @@ fun Application.module() {
     )
     authModule()
     adminModule()
+    articleModule()
+    notificationModule()
     doctorModule()
     schedulingModule()
     supportModule()

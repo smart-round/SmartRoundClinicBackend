@@ -6,6 +6,7 @@ import ke.co.smartroundclinic.admin.domain.model.Subspecialty
 data class SpecialityRes(
     val id: String,
     val serviceTierId: String?,
+    val serviceCategoryId: String?,
     val title: String,
     val description: String,
     val color: String,
@@ -24,6 +25,7 @@ data class SubSpecialityRes(
 fun Speciality.toRes() = SpecialityRes(
     id = id,
     serviceTierId = serviceTierId,
+    serviceCategoryId = serviceCategoryId,
     title = title,
     description = description,
     color = color,

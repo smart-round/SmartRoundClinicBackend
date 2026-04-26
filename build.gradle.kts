@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
     implementation(project(":auth"))
+    implementation(project(":article"))
     implementation(project(":admin"))
     implementation(project(":doctor"))
     implementation(project(":patient"))

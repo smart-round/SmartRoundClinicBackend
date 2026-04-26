@@ -27,6 +27,7 @@ object MongoDBConstants {
     const val ADMIN_KMPDC_PRACTITIONERS = "admin_kmpdc_practitioners"
     const val ADMIN_LOCAL_BANKS = "admin_local_banks"
     const val ADMIN_SERVICE_TIERS = "admin_service_tiers"
+    const val ADMIN_SERVICE_CATEGORIES = "admin_service_categories"
     const val ADMIN_COMMISSION_RATES = "admin_commission_rates"
 
     /**
@@ -46,6 +47,19 @@ object MongoDBConstants {
     const val DOCTOR_SPECIALIZATIONS = "doctor_specializations"
     const val DOCTOR_CERTIFICATIONS = "doctor_certifications"
     const val DOCTOR_PAYMENT_DETAILS = "doctor_payment_details"
+
+    /**
+     * MongoDB Database and Entities for ARTICLE
+     */
+    const val ARTICLE_DB = "src_article"
+    const val ARTICLE_CATEGORIES = "article_categories"
+    const val ARTICLES = "articles"
+
+    /**
+     * MongoDB Database and Entities for NOTIFICATION
+     */
+    const val NOTIFICATION_DB = "src_notification"
+    const val NOTIFICATIONS = "notifications"
 
     /**
      * MongoDB Databases and Entities for SCHEDULING

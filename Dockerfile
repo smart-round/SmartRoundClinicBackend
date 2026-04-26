@@ -16,6 +16,9 @@ COPY notification/build.gradle.kts    notification/
 COPY doctor/build.gradle.kts          doctor/
 COPY patient/build.gradle.kts         patient/
 COPY admin/build.gradle.kts           admin/
+COPY scheduling/build.gradle.kts      scheduling/
+COPY support/build.gradle.kts         support/
+COPY article/build.gradle.kts         article/
 
 # Download dependencies (cached as a separate layer)
 RUN gradle dependencies --no-daemon 2>/dev/null || true

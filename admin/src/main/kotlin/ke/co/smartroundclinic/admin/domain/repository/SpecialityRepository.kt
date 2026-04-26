@@ -29,4 +29,8 @@ interface SpecialityRepository {
     suspend fun deleteSubSpeciality(id: String): Resource<Nothing>
     suspend fun deleteAllSubSpecialityBySpecialityId(specialityId: String): Resource<Nothing>
     suspend fun deleteSpecialityWithSubSpecialities(id: String): Resource<Nothing>
+    suspend fun assignToServiceTier(specialityId: String, serviceTierId: String): Resource<Nothing>
+    suspend fun unassignFromServiceTier(specialityId: String): Resource<Nothing>
+    suspend fun assignToServiceCategory(specialityId: String, serviceCategoryId: String): Resource<Nothing>
+    suspend fun unassignFromServiceCategory(specialityId: String): Resource<Nothing>
 }

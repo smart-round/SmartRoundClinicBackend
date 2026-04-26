@@ -9,6 +9,7 @@ include(":infra")
 include(":common")
 include(":scheduling")
 include(":support")
+include(":article")
 
 dependencyResolutionManagement {
     repositories {

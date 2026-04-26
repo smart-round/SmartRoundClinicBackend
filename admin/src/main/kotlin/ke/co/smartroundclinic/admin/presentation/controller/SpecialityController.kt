@@ -124,6 +124,50 @@ fun Route.specialityController(specialityService: SpecialityService) {
             }
 
 
+            route("service-tier") {
+                post {
+                    call.requireRole(ADMIN) {
+                        val specialityId = call.parameters["specialityId"]
+                            ?: throw MissingParametersException("specialityId path parameter is missing")
+                        val serviceTierId = call.parameters["serviceTierId"]
+                            ?: throw MissingParametersException("serviceTierId path parameter is missing")
+                        val result = specialityService.assignToServiceTier(specialityId, serviceTierId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                delete {
+                    call.requireRole(ADMIN) {
+                        val specialityId = call.parameters["specialityId"]
+                            ?: throw MissingParametersException("specialityId path parameter is missing")
+                        val result = specialityService.unassignFromServiceTier(specialityId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+            }
+
+            route("service-category") {
+                post {
+                    call.requireRole(ADMIN) {
+                        val specialityId = call.parameters["specialityId"]
+                            ?: throw MissingParametersException("specialityId query parameter is missing")
+                        val serviceCategoryId = call.parameters["serviceCategoryId"]
+                            ?: throw MissingParametersException("serviceCategoryId query parameter is missing")
+                        val result = specialityService.assignToServiceCategory(specialityId, serviceCategoryId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                delete {
+                    call.requireRole(ADMIN) {
+                        val specialityId = call.parameters["specialityId"]
+                            ?: throw MissingParametersException("specialityId query parameter is missing")
+                        val result = specialityService.unassignFromServiceCategory(specialityId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+            }
+
             route("/sub-specialities") {
                 post {
                     call.requireRole(ADMIN) {
