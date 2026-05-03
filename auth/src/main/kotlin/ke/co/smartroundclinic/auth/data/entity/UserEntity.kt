@@ -14,6 +14,7 @@ data class UserEntity(
     val role: Role = Role.PATIENT,
     val accountStatus: AccountStatus = AccountStatus.INACTIVE,
     val verificationStatus: VerificationStatus = VerificationStatus.UNVERIFIED,
+    val kraPin: String? = null,
     val otpCode: String? = null,
     val otpExpiresAt: Long? = null, // epoch milliseconds
     val phoneNumber: String? = null,
@@ -25,7 +26,7 @@ data class UserEntity(
 ) {
 
     enum class Gender {
-        MALE, FEMALE, NON_BINARY
+        MALE, FEMALE, NON_BINARY, OTHER
     }
     enum class Role{
         SUPER_ADMIN, ADMIN, PATIENT, DOCTOR
@@ -45,6 +46,7 @@ data class UserEntity(
         role = role,
         accountStatus = accountStatus,
         verificationStatus = verificationStatus,
+        kraPin = kraPin,
         password = password,
         phoneNumber = phoneNumber,
         dateOfBirth = dateOfBirth,

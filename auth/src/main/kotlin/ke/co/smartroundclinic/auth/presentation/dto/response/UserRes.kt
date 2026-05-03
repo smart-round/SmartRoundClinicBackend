@@ -11,6 +11,7 @@ data class UserRes(
     val email: String,
     val gender: Gender,
     val role: Role = Role.PATIENT,
+    val kraPin: String? = null,
     val accountStatus: UserEntity.AccountStatus,
     val verificationStatus: UserEntity.VerificationStatus,
     val phoneNumber: String?,

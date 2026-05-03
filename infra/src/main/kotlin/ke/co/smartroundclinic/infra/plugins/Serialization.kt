@@ -77,5 +77,5 @@ fun Application.configureSerialization() {
 class MissingParametersException(message: String) : Exception(message)
 
 class UnsupportedFileFormatException(contentType: String) : Exception(
-    "Unsupported file format '$contentType'. Only PNG, JPEG, and WebP are allowed."
+    "Unsupported file format '$contentType'. Allowed formats: PNG, JPEG, WebP, PDF, DOCX."
 )

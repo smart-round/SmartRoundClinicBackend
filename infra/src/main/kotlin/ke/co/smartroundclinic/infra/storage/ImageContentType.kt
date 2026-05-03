@@ -9,7 +9,7 @@ package ke.co.smartroundclinic.infra.storage
 fun imageExtensionOrNull(contentType: String): String? = when {
     contentType.contains("png") -> "png"
     contentType.contains("pdf") -> "pdf"
-    contentType.contains("docx") -> "docx"
+    contentType.contains("wordprocessingml") || contentType.contains("docx") -> "docx"
     contentType.contains("jpeg") || contentType.contains("jpg") -> "jpeg"
     contentType.contains("webp") -> "webp"
     else -> null

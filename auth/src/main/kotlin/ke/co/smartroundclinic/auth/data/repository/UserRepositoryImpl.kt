@@ -238,6 +238,10 @@ class UserRepositoryImpl(
             val isPasswordValid = credentialsHasher.verify(hashed = user.password, text = password)
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
+            if (user.verificationStatus == UserEntity.VerificationStatus.UNVERIFIED) {
+                return@let Resource.Error(message = "Account not verified. Please check your email for the OTP code.")
+            }
+
             val groupIds = user.policyGroupIds?.takeIf { it.isNotEmpty() } ?: emptyList()
             val permissions = if (user.role == Role.ADMIN && groupIds.isNotEmpty()) {
                 permissionResolver?.resolvePermissions(groupIds) ?: emptyList()

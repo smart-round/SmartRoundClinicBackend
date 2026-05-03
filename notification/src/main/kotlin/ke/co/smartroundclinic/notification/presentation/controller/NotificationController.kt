@@ -15,11 +15,10 @@ import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.getRole
 import ke.co.smartroundclinic.infra.plugins.requirePermission
-import ke.co.smartroundclinic.infra.plugins.requireRole
 import ke.co.smartroundclinic.notification.domain.service.NotificationService
 import ke.co.smartroundclinic.notification.presentation.dto.request.CreateNotificationReq
 
-private const val MANAGE_NOTIFICATIONS = "MANAGE_NOTIFICATIONS"
+private const val ADMIN = "ADMIN"
 
 private fun roleToDestination(role: String?): NotificationDestination = when (role) {
     "ADMIN", "SUPER_ADMIN" -> NotificationDestination.ADMIN
@@ -33,7 +32,7 @@ fun Route.notificationController(service: NotificationService) {
 
             // ── Admin: send a notification (requires MANAGE_NOTIFICATIONS) ────
             post {
-                call.requirePermission(MANAGE_NOTIFICATIONS) {
+                call.requirePermission(ADMIN) {
                     val req = call.receive<CreateNotificationReq>()
                     val result = service.create(req)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
@@ -42,7 +41,7 @@ fun Route.notificationController(service: NotificationService) {
 
             // ── Admin: get all notifications (requires MANAGE_NOTIFICATIONS) ──
             get("all") {
-                call.requirePermission(MANAGE_NOTIFICATIONS) {
+                call.requirePermission(ADMIN) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                     val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                     val result = service.getAll(page, size)
@@ -52,7 +51,7 @@ fun Route.notificationController(service: NotificationService) {
 
             // ── Admin: delete a notification (requires MANAGE_NOTIFICATIONS) ──
             delete {
-                call.requirePermission(MANAGE_NOTIFICATIONS) {
+                call.requirePermission(ADMIN) {
                     val id = call.request.queryParameters["id"]
                         ?: throw MissingParametersException("id query parameter is missing")
                     val result = service.delete(id)

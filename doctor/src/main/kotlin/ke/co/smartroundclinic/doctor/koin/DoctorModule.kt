@@ -59,7 +59,9 @@ import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBankByCodeUseC
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBanksByBranchCodeUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.GetAllLocalBanksUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.SearchLocalBanksByNameUseCase
+import ke.co.smartroundclinic.common.DoctorOnboardingHandler
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ComplianceCheckUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.signup.DoctorSignUpUseCase
 import ke.co.smartroundclinic.infra.AppConfig
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -197,6 +199,12 @@ val doctorModule = module {
             get(),
         )
     }
+
+    /**
+     * Doctor Sign Up
+     * */
+    single { DoctorSignUpUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<DoctorOnboardingHandler> { get<DoctorSignUpUseCase>() }
 
     /**
      * Local Banks

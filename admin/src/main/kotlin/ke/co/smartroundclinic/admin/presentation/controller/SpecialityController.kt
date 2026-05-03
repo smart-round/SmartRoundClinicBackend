@@ -25,6 +25,7 @@ import ke.co.smartroundclinic.infra.plugins.requireRole
 private const val ADMIN = "ADMIN"
 
 fun Route.specialityController(specialityService: SpecialityService) {
+
     authenticate("auth-jwt") {
         route("/admin/specialities") {
             post {
@@ -264,6 +265,24 @@ fun Route.specialityController(specialityService: SpecialityService) {
                 }
             }
 
+        }
+    }
+
+    route("public") {
+
+        route("specialities") {
+            get {
+                val result = specialityService.getSpecialities()
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        route("specialities") {
+            get {
+                val id = call.parameters["id"] ?: throw MissingParametersException("id path parameter is missing")
+                val result = specialityService.getSpecialityById(id)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
         }
     }
 }

@@ -10,8 +10,7 @@ import ke.co.smartroundclinic.doctor.domain.service.LocalBankService
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 
 fun Route.localBankController(service: LocalBankService) {
-    authenticate("auth-jwt") {
-        route("/doctor/banks") {
+        route("/banks") {
 
             // GET /doctor/banks?page=1&size=20
             // Paginated list of all Kenyan local banks with their branches.
@@ -51,5 +50,5 @@ fun Route.localBankController(service: LocalBankService) {
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
         }
-    }
+
 }
