@@ -60,16 +60,9 @@ class LocalBankRepositoryImpl(database: MongoDatabase, private val banksJsonUrl:
             seedIfEmpty()
         }
     }
-    override suspend fun getAll(page: Int, size: Int): Resource<Pair<List<LocalBankEntity>, Long>> = try {
-
-        val safePage = maxOf(1, page)
-        val safeSize = minOf(maxOf(1, size), 100)
-        val total = col.countDocuments()
-        val items = col.find()
-            .skip((safePage - 1) * safeSize)
-            .limit(safeSize)
-            .toList()
-        Resource.Success(items to total)
+    override suspend fun getAll(): Resource<List<LocalBankEntity>> = try {
+        val items = col.find().toList()
+        Resource.Success(data =items, message = "Banks fetched successfully")
     } catch (e: Exception) {
         log.error("[LocalBanks] getAll failed — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to fetch banks")
