@@ -38,6 +38,7 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
             var fullName: String? = null
             var email: String? = null
             var password: String? = null
+            var kraPin: String? = null
             var gender: String? = null
             var phoneNumber: String? = null
             var dateOfBirth: String? = null
@@ -73,6 +74,7 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
                         "email" -> email = part.value
                         "password" -> password = part.value
                         "gender" -> gender = part.value
+                        "kraPin" -> kraPin = part.value
                         "phoneNumber" -> phoneNumber = part.value
                         "dateOfBirth" -> dateOfBirth = part.value
                         "kmpdcRegNumber" -> kmpdcRegNumber = part.value
@@ -109,6 +111,7 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
             val missingFields = buildList {
                 if (fullName.isNullOrBlank()) add("fullName")
                 if (email.isNullOrBlank()) add("email")
+                if (kraPin.isNullOrBlank()) add("kraPin")
                 if (password.isNullOrBlank()) add("password")
                 if (specializationId.isNullOrBlank()) add("specializationId")
                 if (licenceName.isNullOrBlank()) add("licenceName")
@@ -136,6 +139,7 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
                 email = email!!,
                 password = password!!,
                 gender = gender ?: "NON_BINARY",
+                kraPin = kraPin!!,
                 phoneNumber = phoneNumber?.takeIf { it.isNotBlank() },
                 dateOfBirth = dateOfBirth?.takeIf { it.isNotBlank() },
                 profilePictureBytes = profilePictureBytes,
