@@ -239,7 +239,13 @@ class UserRepositoryImpl(
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
             if (user.verificationStatus == UserEntity.VerificationStatus.UNVERIFIED) {
-                return@let Resource.Error(message = "Account not verified. Please check your email for the OTP code.")
+                return@let Resource.Error(
+                    message = "Account not verified. Please check your email for the OTP code.",
+                    data = AuthToken(
+                        accountStatus = user.accountStatus,
+                        verificationStatus = user.verificationStatus,
+                    )
+                )
             }
 
             val groupIds = user.policyGroupIds?.takeIf { it.isNotEmpty() } ?: emptyList()

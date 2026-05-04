@@ -14,7 +14,7 @@ class SignInUseCase(
         is Resource.Success -> {
             result.toDefaultResponse(HttpStatusCode.OK.value){it}
         }
-        is Resource.Error -> result.toDefaultResponse(HttpStatusCode.Unauthorized.value){null}
+        is Resource.Error -> result.toDefaultResponse(HttpStatusCode.Unauthorized.value){it}
     }
 
 }
