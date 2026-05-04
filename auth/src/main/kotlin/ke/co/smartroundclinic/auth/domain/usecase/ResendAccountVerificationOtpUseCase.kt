@@ -29,14 +29,13 @@ class ResendAccountVerificationOtpUseCase(
                 failedStatusCode = HttpStatusCode.NotFound.value, errorMessage = "User not found"
             ) { null }
 
-            if (user.otpExpiresAt == null) return@supervisorScope Resource.Error<Nothing>("User not found")
-                .toDefaultResponse(failedStatusCode = HttpStatusCode.NotFound.value) { null }
-
-            val otpCreatedAt = user.otpExpiresAt - 15.minutes.inWholeMilliseconds
-            val canResendAt = otpCreatedAt + 1.minutes.inWholeMilliseconds
-            if (Clock.System.now().toEpochMilliseconds() < canResendAt)
-                return@supervisorScope Resource.Error<Nothing>("Please wait 1 minute before requesting a new OTP")
-                    .toDefaultResponse(failedStatusCode = HttpStatusCode.TooManyRequests.value) { null }
+            if (user.otpExpiresAt != null) {
+                val otpCreatedAt = user.otpExpiresAt - 15.minutes.inWholeMilliseconds
+                val canResendAt = otpCreatedAt + 1.minutes.inWholeMilliseconds
+                if (Clock.System.now().toEpochMilliseconds() < canResendAt)
+                    return@supervisorScope Resource.Error<Nothing>("Please wait 1 minute before requesting a new OTP")
+                        .toDefaultResponse(failedStatusCode = HttpStatusCode.TooManyRequests.value) { null }
+            }
 
             val otpCode = OtpCodeGenerator().generateOtpCode()
             val hashedOtpCode = credentialsHasher.hash(otpCode)
