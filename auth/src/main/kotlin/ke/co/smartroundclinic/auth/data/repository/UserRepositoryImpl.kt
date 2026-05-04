@@ -248,7 +248,12 @@ class UserRepositoryImpl(
             } else emptyList()
 
             val token = tokenProvider.generateTokens(userId = user.id, role = user.role.name, permissions = permissions)
-                .copy(policyGroupIds = groupIds, permissions = permissions)
+                .copy(
+                    policyGroupIds = groupIds,
+                    permissions = permissions,
+                    accountStatus = user.accountStatus,
+                    verificationStatus = user.verificationStatus,
+                )
             Resource.Success(message = "Login successful", data = token)
 
         } ?: return@withContext Resource.Error(message = "Invalid email or password")

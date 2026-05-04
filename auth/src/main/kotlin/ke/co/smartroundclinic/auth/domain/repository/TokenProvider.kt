@@ -1,9 +1,12 @@
 package ke.co.smartroundclinic.auth.domain.repository
 
+import ke.co.smartroundclinic.auth.data.entity.UserEntity
 
 data class AuthToken(
     val accessToken: String,
     val refreshToken: String,
+    val accountStatus: UserEntity.AccountStatus = UserEntity.AccountStatus.INACTIVE,
+    val verificationStatus: UserEntity.VerificationStatus = UserEntity.VerificationStatus.UNVERIFIED,
     val policyGroupIds: List<String> = emptyList(),
     val permissions: List<String> = emptyList(),
 )
