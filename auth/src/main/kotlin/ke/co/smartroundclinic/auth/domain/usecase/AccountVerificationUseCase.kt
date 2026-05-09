@@ -23,6 +23,18 @@ class AccountVerificationUseCase(
 ) {
     suspend operator fun invoke(email: String, otpCode: String): DefaultResponse<UserRes?>  = withContext(Dispatchers.IO) {
         supervisorScope {
+            val userResult = userRepository.getUserByEmail(email)
+            if (userResult is Resource.Error) return@supervisorScope userResult.toDefaultResponse(
+                failedStatusCode = HttpStatusCode.NotFound.value,
+                errorMessage = "No account found with that email address"
+            ) { null }
+
+            val user = userResult.data
+            if (user != null && user.verificationStatus != UserEntity.VerificationStatus.UNVERIFIED) {
+                return@supervisorScope Resource.Error<UserRes>("Your account is already verified")
+                    .toDefaultResponse(failedStatusCode = HttpStatusCode.Conflict.value) { null }
+            }
+
             when (val otpVerification = verifyAccountOtpUseCase(email, otpCode)) {
                 is Resource.Error -> otpVerification.toDefaultResponse(
                     failedStatusCode = HttpStatusCode.OK.value,

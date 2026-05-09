@@ -111,6 +111,16 @@ fun Route.userController(userService: UserService) {
                 )
             }
 
+            get("resend-otp") {
+                val email = call.parameters["email"]
+                    ?: throw MissingParametersException(message = "Email parameter is missing")
+                val result = userService.resendPasswordResetOtp(email)
+                call.respond(
+                    status = HttpStatusCode.fromValue(result.httpStatusCode),
+                    message = result
+                )
+            }
+
             post {
                 val body = call.receive<ResetPasswordReq>()
                 val result = userService.resetPassword(body.email, body.otpCode, body.newPassword)

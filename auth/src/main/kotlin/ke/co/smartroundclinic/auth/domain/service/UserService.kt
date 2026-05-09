@@ -13,6 +13,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.RemoveProfilePictureUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UploadProfilePictureUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RequestPasswordResetUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.ResendAccountVerificationOtpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.ResendPasswordResetOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.ResetPasswordUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RevokeTokenUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SignUpUseCase
@@ -31,6 +32,7 @@ class UserService(
     private val accountVerificationUseCase: AccountVerificationUseCase,
     private val resendAccountVerificationOtpUseCase: ResendAccountVerificationOtpUseCase,
     private val requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    private val resendPasswordResetOtpUseCase: ResendPasswordResetOtpUseCase,
     private val resetPasswordUseCase: ResetPasswordUseCase,
     private val refreshTokenUseCase: RefreshTokenUseCase,
     private val revokeTokenUseCase: RevokeTokenUseCase,
@@ -55,6 +57,7 @@ class UserService(
     )
     suspend fun getUser(userId:String) = getUserUserUseCase(userId)
     suspend fun requestPasswordReset(email: String) = requestPasswordResetUseCase(email)
+    suspend fun resendPasswordResetOtp(email: String) = resendPasswordResetOtpUseCase(email)
     suspend fun resetPassword(email: String, otpCode: String, newPassword: String) =
         resetPasswordUseCase(email, otpCode, newPassword)
     suspend fun refreshToken(refreshToken: String) = refreshTokenUseCase(refreshToken)

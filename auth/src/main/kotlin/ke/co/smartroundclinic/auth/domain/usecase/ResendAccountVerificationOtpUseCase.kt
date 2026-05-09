@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.auth.domain.usecase
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.DefaultResponse
@@ -28,6 +29,11 @@ class ResendAccountVerificationOtpUseCase(
             val user = result.data ?: return@supervisorScope result.toDefaultResponse(
                 failedStatusCode = HttpStatusCode.NotFound.value, errorMessage = "User not found"
             ) { null }
+
+            if (user.verificationStatus != UserEntity.VerificationStatus.UNVERIFIED) {
+                return@supervisorScope Resource.Error<Nothing>("Your account is already verified")
+                    .toDefaultResponse(failedStatusCode = HttpStatusCode.Conflict.value) { null }
+            }
 
             if (user.otpExpiresAt != null) {
                 val otpCreatedAt = user.otpExpiresAt - 15.minutes.inWholeMilliseconds
