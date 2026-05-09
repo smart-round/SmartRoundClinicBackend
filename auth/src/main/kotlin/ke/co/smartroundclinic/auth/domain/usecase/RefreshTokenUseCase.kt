@@ -32,6 +32,10 @@ class RefreshTokenUseCase(
                     .toDefaultResponse(failedStatusCode = HttpStatusCode.Unauthorized.value) { null }
 
             val newTokens = tokenProvider.generateTokens(userId = user.id, role = user.role.name)
+                .copy(
+                    accountStatus = user.accountStatus,
+                    verificationStatus = user.verificationStatus,
+                )
             Resource.Success(data = newTokens, message = "Token refreshed successfully")
                 .toDefaultResponse(successStatusCode = HttpStatusCode.OK.value) { it }
         }
