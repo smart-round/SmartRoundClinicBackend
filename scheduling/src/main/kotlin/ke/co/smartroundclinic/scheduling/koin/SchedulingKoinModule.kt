@@ -37,7 +37,7 @@ val schedulingKoinModule = module {
     single<SlotOverrideRepository> { SlotOverrideRepositoryImpl(get(named("schedulingDb"))) }
 
     // Appointment use cases
-    single { BookAppointmentUseCase(get(), get()) }
+    single { BookAppointmentUseCase(get(), get(), get()) }
     single { GetAllAppointmentsUseCase(get()) }
     single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }
     single { GetAppointmentByIdUseCase(get()) }

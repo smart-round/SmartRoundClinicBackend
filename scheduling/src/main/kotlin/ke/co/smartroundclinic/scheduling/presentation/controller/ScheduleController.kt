@@ -10,6 +10,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import ke.co.smartroundclinic.infra.plugins.MissingParametersException
+import ke.co.smartroundclinic.infra.plugins.getRole
 import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
 import ke.co.smartroundclinic.scheduling.domain.service.ScheduleService
@@ -33,10 +35,23 @@ fun Route.scheduleController(scheduleService: ScheduleService) {
                 }
             }
 
+            get("schedule") {
+                call.requireRole(DOCTOR) {
+                    val doctorId = call.getUserId() ?: return@requireRole
+                    val result = scheduleService.getSchedule(doctorId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
             get {
-                call.requireRole(PATIENT) {
-                    val doctorId =  (call.parameters["doctorId"]) ?: throw Exception("doctorId is required")
-                    val date = call.parameters["date"] ?: throw Exception("date is required in YYYY-MM-DD format")
+                call.requireRole(DOCTOR, PATIENT) {
+                    val role = call.getRole()
+                    val doctorId = if (role == DOCTOR) {
+                        call.getUserId() ?: return@requireRole
+                    } else {
+                        call.parameters["doctorId"] ?: throw MissingParametersException("doctorId is required")
+                    }
+                    val date = call.parameters["date"] ?: throw MissingParametersException("date is required in YYYY-MM-DD format")
                     val result = scheduleService.getAvailableSlots(doctorId, date)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }

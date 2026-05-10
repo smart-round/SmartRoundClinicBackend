@@ -10,6 +10,7 @@ interface AppointmentRepository {
     suspend fun getAll(): Resource<List<AppointmentEntity>>
     suspend fun getByPatient(patientId: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctor(doctorId: String): Resource<List<AppointmentEntity>>
+    suspend fun getByDoctorFiltered(doctorId: String, filter: String?, today: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctorAndDate(doctorId: String, date: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctorAndDateRange(doctorId: String, from: String, to: String): Resource<List<AppointmentEntity>>
     suspend fun updateStatus(

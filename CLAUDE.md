@@ -207,7 +207,9 @@ Available permissions (defined in `common/Permission.kt`): `VIEW_PATIENTS`, `MAN
 | GET | `/scheduling/appointments/doctor/{doctorId}` |
 | PATCH | `/scheduling/appointments/{id}/confirm\|cancel\|complete\|no-show` |
 | POST | `/scheduling/availability` |
-| GET/PUT/DELETE | `/scheduling/availability/{doctorId}` |
+| GET | `/scheduling/availability/schedule` — full weekly schedule config (DOCTOR/ADMIN) |
+| GET | `/scheduling/availability?date=YYYY-MM-DD` — available slots for a date (DOCTOR/PATIENT) |
+| PUT/DELETE | `/scheduling/availability?day=0-6` |
 
 ### Observability
 - Prometheus metrics: `GET /metrics-micrometer`

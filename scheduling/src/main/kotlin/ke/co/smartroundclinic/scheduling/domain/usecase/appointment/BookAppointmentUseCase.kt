@@ -5,14 +5,20 @@ import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.toEntity
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
+import ke.co.smartroundclinic.scheduling.domain.repository.SlotOverrideRepository
+import ke.co.smartroundclinic.scheduling.domain.usecase.SlotEngine
 import ke.co.smartroundclinic.scheduling.presentation.dto.request.BookAppointmentReq
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class BookAppointmentUseCase(
     private val appointmentRepository: AppointmentRepository,
     private val scheduleRepository: DoctorScheduleRepository,
+    private val overrideRepository: SlotOverrideRepository,
 ) {
     suspend operator fun invoke(req: BookAppointmentReq, patientId: String): DefaultResponse<AppointmentRes?> {
         val localDate = try {
@@ -21,7 +27,7 @@ class BookAppointmentUseCase(
             return Resource.Error<Nothing>("Invalid date format, expected YYYY-MM-DD")
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
-        val dayOfWeek = localDate.dayOfWeek.ordinal  // 0=Mon..6=Sun
+        val dayOfWeek = localDate.dayOfWeek.ordinal
 
         val scheduleResource = scheduleRepository.getByDoctorAndDay(req.doctorId, dayOfWeek)
         val schedule = if (scheduleResource is Resource.Success && scheduleResource.data != null) {
@@ -33,6 +39,28 @@ class BookAppointmentUseCase(
 
         if (!schedule.isActive) {
             return Resource.Error<Nothing>("Doctor is not available on this day")
+                .toDefaultResponse(failedStatusCode = 400) { null }
+        }
+
+        val bookedStarts = (appointmentRepository.getByDoctorAndDate(req.doctorId, req.date) as? Resource.Success)
+            ?.data
+            ?.filter { it.status == "BOOKED" || it.status == "CONFIRMED" }
+            ?.map { it.slotStart }
+            ?.toSet() ?: emptySet()
+
+        val overrides = (overrideRepository.getByDoctorAndDate(req.doctorId, req.date) as? Resource.Success)
+            ?.data
+            ?.map { it.toModel() } ?: emptyList()
+
+        val tz = TimeZone.of(schedule.timezone)
+        val nowLdt = Clock.System.now().toLocalDateTime(tz)
+        val today = nowLdt.date.toString()
+        val nowMinutes = if (req.date == today) nowLdt.hour * 60 + nowLdt.minute else null
+
+        val availableSlots = SlotEngine.computeAvailableSlots(schedule, bookedStarts, overrides, nowMinutes)
+
+        if (req.slotStart !in availableSlots) {
+            return Resource.Error<Nothing>("Slot ${req.slotStart} is not available")
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
 

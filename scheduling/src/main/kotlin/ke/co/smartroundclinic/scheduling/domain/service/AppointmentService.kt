@@ -28,7 +28,7 @@ class AppointmentService(
     suspend fun book(req: BookAppointmentReq, patientId: String) = bookAppointmentUseCase(req, patientId)
     suspend fun getById(id: String) = getAppointmentByIdUseCase(id)
     suspend fun getAll() = getAllAppointmentsUseCase()
-    suspend fun getDoctorAppointmentDetails(doctorId: String) = getDoctorAppointmentDetailsUseCase(doctorId)
+    suspend fun getDoctorAppointmentDetails(doctorId: String, filter: String? = null) = getDoctorAppointmentDetailsUseCase(doctorId, filter)
     suspend fun getByPatient(patientId: String) = getPatientAppointmentsUseCase(patientId)
     suspend fun getByDoctor(doctorId: String, date: String) = getDoctorAppointmentsUseCase(doctorId, date)
     suspend fun confirm(id: String, doctorId: String) = confirmAppointmentUseCase(id, doctorId)

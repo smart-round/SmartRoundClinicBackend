@@ -6,14 +6,18 @@ import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.DoctorAppointmentDetailRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toDetailRes
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class GetDoctorAppointmentDetailsUseCase(
     private val repository: AppointmentRepository,
     private val patientNameResolver: PatientNameResolver?,
     private val doctorSpecialitiesResolver: DoctorSpecialitiesResolver?,
 ) {
-    suspend operator fun invoke(doctorId: String): DefaultResponse<List<DoctorAppointmentDetailRes>?> {
-        val resource = repository.getByDoctor(doctorId)
+    suspend operator fun invoke(doctorId: String, filter: String? = null): DefaultResponse<List<DoctorAppointmentDetailRes>?> {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+        val resource = repository.getByDoctorFiltered(doctorId, filter, today)
         val entities = resource.data ?: emptyList()
 
         val patientNames: Map<String, String> = patientNameResolver

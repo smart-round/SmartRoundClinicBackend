@@ -91,6 +91,37 @@ class AppointmentRepositoryImpl(
             }
         }
 
+    override suspend fun getByDoctorFiltered(
+        doctorId: String,
+        filter: String?,
+        today: String,
+    ): Resource<List<AppointmentEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val doctorFilter = Filters.eq(AppointmentEntity::doctorId.name, doctorId)
+            val combined = when (filter?.lowercase()) {
+                "upcoming" -> Filters.and(
+                    doctorFilter,
+                    Filters.gte(AppointmentEntity::date.name, today),
+                    Filters.`in`(AppointmentEntity::status.name, "BOOKED", "CONFIRMED"),
+                )
+                "past" -> Filters.and(
+                    doctorFilter,
+                    Filters.lt(AppointmentEntity::date.name, today),
+                )
+                "today" -> Filters.and(
+                    doctorFilter,
+                    Filters.eq(AppointmentEntity::date.name, today),
+                )
+                else -> doctorFilter
+            }
+            val items = col.find(combined).toList()
+            Resource.Success(data = items, message = "Appointments retrieved successfully")
+        } catch (e: Exception) {
+            log.error("Failed to fetch filtered appointments for doctorId=$doctorId — ${e.message}", e)
+            Resource.Error(e.localizedMessage ?: "Failed to fetch appointments")
+        }
+    }
+
     override suspend fun getByPatient(patientId: String): Resource<List<AppointmentEntity>> =
         withContext(Dispatchers.IO) {
             try {
