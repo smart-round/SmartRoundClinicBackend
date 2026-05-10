@@ -14,9 +14,9 @@ data class UpsertScheduleReq(
     val windowStart: String,
     val windowEnd: String,
     val slotDuration: Int,
-    val breakBlocks: List<BreakBlockReq> = emptyList(),
-    val isActive: Boolean = true,
-    val timezone: String = "Africa/Nairobi",
+    val breakBlocks: List<BreakBlockReq>? = null,
+    val isActive: Boolean? = null,
+    val timezone: String? = null,
 ) {
     fun toModel(doctorId: String) = DoctorSchedule(
         id = ObjectId().toString(),
@@ -25,9 +25,9 @@ data class UpsertScheduleReq(
         windowStart = windowStart,
         windowEnd = windowEnd,
         slotDuration = slotDuration,
-        breakBlocks = breakBlocks.map { BreakBlock(it.start, it.end) },
-        isActive = isActive,
-        timezone = timezone,
+        breakBlocks = breakBlocks?.map { BreakBlock(it.start, it.end) } ?: emptyList(),
+        isActive = isActive ?: true,
+        timezone = timezone ?: "Africa/Nairobi",
         createdAt = Clock.System.now().toString(),
     )
 }
