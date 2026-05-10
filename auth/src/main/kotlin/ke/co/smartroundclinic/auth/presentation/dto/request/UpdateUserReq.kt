@@ -6,5 +6,6 @@ data class UpdateUserReq(
     val fullName: String?,
     val email: String?,
     val phoneNumber: String?,
-    val gender: UserEntity.Gender?
+    val gender: UserEntity.Gender?,
+    val dateOfBirth: String?
 )

@@ -10,7 +10,8 @@ interface UserRepository {
         fullName:String? = null,
         email:String? = null,
         phoneNumber:String? = null,
-        gender: UserEntity.Gender? = null
+        gender: UserEntity.Gender? = null,
+        dateOfBirth: String? = null
     ): Resource<UserEntity?>
     suspend fun getUser(userId:String): Resource<UserEntity?>
     suspend fun getUserByEmail(email:String): Resource<UserEntity?>

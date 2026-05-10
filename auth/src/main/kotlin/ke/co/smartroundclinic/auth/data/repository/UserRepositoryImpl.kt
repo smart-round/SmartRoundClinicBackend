@@ -54,7 +54,8 @@ class UserRepositoryImpl(
         fullName: String?,
         email: String?,
         phoneNumber: String?,
-        gender: UserEntity.Gender?
+        gender: UserEntity.Gender?,
+        dateOfBirth: String?
     ): Resource<UserEntity?> = withContext(Dispatchers.IO) {
 
         try {
@@ -95,6 +96,11 @@ class UserRepositoryImpl(
                 ?.let {
                     updates.add(Updates.set(UserEntity::gender.name, it))
                 }
+
+            dateOfBirth
+                ?.trim()
+                ?.takeIf { it.isNotBlank() && it != existingUser.dateOfBirth }
+                ?.let { updates.add(Updates.set(UserEntity::dateOfBirth.name, it)) }
 
             if (updates.isEmpty()) {
                 return@withContext Resource.Success(data = existingUser, message = "No changes detected")

@@ -14,7 +14,8 @@ class UpdateUserUseCase(
         fullName: String?,
         email: String?,
         phoneNumber: String?,
-        gender: UserEntity.Gender?
+        gender: UserEntity.Gender?,
+        dateOfBirth: String?
     ): DefaultResponse<UserRes?>{
 
         return userRepository.updateUser(
@@ -22,7 +23,8 @@ class UpdateUserUseCase(
             fullName = fullName,
             email = email,
             phoneNumber = phoneNumber,
-            gender = gender
+            gender = gender,
+            dateOfBirth = dateOfBirth
         ).toDefaultResponse(HttpStatusCode.OK.value) { it?.toModel()?.toUserRes() }
 
     }

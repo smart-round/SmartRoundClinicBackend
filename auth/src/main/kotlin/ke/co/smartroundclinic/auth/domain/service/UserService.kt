@@ -53,7 +53,8 @@ class UserService(
         fullName = body.fullName,
         email = body.email,
         phoneNumber = body.phoneNumber,
-        gender = body.gender
+        gender = body.gender,
+        dateOfBirth = body.dateOfBirth
     )
     suspend fun getUser(userId:String) = getUserUserUseCase(userId)
     suspend fun requestPasswordReset(email: String) = requestPasswordResetUseCase(email)
