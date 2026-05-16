@@ -354,6 +354,25 @@ class UserRepositoryImpl(
         }
     }
 
+    override suspend fun upgradeToSuperAdmin(userId: String): Resource<UserEntity?> = withContext(Dispatchers.IO) {
+        try {
+            val user = collection.find(Filters.eq(UserEntity::id.name, userId)).firstOrNull()
+                ?: return@withContext Resource.Error("User not found")
+            if (user.role != Role.ADMIN) return@withContext Resource.Error("Only ADMIN users can be upgraded to SUPER_ADMIN")
+            collection.updateOne(
+                Filters.eq(UserEntity::id.name, userId),
+                Updates.combine(
+                    Updates.set(UserEntity::role.name, Role.SUPER_ADMIN.name),
+                    Updates.set(UserEntity::updatedAt.name, Clock.System.now().toString()),
+                )
+            )
+            val updated = collection.find(Filters.eq(UserEntity::id.name, userId)).firstOrNull()
+            Resource.Success(data = updated, message = "Admin upgraded to super admin successfully")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to upgrade admin")
+        }
+    }
+
     /**
      * Initialize an admin account if none exists
      * */

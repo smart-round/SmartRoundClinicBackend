@@ -39,4 +39,5 @@ interface UserRepository {
         createdFrom: String?,
         createdTo: String?,
     ): Resource<Pair<List<UserEntity>, Long>>
+    suspend fun upgradeToSuperAdmin(userId: String): Resource<UserEntity?>
 }

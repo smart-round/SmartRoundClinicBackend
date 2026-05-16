@@ -4,6 +4,7 @@ import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.usecase.AccountVerificationUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.UpgradeToSuperAdminUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SignInUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.CreateAdminUseCase
@@ -41,6 +42,7 @@ class UserService(
     private val getUsersByRoleUseCase: GetUsersByRoleUseCase,
     private val adminUpdateUserUseCase: AdminUpdateUserUseCase,
     private val filterUsersByRoleUseCase: FilterUsersByRoleUseCase,
+    private val upgradeToSuperAdminUseCase: UpgradeToSuperAdminUseCase,
 ) {
     suspend fun signIn(email: String, password: String) = signInUseCase(email, password)
     suspend fun createAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toModel())
@@ -78,4 +80,5 @@ class UserService(
         createdFrom: String?,
         createdTo: String?,
     ) = filterUsersByRoleUseCase(role, page, size, accountStatus, createdFrom, createdTo)
+    suspend fun upgradeToSuperAdmin(userId: String) = upgradeToSuperAdminUseCase(userId)
 }

@@ -11,11 +11,13 @@ import io.ktor.http.content.streamProvider
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.service.UserService
+import ke.co.smartroundclinic.auth.presentation.dto.request.AdminUpdateUserReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.RefreshTokenReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.ResetPasswordReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.SignInReq
@@ -59,6 +61,33 @@ fun Route.userController(userService: UserService) {
                         status = HttpStatusCode.fromValue(result.httpStatusCode),
                         message = result
                     )
+                }
+            }
+
+            get("admins") {
+                call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
+                    val page = call.parameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.parameters["size"]?.toIntOrNull() ?: 20
+                    val search = call.parameters["search"]
+                    val result = userService.getUsersByRole(UserEntity.Role.ADMIN, page, size, search)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            patch("{id}/status") {
+                call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
+                    val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
+                    val body = call.receive<AdminUpdateUserReq>()
+                    val result = userService.adminUpdateUser(id, body)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            patch("{id}/upgrade") {
+                call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
+                    val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
+                    val result = userService.upgradeToSuperAdmin(id)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
         }
