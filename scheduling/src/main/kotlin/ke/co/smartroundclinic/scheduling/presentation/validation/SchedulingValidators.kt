@@ -33,7 +33,7 @@ fun RequestValidationConfig.registerSchedulingValidators() {
                     add("windowEnd must be after windowStart")
                 }
             }
-            if (req.slotDuration != 25 && req.slotDuration != 30) add("slotDuration must be 25 or 30")
+            if (req.slotDuration < 1 || req.slotDuration > 60) add("slotDuration must be between 1 and 60 minutes")
         }
         if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
     }
@@ -42,7 +42,7 @@ fun RequestValidationConfig.registerSchedulingValidators() {
         val errors = buildList {
             req.windowStart?.let { if (!isValidTime(it)) add("windowStart must be in HH:mm format") }
             req.windowEnd?.let { if (!isValidTime(it)) add("windowEnd must be in HH:mm format") }
-            req.slotDuration?.let { if (it != 25 && it != 30) add("slotDuration must be 25 or 30") }
+            req.slotDuration?.let { if (it < 1 || it > 60) add("slotDuration must be between 1 and 60 minutes") }
             if (req.windowStart == null && req.windowEnd == null && req.slotDuration == null &&
                 req.breakBlocks == null && req.isActive == null && req.timezone == null
             ) {
