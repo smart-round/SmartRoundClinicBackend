@@ -213,14 +213,12 @@ fun Route.userController(userService: UserService) {
 
         authenticate("auth-jwt") {
             get {
-                call.requireRole(*UserEntity.allRoles) {
-                    val userId = call.getUserId() ?: return@requireRole
+                    val userId = call.getUserId() ?: return@get
                     val result = userService.getUser(userId)
                     call.respond(
                         status = HttpStatusCode.fromValue(result.httpStatusCode),
                         message = result
                     )
-                }
             }
         }
     }
