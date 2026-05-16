@@ -74,7 +74,7 @@ fun Route.userController(userService: UserService) {
                 }
             }
 
-            patch("{id}/status") {
+            patch("status") {
                 call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
                     val body = call.receive<AdminUpdateUserReq>()
@@ -83,7 +83,7 @@ fun Route.userController(userService: UserService) {
                 }
             }
 
-            patch("{id}/upgrade") {
+            patch("upgrade") {
                 call.requireRole(UserEntity.Role.SUPER_ADMIN.name) {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
                     val result = userService.upgradeToSuperAdmin(id)
