@@ -47,6 +47,7 @@ object MongoDBConstants {
     const val DOCTOR_SPECIALIZATIONS = "doctor_specializations"
     const val DOCTOR_CERTIFICATIONS = "doctor_certifications"
     const val DOCTOR_PAYMENT_DETAILS = "doctor_payment_details"
+    const val DOCTOR_RATINGS = "doctor_ratings"
 
     /**
      * MongoDB Database and Entities for ARTICLE

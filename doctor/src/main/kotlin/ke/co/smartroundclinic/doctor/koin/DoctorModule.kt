@@ -1,5 +1,7 @@
 package ke.co.smartroundclinic.doctor.koin
 
+import ke.co.smartroundclinic.doctor.data.repository.RecommendationRepositoryImpl
+import ke.co.smartroundclinic.doctor.data.repository.DoctorRatingRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.CertificationRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.ComplianceRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PaymentDetailsRepositoryImpl
@@ -7,18 +9,28 @@ import ke.co.smartroundclinic.doctor.data.repository.PractitionerLicenceReposito
 import ke.co.smartroundclinic.doctor.data.repository.PractitionerProfileRepositoryImpl
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.doctor.data.repository.SpecializationRepositoryImpl
+import ke.co.smartroundclinic.doctor.domain.repository.RecommendationRepository
+import ke.co.smartroundclinic.doctor.domain.repository.DoctorRatingRepository
 import ke.co.smartroundclinic.doctor.domain.repository.CertificationRepository
 import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.domain.repository.PaymentDetailsRepository
 import ke.co.smartroundclinic.doctor.domain.repository.PractitionerLicenceRepository
 import ke.co.smartroundclinic.doctor.domain.repository.PractitionerProfileRepository
 import ke.co.smartroundclinic.doctor.domain.repository.SpecializationRepository
+import ke.co.smartroundclinic.doctor.domain.service.RecommendationService
+import ke.co.smartroundclinic.doctor.domain.service.DoctorRatingService
 import ke.co.smartroundclinic.doctor.domain.service.CertificationService
 import ke.co.smartroundclinic.doctor.domain.service.ComplianceService
 import ke.co.smartroundclinic.doctor.domain.service.PaymentDetailsService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerLicenceService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerProfileService
 import ke.co.smartroundclinic.doctor.domain.service.SpecializationService
+import ke.co.smartroundclinic.doctor.domain.usecase.recommendation.GetRecommendedDoctorsUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.rating.DeleteRatingUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.rating.GetDoctorRatingsUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.rating.GetRatingByIdUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.rating.SubmitRatingUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.rating.UpdateRatingUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.certification.AddCertificationUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.certification.DeleteCertificationUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.certification.GetCertificationByIdUseCase
@@ -78,6 +90,8 @@ val doctorModule = module {
     single<SpecializationRepository> { get<SpecializationRepositoryImpl>() }
     single<DoctorSpecialitiesResolver> { get<SpecializationRepositoryImpl>() }
     single<PaymentDetailsRepository> { PaymentDetailsRepositoryImpl(get(named("doctorDb"))) }
+    single<DoctorRatingRepository> { DoctorRatingRepositoryImpl(get(named("doctorDb")), get(named("schedulingDb"))) }
+    single<RecommendationRepository> { RecommendationRepositoryImpl(get(named("doctorDb")), get(named("adminDb")), get(named("schedulingDb"))) }
 
     /**
      * Profile
@@ -205,6 +219,22 @@ val doctorModule = module {
      * */
     single { DoctorSignUpUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<DoctorOnboardingHandler> { get<DoctorSignUpUseCase>() }
+
+    /**
+     * Recommendations
+     * */
+    single { GetRecommendedDoctorsUseCase(get()) }
+    single { RecommendationService(get()) }
+
+    /**
+     * Ratings
+     * */
+    single { SubmitRatingUseCase(get()) }
+    single { UpdateRatingUseCase(get()) }
+    single { DeleteRatingUseCase(get()) }
+    single { GetDoctorRatingsUseCase(get()) }
+    single { GetRatingByIdUseCase(get()) }
+    single { DoctorRatingService(get(), get(), get(), get(), get()) }
 
     /**
      * Local Banks

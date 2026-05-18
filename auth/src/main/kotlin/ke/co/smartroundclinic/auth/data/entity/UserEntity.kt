@@ -12,7 +12,7 @@ data class UserEntity(
     val password: String,
     val gender: Gender = Gender.NON_BINARY,
     val role: Role = Role.PATIENT,
-    val accountStatus: AccountStatus = AccountStatus.INACTIVE,
+    val accountStatus: AccountStatus = AccountStatus.ACTIVE,
     val verificationStatus: VerificationStatus = VerificationStatus.UNVERIFIED,
     val kraPin: String? = null,
     val otpCode: String? = null,
