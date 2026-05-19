@@ -1,7 +1,16 @@
 package ke.co.smartroundclinic.doctor.presentation.dto.response
 
 import ke.co.smartroundclinic.doctor.domain.model.Compliance
-import kotlinx.serialization.Serializable
+
+data class DoctorProfileInfo(
+    val fullName: String,
+    val email: String,
+    val phoneNumber: String?,
+    val profilePicture: String?,
+    val title: String?,
+    val facilityName: String?,
+    val kmpdcRegNumber: String?,
+)
 
 data class ComplianceRes(
     val id: String,
@@ -13,6 +22,7 @@ data class ComplianceRes(
     val failedApprovalReason: String?,
     val createdAt: String,
     val updatedAt: String?,
+    val doctorProfile: DoctorProfileInfo?,
 )
 
 data class CompliancePageResult(
@@ -23,7 +33,7 @@ data class CompliancePageResult(
     val pages: Long,
 )
 
-fun Compliance.toRes() = ComplianceRes(
+fun Compliance.toRes(doctorProfile: DoctorProfileInfo? = null) = ComplianceRes(
     id = id,
     doctorId = doctorId,
     status = status,
@@ -33,4 +43,5 @@ fun Compliance.toRes() = ComplianceRes(
     failedApprovalReason = failedApprovalReason,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    doctorProfile = doctorProfile,
 )

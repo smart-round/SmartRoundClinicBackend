@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.doctor.koin
 
+import ke.co.smartroundclinic.doctor.data.repository.DoctorProfileLookup
 import ke.co.smartroundclinic.doctor.data.repository.RecommendationRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.DoctorRatingRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.CertificationRepositoryImpl
@@ -85,6 +86,7 @@ val doctorModule = module {
     single<PractitionerProfileRepository> { PractitionerProfileRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<CertificationRepository> { CertificationRepositoryImpl(get(named("doctorDb"))) }
     single<ComplianceRepository> { ComplianceRepositoryImpl(get(named("doctorDb"))) }
+    single { DoctorProfileLookup(get(named("doctorDb")), get(named("authDb"))) }
     single<PractitionerLicenceRepository> { PractitionerLicenceRepositoryImpl(get(named("doctorDb"))) }
     single<SpecializationRepositoryImpl> { SpecializationRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<SpecializationRepository> { get<SpecializationRepositoryImpl>() }
@@ -125,8 +127,8 @@ val doctorModule = module {
      * Compliance
      * */
     single { ApproveComplianceUseCase(get(),get(),get()) }
-    single { GetAllComplianceUseCase(get()) }
-    single { GetComplianceByIdUseCase(get()) }
+    single { GetAllComplianceUseCase(get(), get()) }
+    single { GetComplianceByIdUseCase(get(), get()) }
     single { GetMyComplianceStatusUseCase(get()) }
     single { RejectComplianceUseCase(get(),get(),get()) }
     single { SubmitComplianceUseCase(get(),get(),get(),get()) }
