@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.doctor.domain.usecase.compliance
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
@@ -24,10 +25,12 @@ class ApproveComplianceUseCase(
         withContext(Dispatchers.IO) {
             val approve = repository.approve(id, adminId)
             if (approve is Resource.Error) return@withContext approve.toDefaultResponse()
-            val user = approve.data?.doctorId?.let { userRepository.getUser(it) }
+            val doctorId = approve.data?.doctorId ?: return@withContext approve.toDefaultResponse()
+            userRepository.adminUpdateUser(doctorId, accountStatus = null, verificationStatus = UserEntity.VerificationStatus.VERIFIED)
+            val user = userRepository.getUser(doctorId)
             if (user is Resource.Error) return@withContext user.toDefaultResponse()
-            sendApplicationApprovedEmail(user?.data?.fullName ?: "",user?.data?.email ?: "")
-            approve.toDefaultResponse(){ approve.data?.toModel()?.toRes() }
+            sendApplicationApprovedEmail(user.data?.fullName ?: "", user.data?.email ?: "")
+            approve.toDefaultResponse() { approve.data?.toModel()?.toRes() }
         }
 
     private suspend fun sendApplicationApprovedEmail(name: String, email: String) {

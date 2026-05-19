@@ -35,7 +35,7 @@ data class UserEntity(
         ACTIVE,INACTIVE,SUSPENDED
     }
     enum class VerificationStatus{
-        VERIFIED, UNVERIFIED, PENDING_APPROVAL
+        VERIFIED, UNVERIFIED, PENDING_APPROVAL, REJECTED
     }
 
     fun toModel(): User  = User(

@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.doctor.domain.usecase.compliance
 
+import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
@@ -23,9 +24,11 @@ class RejectComplianceUseCase(
         Dispatchers.IO) {
         val rejected = repository.reject(id, adminId, reason)
         if (rejected is Resource.Error) return@withContext rejected.toDefaultResponse()
-        val user = rejected.data?.doctorId?.let { userRepository.getUser(it) }
+        val doctorId = rejected.data?.doctorId ?: return@withContext rejected.toDefaultResponse()
+        userRepository.adminUpdateUser(doctorId, accountStatus = null, verificationStatus = UserEntity.VerificationStatus.REJECTED)
+        val user = userRepository.getUser(doctorId)
         if (user is Resource.Error) return@withContext user.toDefaultResponse()
-        sendApplicationRejectEmail(user?.data?.fullName ?: "",user?.data?.email ?: "", reason)
+        sendApplicationRejectEmail(user.data?.fullName ?: "", user.data?.email ?: "", reason)
         rejected.toDefaultResponse(
             successStatusCode = 200,
             successMessage = "Rejected successfully",

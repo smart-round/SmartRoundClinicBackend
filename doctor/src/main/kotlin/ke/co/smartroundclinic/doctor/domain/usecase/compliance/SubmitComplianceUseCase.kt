@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.doctor.domain.usecase.compliance
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
@@ -27,6 +28,7 @@ class SubmitComplianceUseCase(
         if (check is Resource.Error) return@withContext check.toDefaultResponse()
         val user = userRepository.getUser(doctorId)
         if (user is Resource.Error) return@withContext user.toDefaultResponse()
+        userRepository.adminUpdateUser(doctorId, accountStatus = null, verificationStatus = UserEntity.VerificationStatus.PENDING_APPROVAL)
         sendApplicationReceivedEmail(user.data?.fullName ?: "",user.data?.email ?: "",doctorId)
         repository.submit(doctorId).toDefaultResponse(
             successStatusCode = HttpStatusCode.Created.value,
