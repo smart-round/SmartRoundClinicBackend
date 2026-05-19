@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class RecommendedDoctorRes(
     val profileId: String,
     val doctorId: String,
+    val doctorName: String?,
     val kmpdcRegNumber: String?,
     val title: String?,
     val bio: String?,

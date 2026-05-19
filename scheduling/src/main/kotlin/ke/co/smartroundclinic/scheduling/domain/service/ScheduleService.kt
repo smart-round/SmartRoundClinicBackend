@@ -17,7 +17,8 @@ class ScheduleService(
 ) {
     suspend fun upsert(req: UpsertScheduleReq, doctorId: String) = upsertScheduleUseCase(req, doctorId)
     suspend fun getSchedule(doctorId: String) = getScheduleUseCase(doctorId)
-    suspend fun getAvailableSlots(doctorId: String, date: String) = getAvailableSlotsUseCase(doctorId, date)
+    suspend fun getAvailableSlots(doctorId: String, date: String) =
+        getAvailableSlotsUseCase(doctorId, date)
     suspend fun updateDay(doctorId: String, day: Int, req: UpdateScheduleDayReq) =
         updateScheduleDayUseCase(doctorId, day, req)
     suspend fun deactivateDay(doctorId: String, day: Int) = deactivateDayUseCase(doctorId, day)

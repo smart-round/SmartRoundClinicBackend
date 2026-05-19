@@ -63,6 +63,13 @@ object MongoDBConstants {
     const val NOTIFICATIONS = "notifications"
 
     /**
+     * MongoDB Database and Entities for CONSULTATION
+     */
+    const val CONSULTATION_DB = "src_consultation"
+    const val CONSULTATION_SESSIONS = "consultation_sessions"
+    const val CONSULTATION_MESSAGES = "consultation_messages"
+
+    /**
      * MongoDB Databases and Entities for SCHEDULING
      */
     const val SCHEDULING_DB = "src_scheduling"

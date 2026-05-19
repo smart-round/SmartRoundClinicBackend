@@ -9,7 +9,7 @@ data class ServiceTierEntity(
     val name: String,
     val tierPrice: Double,
     val consultationDuration: Long,
-    val gracePeriod: Long,
+    val gracePeriod : Long,
     val chatAccessWindow: Long,
     val followUpWindow: Long,
     val followUpFee: Long,

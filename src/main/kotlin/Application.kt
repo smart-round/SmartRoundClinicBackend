@@ -27,6 +27,9 @@ import ke.co.smartroundclinic.notification.koin.notificationModule as notificati
 import ke.co.smartroundclinic.scheduling.schedulingModule
 import ke.co.smartroundclinic.scheduling.koin.schedulingKoinModule
 import ke.co.smartroundclinic.scheduling.presentation.validation.registerSchedulingValidators
+import ke.co.smartroundclinic.consultation.consultationModule
+import ke.co.smartroundclinic.consultation.koin.consultationKoinModule
+import ke.co.smartroundclinic.consultation.presentation.validation.registerConsultationValidators
 import ke.co.smartroundclinic.support.supportModule
 import ke.co.smartroundclinic.support.koin.supportModule as supportKoinModule
 import ke.co.smartroundclinic.support.validation.registerSupportValidators
@@ -42,13 +45,14 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(
-        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule),
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule),
         validators = {
             registerDoctorValidators()
             registerAdminValidators()
             registerSchedulingValidators()
             registerSupportValidators()
             registerPatientValidators()
+            registerConsultationValidators()
         }
     )
     authModule()
@@ -59,6 +63,7 @@ fun Application.module() {
     schedulingModule()
     supportModule()
     patientModule()
+    consultationModule()
     val root = routing {
         get("/") {
             call.respondText("Hello World!")

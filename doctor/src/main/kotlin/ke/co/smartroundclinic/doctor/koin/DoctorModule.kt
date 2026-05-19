@@ -91,7 +91,7 @@ val doctorModule = module {
     single<DoctorSpecialitiesResolver> { get<SpecializationRepositoryImpl>() }
     single<PaymentDetailsRepository> { PaymentDetailsRepositoryImpl(get(named("doctorDb"))) }
     single<DoctorRatingRepository> { DoctorRatingRepositoryImpl(get(named("doctorDb")), get(named("schedulingDb"))) }
-    single<RecommendationRepository> { RecommendationRepositoryImpl(get(named("doctorDb")), get(named("adminDb")), get(named("schedulingDb"))) }
+    single<RecommendationRepository> { RecommendationRepositoryImpl(get(named("doctorDb")), get(named("adminDb")), get(named("schedulingDb")), get(named("authDb"))) }
 
     /**
      * Profile

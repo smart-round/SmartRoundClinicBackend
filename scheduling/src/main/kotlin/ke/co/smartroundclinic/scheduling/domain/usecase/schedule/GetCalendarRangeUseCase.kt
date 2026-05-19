@@ -47,7 +47,7 @@ class GetCalendarRangeUseCase(
         var cursor = from
         while (cursor <= to) {
             val dateStr = cursor.toString()
-            val dow = cursor.dayOfWeek.ordinal  // 0=Mon..6=Sun
+            val dow = cursor.dayOfWeek.ordinal
             val scheduleEntity = allSchedules[dow]
 
             if (scheduleEntity == null || !scheduleEntity.isActive) {
@@ -60,12 +60,12 @@ class GetCalendarRangeUseCase(
             val dayAppointments = appointmentsByDate[dateStr] ?: emptyList()
             val dayOverrides = (overridesByDate[dateStr] ?: emptyList()).map { it.toModel() }
 
-            // Determine nowMinutes only when computing for today
             val tz = TimeZone.of(schedule.timezone)
             val nowLdt = Clock.System.now().toLocalDateTime(tz)
             val today = nowLdt.date.toString()
             val nowMinutes = if (dateStr == today) nowLdt.hour * 60 + nowLdt.minute else null
 
+            // slotDuration drives display block size (consultation + grace period combined)
             val duration = schedule.slotDuration
             val winStart = SlotEngine.toMinutes(schedule.windowStart)
             val winEnd = SlotEngine.toMinutes(schedule.windowEnd)
@@ -80,7 +80,6 @@ class GetCalendarRangeUseCase(
             for ((es, ee) in extra) allSlotStarts.addAll(SlotEngine.generateSlots(es, ee, duration))
             allSlotStarts.sort()
 
-            // Map slotStart → appointment for quick lookup
             val bookedMap = dayAppointments.associateBy { it.slotStart }
 
             val slots = allSlotStarts.distinct().mapNotNull { slotMinutes ->
@@ -95,8 +94,8 @@ class GetCalendarRangeUseCase(
                 val status = when {
                     isBlocked -> "BLOCKED"
                     isBreak -> "BLOCKED"
-                    isPast -> null  // skip past slots entirely
-                    appointment != null -> appointment.status  // BOOKED | CONFIRMED | CANCELLED | etc.
+                    isPast -> null
+                    appointment != null -> appointment.status
                     else -> "AVAILABLE"
                 }
 

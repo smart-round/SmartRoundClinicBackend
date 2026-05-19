@@ -11,10 +11,12 @@ data class BookAppointmentReq(
     val slotStart: String,
     val notes: String? = null,
 ) {
-    fun toModel(patientId: String, slotEnd: String) = Appointment(
+    fun toModel(patientId: String, slotEnd: String, serviceTierId: String, consultationDuration: Int) = Appointment(
         id = ObjectId().toString(),
         doctorId = doctorId,
         patientId = patientId,
+        serviceTierId = serviceTierId,
+        consultationDuration = consultationDuration,
         date = date,
         slotStart = slotStart,
         slotEnd = slotEnd,

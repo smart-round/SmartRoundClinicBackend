@@ -21,6 +21,7 @@ class RecommendationRepositoryImpl(
     doctorDb: MongoDatabase,
     adminDb: MongoDatabase,
     schedulingDb: MongoDatabase,
+    authDb: MongoDatabase,
 ) : RecommendationRepository {
 
     private val log = LoggerFactory.getLogger(RecommendationRepositoryImpl::class.java)
@@ -29,6 +30,7 @@ class RecommendationRepositoryImpl(
     private val specialitiesCol = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SPECIALITIES)
     private val subSpecialitiesCol = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SUB_SPECIALITIES)
     private val appointmentsCol = schedulingDb.getCollection<Document>(MongoDBConstants.APPOINTMENTS)
+    private val usersCol = authDb.getCollection<Document>(MongoDBConstants.AUTH_USER)
 
     override suspend fun getRecommendations(
         specializationId: String?,
@@ -64,6 +66,10 @@ class RecommendationRepositoryImpl(
         val allSubSpecIds = allSpecializations.mapNotNull { it.subSpecializationId }.toSet()
         val specialityNames = loadSpecialityNames(allSpecIds)
         val subSpecialityNames = if (allSubSpecIds.isNotEmpty()) loadSubSpecialityNames(allSubSpecIds) else emptyMap()
+
+        // Bulk-load doctor names from auth users
+        val allDoctorIds = profiles.map { it.doctorId }.toSet()
+        val doctorNames = loadDoctorNames(allDoctorIds)
 
         // Normalization denominators (log-scale to avoid outlier domination)
         val maxBookings = (bookingCounts.values.maxOrNull() ?: 0).toDouble()
@@ -121,6 +127,7 @@ class RecommendationRepositoryImpl(
             RecommendedDoctorRes(
                 profileId = profile.id,
                 doctorId = profile.doctorId,
+                doctorName = doctorNames[profile.doctorId],
                 kmpdcRegNumber = profile.kmpdcRegNumber,
                 title = profile.title,
                 bio = profile.bio,
@@ -141,6 +148,15 @@ class RecommendationRepositoryImpl(
     } catch (e: Exception) {
         log.error("Failed to compute recommendations — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to fetch recommendations")
+    }
+
+    private suspend fun loadDoctorNames(doctorIds: Set<String>): Map<String, String> = try {
+        if (doctorIds.isEmpty()) return emptyMap()
+        usersCol.find(Filters.`in`("id", doctorIds)).toList()
+            .associate { doc -> doc.getString("id") to (doc.getString("fullName") ?: "") }
+    } catch (e: Exception) {
+        log.warn("Could not load doctor names — ${e.message}")
+        emptyMap()
     }
 
     // Aggregate booking count per doctor from the appointments collection

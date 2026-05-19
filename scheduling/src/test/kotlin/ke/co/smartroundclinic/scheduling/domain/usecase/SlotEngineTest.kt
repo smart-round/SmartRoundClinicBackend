@@ -42,11 +42,14 @@ class SlotEngineTest {
 
     // --- Basic generation ---
 
+    // slotDuration = gracePeriod, consultationDuration = 25 → totalDuration = 30
+    // The window 09:00–10:00 with totalDuration=30 produces 09:00, 09:30
     @Test
     fun `generates slots across full window`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 30),
-            emptySet(), emptyList()
+            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
         assertEquals(listOf("09:00", "09:30"), slots)
     }
@@ -54,7 +57,8 @@ class SlotEngineTest {
     @Test
     fun `returns empty list when inactive`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(isActive = false), emptySet(), emptyList()
+            schedule(isActive = false), consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
         assertTrue(slots.isEmpty())
     }
@@ -62,17 +66,20 @@ class SlotEngineTest {
     @Test
     fun `window too short for any slot returns empty`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "09:20", slotDuration = 30),
-            emptySet(), emptyList()
+            schedule(windowStart = "09:00", windowEnd = "09:20", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
         assertTrue(slots.isEmpty())
     }
 
     @Test
-    fun `window exactly one slot duration produces single slot`() {
+    fun `window exactly one total duration produces single slot`() {
+        // consultationDuration=25, gracePeriod=5 → totalDuration=30; window 09:00–09:30 → exactly one slot
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "09:30", slotDuration = 30),
-            emptySet(), emptyList()
+            schedule(windowStart = "09:00", windowEnd = "09:30", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
         assertEquals(listOf("09:00"), slots)
     }
@@ -80,10 +87,12 @@ class SlotEngineTest {
     // --- Already-booked filtering ---
 
     @Test
-    fun `booked slot is excluded`() {
+    fun `booked slot interval is excluded`() {
+        // Booked: 09:00–09:25 (consultationDuration=25). Next slot 09:30 is clear.
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 30),
-            bookedStarts = setOf("09:00"),
+            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = listOf(SlotEngine.toMinutes("09:00") to SlotEngine.toMinutes("09:25")),
             overrides = emptyList()
         )
         assertEquals(listOf("09:30"), slots)
@@ -93,16 +102,17 @@ class SlotEngineTest {
 
     @Test
     fun `slot overlapping break block is excluded`() {
+        // consultationDuration=25, gracePeriod=5 → totalDuration=30; break 10:00–11:00
         val slots = SlotEngine.computeAvailableSlots(
             schedule(
                 windowStart = "09:00",
                 windowEnd = "12:00",
-                slotDuration = 30,
+                slotDuration = 5,
                 breakBlocks = listOf(BreakBlock("10:00", "11:00"))
             ),
-            emptySet(), emptyList()
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
-        // 09:00, 09:30 are before break; 10:00 starts at break → excluded; 10:30 still in break → excluded; 11:00 is after break → included; 11:30 → included
         assertFalse("10:00" in slots)
         assertFalse("10:30" in slots)
         assertTrue("09:00" in slots)
@@ -112,17 +122,20 @@ class SlotEngineTest {
 
     @Test
     fun `slot ending exactly at break start is NOT excluded (half-open interval)`() {
-        // Slot 09:30–10:00, break 10:00–11:00 → overlaps(570, 30, 600, 660) = 570 < 660 && 600 > 600 → false
+        // consultationDuration=25, gracePeriod=5 → totalDuration=30
+        // Slot 09:30 ends at 09:55 (consultation), well before break at 10:00 → included
+        // Slot 10:00 starts at break → excluded
         val slots = SlotEngine.computeAvailableSlots(
             schedule(
                 windowStart = "09:00",
                 windowEnd = "11:00",
-                slotDuration = 30,
+                slotDuration = 5,
                 breakBlocks = listOf(BreakBlock("10:00", "11:00"))
             ),
-            emptySet(), emptyList()
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
-        assertTrue("09:30" in slots, "Slot ending at break start should be included")
+        assertTrue("09:30" in slots, "Slot ending before break start should be included")
         assertFalse("10:00" in slots, "Slot starting at break start should be excluded")
     }
 
@@ -131,8 +144,9 @@ class SlotEngineTest {
     @Test
     fun `blocked override removes slots in range`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "12:00", slotDuration = 30),
-            emptySet(),
+            schedule(windowStart = "09:00", windowEnd = "12:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(),
             overrides = listOf(override("BLOCKED", "10:00", "11:00"))
         )
         assertFalse("10:00" in slots)
@@ -144,8 +158,9 @@ class SlotEngineTest {
     @Test
     fun `full-day block returns empty slots`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "17:00", slotDuration = 30),
-            emptySet(),
+            schedule(windowStart = "09:00", windowEnd = "17:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(),
             overrides = listOf(override("BLOCKED", "00:00", "23:59"))
         )
         assertTrue(slots.isEmpty())
@@ -156,8 +171,9 @@ class SlotEngineTest {
     @Test
     fun `extra-available override adds slots outside main window`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "12:00", slotDuration = 30),
-            emptySet(),
+            schedule(windowStart = "09:00", windowEnd = "12:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(),
             overrides = listOf(override("EXTRA_AVAILABLE", "17:00", "18:00"))
         )
         assertTrue("17:00" in slots)
@@ -167,8 +183,9 @@ class SlotEngineTest {
     @Test
     fun `extra-available slot is blocked if in blocked range`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "12:00", slotDuration = 30),
-            emptySet(),
+            schedule(windowStart = "09:00", windowEnd = "12:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(),
             overrides = listOf(
                 override("EXTRA_AVAILABLE", "17:00", "18:00"),
                 override("BLOCKED", "17:00", "17:30"),
@@ -183,10 +200,11 @@ class SlotEngineTest {
     @Test
     fun `slots before now plus 5 minutes are excluded on same day`() {
         // now = 09:20, so slots < 09:25 are excluded (09:00 excluded, 09:30 included)
-        val nowMinutes = 9 * 60 + 20  // 560
+        val nowMinutes = 9 * 60 + 20
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 30),
-            emptySet(), emptyList(),
+            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList(),
             nowMinutes = nowMinutes
         )
         assertFalse("09:00" in slots)
@@ -196,8 +214,9 @@ class SlotEngineTest {
     @Test
     fun `all slots included when date is not today (nowMinutes is null)`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 30),
-            emptySet(), emptyList(),
+            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(), overrides = emptyList(),
             nowMinutes = null
         )
         assertEquals(listOf("09:00", "09:30"), slots)
@@ -221,14 +240,15 @@ class SlotEngineTest {
         assertEquals("09:25", SlotEngine.fromMinutes(565))
     }
 
-    // --- 25-minute slots ---
+    // --- Custom consultation duration ---
 
     @Test
-    fun `25-minute slot duration generates correct slots`() {
-        // 09:50 + 25 = 10:15, so window must end at 10:15 to include 09:50
+    fun `20-minute consultation with 5-minute grace generates correct slots`() {
+        // totalDuration=25; window 09:00–10:15 → 09:00, 09:25, 09:50 (09:50+25=10:15 ≤ 10:15)
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "10:15", slotDuration = 25),
-            emptySet(), emptyList()
+            schedule(windowStart = "09:00", windowEnd = "10:15", slotDuration = 5),
+            consultationDuration = 20,
+            bookedIntervals = emptyList(), overrides = emptyList()
         )
         assertEquals(listOf("09:00", "09:25", "09:50"), slots)
     }
@@ -238,8 +258,9 @@ class SlotEngineTest {
     @Test
     fun `duplicate candidates from overlapping extra ranges are deduplicated`() {
         val slots = SlotEngine.computeAvailableSlots(
-            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 30),
-            emptySet(),
+            schedule(windowStart = "09:00", windowEnd = "10:00", slotDuration = 5),
+            consultationDuration = 25,
+            bookedIntervals = emptyList(),
             overrides = listOf(override("EXTRA_AVAILABLE", "09:00", "10:00"))
         )
         assertEquals(slots, slots.distinct())

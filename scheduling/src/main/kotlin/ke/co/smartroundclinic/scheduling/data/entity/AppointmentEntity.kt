@@ -1,3 +1,4 @@
+
 package ke.co.smartroundclinic.scheduling.data.entity
 
 import ke.co.smartroundclinic.scheduling.domain.model.Appointment
@@ -8,6 +9,8 @@ data class AppointmentEntity(
     val id: String,
     val doctorId: String,
     val patientId: String,
+    val serviceTierId: String = "",
+    val consultationDuration: Int = 0,
     val date: String,
     val slotStart: String,
     val slotEnd: String,
@@ -22,6 +25,8 @@ data class AppointmentEntity(
         id = id,
         doctorId = doctorId,
         patientId = patientId,
+        serviceTierId = serviceTierId,
+        consultationDuration = consultationDuration,
         date = date,
         slotStart = slotStart,
         slotEnd = slotEnd,
@@ -38,6 +43,8 @@ fun Appointment.toEntity() = AppointmentEntity(
     id = id,
     doctorId = doctorId,
     patientId = patientId,
+    serviceTierId = serviceTierId,
+    consultationDuration = consultationDuration,
     date = date,
     slotStart = slotStart,
     slotEnd = slotEnd,
