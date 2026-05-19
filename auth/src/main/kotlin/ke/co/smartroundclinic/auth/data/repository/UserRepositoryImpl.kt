@@ -150,7 +150,7 @@ class UserRepositoryImpl(
         val updates = if (existingUser.role == Role.DOCTOR) {
             Updates.combine(
                 Updates.set(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.PENDING_APPROVAL.name),
-                Updates.set(UserEntity::accountStatus.name, UserEntity.AccountStatus.INACTIVE.name),
+                Updates.set(UserEntity::accountStatus.name, UserEntity.AccountStatus.ACTIVE.name),
                 Updates.set(UserEntity::otpCode.name, null),
                 Updates.set(UserEntity::otpExpiresAt.name, null),
             )
