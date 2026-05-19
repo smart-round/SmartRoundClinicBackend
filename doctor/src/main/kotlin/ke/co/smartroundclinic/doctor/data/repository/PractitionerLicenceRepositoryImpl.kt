@@ -21,11 +21,15 @@ class PractitionerLicenceRepositoryImpl(database: MongoDatabase) : PractitionerL
     private val col = database.getCollection<PractitionerLicenceEntity>(MongoDBConstants.DOCTOR_LICENCES)
 
     override suspend fun add(entity: PractitionerLicenceEntity): Resource<PractitionerLicenceEntity> = try {
-        val existingLicence =
-            col.find(Filters.eq(PractitionerLicenceEntity::licenceName.name, entity.licenceName)).firstOrNull()
+        val existingLicence = col.find(
+            Filters.and(
+                Filters.eq(PractitionerLicenceEntity::licenceName.name, entity.licenceName),
+                Filters.eq(PractitionerLicenceEntity::doctorId.name, entity.doctorId),
+            )
+        ).firstOrNull()
         if (existingLicence != null) {
-            log.warn("Licence already exists for doctorId=${entity.doctorId}")
-            return Resource.Error("Licence already exists")
+            log.warn("Licence '${entity.licenceName}' already exists for doctorId=${entity.doctorId}")
+            return Resource.Error("You already have a licence named '${entity.licenceName}'")
         }
         col.insertOne(entity)
         log.info("Licence added for doctorId=${entity.doctorId}")

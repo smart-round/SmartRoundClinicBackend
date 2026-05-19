@@ -33,10 +33,11 @@ class AddLicenceUseCase(
         val key = "practitioner-licence/${model.id}.$extension"
 
         val createLicence = repository.add(model.copy(licenceUrl = key).toEntity())
-        if (createLicence is Resource.Error) return@withContext createLicence.toDefaultResponse(
-            failedStatusCode = HttpStatusCode.InternalServerError.value,
-            errorMessage = "Failed to create licence "
-        )
+        if (createLicence is Resource.Error) {
+            val status = if (createLicence.message?.contains("already") == true)
+                HttpStatusCode.Conflict.value else HttpStatusCode.InternalServerError.value
+            return@withContext createLicence.toDefaultResponse(failedStatusCode = status)
+        }
 
         val uploadResult = storageRepository.upload(
             bucket = AppConfig.r2.bucket,
