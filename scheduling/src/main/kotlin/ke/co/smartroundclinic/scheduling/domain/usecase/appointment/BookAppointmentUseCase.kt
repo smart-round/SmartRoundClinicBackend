@@ -3,6 +3,8 @@ package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.toEntity
+import ke.co.smartroundclinic.scheduling.data.repository.ConsultationInfoResult
+import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.SlotOverrideRepository
@@ -19,8 +21,16 @@ class BookAppointmentUseCase(
     private val appointmentRepository: AppointmentRepository,
     private val scheduleRepository: DoctorScheduleRepository,
     private val overrideRepository: SlotOverrideRepository,
+    private val serviceTierLookup: ServiceTierLookup,
 ) {
     suspend operator fun invoke(req: BookAppointmentReq, patientId: String): DefaultResponse<AppointmentRes?> {
+        val tierInfo = serviceTierLookup.getConsultationInfoForDoctor(req.doctorId)
+        if (tierInfo is ConsultationInfoResult.Error) {
+            return Resource.Error<Nothing>(tierInfo.message)
+                .toDefaultResponse(failedStatusCode = tierInfo.httpStatus) { null }
+        }
+        val (serviceTierId, consultationDuration, gracePeriod) = tierInfo as ConsultationInfoResult.Success
+
         val localDate = try {
             LocalDate.parse(req.date)
         } catch (_: Exception) {
@@ -42,11 +52,11 @@ class BookAppointmentUseCase(
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
 
-        val bookedStarts = (appointmentRepository.getByDoctorAndDate(req.doctorId, req.date) as? Resource.Success)
+        val bookedIntervals = (appointmentRepository.getByDoctorAndDate(req.doctorId, req.date) as? Resource.Success)
             ?.data
             ?.filter { it.status == "BOOKED" || it.status == "CONFIRMED" }
-            ?.map { it.slotStart }
-            ?.toSet() ?: emptySet()
+            ?.map { SlotEngine.toMinutes(it.slotStart) to SlotEngine.toMinutes(it.slotEnd) }
+            ?: emptyList()
 
         val overrides = (overrideRepository.getByDoctorAndDate(req.doctorId, req.date) as? Resource.Success)
             ?.data
@@ -57,22 +67,16 @@ class BookAppointmentUseCase(
         val today = nowLdt.date.toString()
         val nowMinutes = if (req.date == today) nowLdt.hour * 60 + nowLdt.minute else null
 
-        val availableSlots = SlotEngine.computeAvailableSlots(schedule, bookedStarts, overrides, nowMinutes)
+        val availableSlots = SlotEngine.computeAvailableSlots(schedule, consultationDuration, bookedIntervals, overrides, nowMinutes, gridStep = schedule.slotDuration)
 
         if (req.slotStart !in availableSlots) {
             return Resource.Error<Nothing>("Slot ${req.slotStart} is not available")
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
 
-        val slotEnd = addMinutes(req.slotStart, schedule.slotDuration)
+        val slotEnd = SlotEngine.fromMinutes(SlotEngine.toMinutes(req.slotStart) + consultationDuration + gracePeriod)
 
-        return appointmentRepository.book(req.toModel(patientId, slotEnd).toEntity())
+        return appointmentRepository.book(req.toModel(patientId, slotEnd, serviceTierId, consultationDuration).toEntity())
             .toDefaultResponse(successStatusCode = 201, failedStatusCode = 409) { it?.toModel()?.toRes() }
-    }
-
-    private fun addMinutes(time: String, minutes: Int): String {
-        val (h, m) = time.split(":").map { it.toInt() }
-        val total = h * 60 + m + minutes
-        return "%02d:%02d".format(total / 60, total % 60)
     }
 }

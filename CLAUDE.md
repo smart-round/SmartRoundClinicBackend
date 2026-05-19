@@ -29,18 +29,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-Kotlin/Ktor REST API backend with 9 Gradle modules:
+Kotlin/Ktor REST API backend with 10 Gradle modules:
 
 ```
 :common        — Shared DTOs, enums, constants, Resource<T>, DefaultResponse<T>, Permission enum, PolicyGroupPermissionResolver interface
 :infra         — Ktor plugins, MongoDB client, Koin DI bootstrap, JWT, Cloudflare R2, authorization guards
 :auth          — Reference implementation: full auth flow with JWT, user management
 :admin         — Specialities, sub-specialities, service tiers, KMPDC practitioners, policy groups
-:doctor        — Practitioner profiles, compliance, licences, certifications, payments
+:doctor        — Practitioner profiles, compliance, licences, certifications, payments, ratings, recommendations
 :patient       — Patient profiles (stub)
-:scheduling    — Appointments + doctor availability
+:scheduling    — Appointments + doctor availability + slot engine
 :notification  — Transactional email via Resend API (no REST endpoints)
 :support       — Support tickets and chat
+:consultation  — Real-time doctor-patient chat (WebSocket + MongoDB change stream), file sharing via R2
 src/           — Root module: wires everything together, entry point
 ```
 
@@ -85,12 +86,13 @@ All use cases return `DefaultResponse<T>`. The conversion chain:
 Koin with named qualifiers for database instances:
 
 ```kotlin
-get(named("authDb"))       // src_auth
-get(named("adminDb"))      // src_admin
-get(named("doctorDb"))     // src_doctor
-get(named("patientDb"))    // src_patient
-get(named("schedulingDb")) // src_scheduling
-get(named("supportDb"))    // src_support
+get(named("authDb"))         // src_auth
+get(named("adminDb"))        // src_admin
+get(named("doctorDb"))       // src_doctor
+get(named("patientDb"))      // src_patient
+get(named("schedulingDb"))   // src_scheduling
+get(named("supportDb"))      // src_support
+get(named("consultationDb")) // src_consultation
 ```
 
 All feature Koin modules are registered in `Application.kt` via `configureInfraModule(appModules = listOf(...))`. Validators are registered there too:
@@ -199,17 +201,97 @@ All endpoints require `SUPER_ADMIN`.
 Available permissions (defined in `common/Permission.kt`): `VIEW_PATIENTS`, `MANAGE_PATIENTS`, `VIEW_DOCTORS`, `MANAGE_DOCTORS`, `MANAGE_SPECIALITIES`, `VIEW_APPOINTMENTS`, `MANAGE_APPOINTMENTS`, `VIEW_REPORTS`, `MANAGE_ADMINS`.
 
 ### Scheduling (`/scheduling`)
-| Method | Path |
-|--------|------|
-| POST | `/scheduling/appointments` |
-| GET | `/scheduling/appointments/{id}` |
-| GET | `/scheduling/appointments/patient/{patientId}` |
-| GET | `/scheduling/appointments/doctor/{doctorId}` |
-| PATCH | `/scheduling/appointments/{id}/confirm\|cancel\|complete\|no-show` |
-| POST | `/scheduling/availability` |
-| GET | `/scheduling/availability/schedule` — full weekly schedule config (DOCTOR/ADMIN) |
-| GET | `/scheduling/availability?date=YYYY-MM-DD` — available slots for a date (DOCTOR/PATIENT) |
-| PUT/DELETE | `/scheduling/availability?day=0-6` |
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/scheduling/appointments` | PATIENT — body: `{doctorId, date, slotStart, notes?}` |
+| GET | `/scheduling/appointments/{id}` | JWT |
+| GET | `/scheduling/appointments/patient/{patientId}` | JWT |
+| GET | `/scheduling/appointments/doctor/{doctorId}` | JWT |
+| PATCH | `/scheduling/appointments/{id}/confirm\|cancel\|complete\|no-show` | JWT |
+| POST | `/scheduling/availability` | DOCTOR — create/replace full weekly schedule |
+| GET | `/scheduling/availability/schedule` | DOCTOR/ADMIN — full weekly schedule config |
+| GET | `/scheduling/availability?doctorId=X&date=YYYY-MM-DD` | DOCTOR/PATIENT — available slot start times |
+| PUT/DELETE | `/scheduling/availability?day=0-6` | DOCTOR/ADMIN — update or deactivate a day |
+| GET | `/scheduling/calendar?doctorId=X&view=day\|week\|month&date=X&forDoctor=bool` | DOCTOR/PATIENT — slot calendar |
+| WS | `/scheduling/calendar/live?doctorId=X` | Live appointment change notifications |
+
+#### Appointment Duration Model
+
+Both `consultationDuration` and `gracePeriod` come from the **service tier** (stored in MongoDB as milliseconds; `ServiceTierLookup` divides by 60,000 on read to produce minutes).
+
+`DoctorSchedule.slotDuration` = **calendar display grid step only** (used by `GetCalendarRangeUseCase` to render visual slot blocks). It does not drive booking logic.
+
+Consultation duration and grace period are resolved at booking time via:
+`doctorId → doctor_specializations.specializationId → admin_specialities.serviceTierId → admin_service_tiers.{consultationDuration, gracePeriod}`
+
+- Patients do **not** pass `serviceTierId` — the system resolves it.
+- Error if doctor has no specialization: `"Doctor is not yet configured for appointments."`
+- Error if speciality has no `serviceTierId`: `"This speciality is not yet approved for offering appointments."`
+
+```
+appointmentPeriod   = consultationDuration + gracePeriod
+slotEnd             = slotStart + consultationDuration + gracePeriod   (stored on AppointmentEntity)
+slots generated at  = appointmentPeriod intervals
+conflict detection  = [s, s+consultationDuration) vs [bs, be)
+                      where be = bookedSlotEnd (already includes gracePeriod)
+```
+
+`AppointmentEntity` stores `serviceTierId` and `consultationDuration` (consultation only, not including grace period) for reference.
+
+#### Slot Engine (`SlotEngine.kt`)
+
+```kotlin
+SlotEngine.computeAvailableSlots(
+    schedule: DoctorSchedule,             // slotDuration = display grid step
+    consultationDuration: Int,            // minutes, from ServiceTier
+    bookedIntervals: List<Pair<Int,Int>>, // (slotStartMinutes, slotEndMinutes) — slotEnd includes gracePeriod
+    overrides: List<SlotOverride>,
+    nowMinutes: Int? = null,
+    gridStep: Int? = null,                // defaults to consultationDuration + schedule.slotDuration
+)
+```
+
+Conflict check: a candidate slot `s` is blocked if any booked interval `(bs, be)` satisfies `s < be && (s + consultationDuration) > bs`. No grace period is added in the check — it is already baked into the stored `be`.
+
+Override types: `BLOCKED` (removes slots in range) | `EXTRA_AVAILABLE` (adds slots outside window).
+
+#### Cross-module DB Access in Scheduling
+
+`ServiceTierLookup` (scheduling data layer) holds raw `Document` collections from both `adminDb` and `doctorDb` — no Gradle dependency on `:admin` or `:doctor` modules.
+
+`ConsultationInfoResult.Success(serviceTierId, consultationDuration, gracePeriod)` — all durations in minutes.
+
+### Doctor (`/doctor`)
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/doctor/recommendations?specializationId=X&page=1&size=20` | JWT |
+| POST | `/doctor/ratings` | PATIENT |
+| PUT | `/doctor/ratings/{id}` | PATIENT |
+| DELETE | `/doctor/ratings/{id}` | PATIENT |
+| GET | `/doctor/ratings?doctorId=X&page=1&size=20` | JWT |
+| GET | `/doctor/ratings/{id}` | JWT |
+
+Ratings require a completed appointment (`appointmentId` in request body); one rating per appointment.
+
+Recommendation scoring: `rating×0.50 + bookings×0.35 + reviews×0.15` (log-normalized). General listing adds speciality popularity boost.
+
+### Consultation (`/consultation`)
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/consultation` | JWT — start or get session for a CONFIRMED/COMPLETED appointment (idempotent) |
+| GET | `/consultation?id=X` or `?appointmentId=X` | JWT |
+| PATCH | `/consultation/{id}/end` | DOCTOR |
+| GET | `/consultation/{id}/messages?page=1&size=50` | JWT — paginated message history |
+| WS | `/consultation/{id}/chat` | JWT — real-time chat (participants only) |
+
+WebSocket frame format (send):
+```json
+{"type": "TEXT", "message": "Hello"}
+{"type": "FILE", "fileName": "report.pdf", "contentType": "application/pdf", "fileData": "<base64>"}
+```
+Files are stored in R2 under `consultation-files/{consultationId}/{messageId}.{ext}` with 120-day presigned URLs. `videoRoomId` field on sessions reserved for future Cloudflare Realtime Kit integration.
 
 ### Observability
 - Prometheus metrics: `GET /metrics-micrometer`
