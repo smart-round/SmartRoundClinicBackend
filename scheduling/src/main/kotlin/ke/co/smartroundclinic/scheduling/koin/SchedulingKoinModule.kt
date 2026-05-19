@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.scheduling.koin
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import ke.co.smartroundclinic.scheduling.data.repository.AppointmentRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.DoctorScheduleRepositoryImpl
+import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
 import ke.co.smartroundclinic.scheduling.data.repository.SlotOverrideRepositoryImpl
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
@@ -35,9 +36,10 @@ val schedulingKoinModule = module {
     single<AppointmentRepository> { AppointmentRepositoryImpl(get<MongoClient>(), get(named("schedulingDb"))) }
     single<DoctorScheduleRepository> { DoctorScheduleRepositoryImpl(get(named("schedulingDb"))) }
     single<SlotOverrideRepository> { SlotOverrideRepositoryImpl(get(named("schedulingDb"))) }
+    single { ServiceTierLookup(get(named("adminDb")), get(named("doctorDb"))) }
 
     // Appointment use cases
-    single { BookAppointmentUseCase(get(), get(), get()) }
+    single { BookAppointmentUseCase(get(), get(), get(), get()) }
     single { GetAllAppointmentsUseCase(get()) }
     single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }
     single { GetAppointmentByIdUseCase(get()) }
@@ -53,7 +55,7 @@ val schedulingKoinModule = module {
     single { GetScheduleUseCase(get()) }
     single { UpdateScheduleDayUseCase(get()) }
     single { DeactivateDayUseCase(get()) }
-    single { GetAvailableSlotsUseCase(get(), get(), get()) }
+    single { GetAvailableSlotsUseCase(get(), get(), get(), get()) }
     single { GetCalendarRangeUseCase(get(), get(), get()) }
 
     // Services

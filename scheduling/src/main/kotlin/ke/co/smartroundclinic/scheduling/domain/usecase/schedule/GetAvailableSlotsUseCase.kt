@@ -2,6 +2,8 @@ package ke.co.smartroundclinic.scheduling.domain.usecase.schedule
 
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.scheduling.data.repository.ConsultationInfoResult
+import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.SlotOverrideRepository
@@ -15,15 +17,23 @@ class GetAvailableSlotsUseCase(
     private val scheduleRepository: DoctorScheduleRepository,
     private val appointmentRepository: AppointmentRepository,
     private val overrideRepository: SlotOverrideRepository,
+    private val serviceTierLookup: ServiceTierLookup,
 ) {
     suspend operator fun invoke(doctorId: String, date: String): DefaultResponse<List<String>?> {
+        val tierInfo = serviceTierLookup.getConsultationInfoForDoctor(doctorId)
+        if (tierInfo is ConsultationInfoResult.Error) {
+            return Resource.Error<Nothing>(tierInfo.message)
+                .toDefaultResponse(failedStatusCode = tierInfo.httpStatus) { null }
+        }
+        val consultationDuration = (tierInfo as ConsultationInfoResult.Success).consultationDuration
+
         val localDate = try {
             LocalDate.parse(date)
         } catch (e: Exception) {
             return Resource.Error<Nothing>("Invalid date format, expected YYYY-MM-DD")
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
-        val dayOfWeek = localDate.dayOfWeek.ordinal  // 0=Mon..6=Sun
+        val dayOfWeek = localDate.dayOfWeek.ordinal
 
         val scheduleResource = scheduleRepository.getByDoctorAndDay(doctorId, dayOfWeek)
         val schedule = if (scheduleResource is Resource.Success && scheduleResource.data != null) {
@@ -38,23 +48,22 @@ class GetAvailableSlotsUseCase(
                 .toDefaultResponse { it }
         }
 
-        val bookedStarts = (appointmentRepository.getByDoctorAndDate(doctorId, date) as? Resource.Success)
+        val bookedIntervals = (appointmentRepository.getByDoctorAndDate(doctorId, date) as? Resource.Success)
             ?.data
             ?.filter { it.status == "BOOKED" || it.status == "CONFIRMED" }
-            ?.map { it.slotStart }
-            ?.toSet() ?: emptySet()
+            ?.map { SlotEngine.toMinutes(it.slotStart) to SlotEngine.toMinutes(it.slotEnd) }
+            ?: emptyList()
 
         val overrides = (overrideRepository.getByDoctorAndDate(doctorId, date) as? Resource.Success)
             ?.data
             ?.map { it.toModel() } ?: emptyList()
 
         val tz = TimeZone.of(schedule.timezone)
-        val nowInstant = Clock.System.now()
-        val nowLdt = nowInstant.toLocalDateTime(tz)
+        val nowLdt = Clock.System.now().toLocalDateTime(tz)
         val today = nowLdt.date.toString()
         val nowMinutes = if (date == today) nowLdt.hour * 60 + nowLdt.minute else null
 
-        val slots = SlotEngine.computeAvailableSlots(schedule, bookedStarts, overrides, nowMinutes)
+        val slots = SlotEngine.computeAvailableSlots(schedule, consultationDuration, bookedIntervals, overrides, nowMinutes, gridStep = schedule.slotDuration)
         return Resource.Success<List<String>?>(data = slots, message = "Available slots retrieved")
             .toDefaultResponse { it }
     }
