@@ -37,9 +37,9 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
 
     override suspend fun approve(id: String, adminId: String): Resource<ComplianceEntity?> = try {
         val now = Clock.System.now().toString()
-        val isApproved = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull() ?:
-        return Resource.Error("No compliance record found with id=$id")
-        if (isApproved.isApproved)  return Resource.Error("Compliance record already approved")
+        val entity = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull()
+            ?: return Resource.Error("No compliance record found with id=$id")
+        if (entity.isApproved) return Resource.Error("Compliance record already approved")
 
         val updated = col.findOneAndUpdate(
             Filters.eq(ComplianceEntity::id.name, id),
@@ -62,9 +62,10 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
 
     override suspend fun reject(id: String, adminId: String, reason: String): Resource<ComplianceEntity?> = try {
         val now = Clock.System.now().toString()
-        val isApproved = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull() ?:
-        return Resource.Error("No compliance record found with id=$id")
-        if (!isApproved.isApproved)  return Resource.Error("Compliance record already rejected")
+        val entity = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull()
+            ?: return Resource.Error("No compliance record found with id=$id")
+        if (entity.isApproved) return Resource.Error("Compliance record is already approved")
+        if (entity.approvedBy != null) return Resource.Error("Compliance record is already rejected")
 
         val updated = col.findOneAndUpdate(
             Filters.eq(ComplianceEntity::id.name, id),
