@@ -40,7 +40,7 @@ fun Route.serviceCategoryController(serviceCategoryService: ServiceCategoryServi
             }
 
             get {
-                call.requireRole(ADMIN) {
+                call.requireRole(ADMIN, PATIENT) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id query parameter is missing")
                     val result = serviceCategoryService.getById(id)
