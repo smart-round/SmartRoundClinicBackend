@@ -7,6 +7,7 @@ data class RecommendedDoctorRes(
     val profileId: String,
     val doctorId: String,
     val doctorName: String?,
+    val profilePicture: String?,
     val kmpdcRegNumber: String?,
     val title: String?,
     val bio: String?,

@@ -67,9 +67,9 @@ class RecommendationRepositoryImpl(
         val specialityNames = loadSpecialityNames(allSpecIds)
         val subSpecialityNames = if (allSubSpecIds.isNotEmpty()) loadSubSpecialityNames(allSubSpecIds) else emptyMap()
 
-        // Bulk-load doctor names from auth users
+        // Bulk-load doctor names and profile pictures from auth users
         val allDoctorIds = profiles.map { it.doctorId }.toSet()
-        val doctorNames = loadDoctorNames(allDoctorIds)
+        val doctorInfo = loadDoctorInfo(allDoctorIds)
 
         // Normalization denominators (log-scale to avoid outlier domination)
         val maxBookings = (bookingCounts.values.maxOrNull() ?: 0).toDouble()
@@ -127,7 +127,8 @@ class RecommendationRepositoryImpl(
             RecommendedDoctorRes(
                 profileId = profile.id,
                 doctorId = profile.doctorId,
-                doctorName = doctorNames[profile.doctorId],
+                doctorName = doctorInfo[profile.doctorId]?.first,
+                profilePicture = doctorInfo[profile.doctorId]?.second,
                 kmpdcRegNumber = profile.kmpdcRegNumber,
                 title = profile.title,
                 bio = profile.bio,
@@ -150,12 +151,14 @@ class RecommendationRepositoryImpl(
         Resource.Error(e.message ?: "Failed to fetch recommendations")
     }
 
-    private suspend fun loadDoctorNames(doctorIds: Set<String>): Map<String, String> = try {
+    private suspend fun loadDoctorInfo(doctorIds: Set<String>): Map<String, Pair<String?, String?>> = try {
         if (doctorIds.isEmpty()) return emptyMap()
         usersCol.find(Filters.`in`("id", doctorIds)).toList()
-            .associate { doc -> doc.getString("id") to (doc.getString("fullName") ?: "") }
+            .associate { doc ->
+                doc.getString("id") to (doc.getString("fullName") to doc.getString("profilePicture"))
+            }
     } catch (e: Exception) {
-        log.warn("Could not load doctor names — ${e.message}")
+        log.warn("Could not load doctor info — ${e.message}")
         emptyMap()
     }
 
