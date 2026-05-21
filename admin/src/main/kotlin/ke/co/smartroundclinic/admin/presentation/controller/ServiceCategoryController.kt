@@ -17,6 +17,7 @@ import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
+private const val PATIENT = "PATIENT"
 
 fun Route.serviceCategoryController(serviceCategoryService: ServiceCategoryService) {
     authenticate("auth-jwt") {
@@ -30,7 +31,7 @@ fun Route.serviceCategoryController(serviceCategoryService: ServiceCategoryServi
             }
 
             get("all") {
-                call.requireRole(ADMIN) {
+                call.requireRole(ADMIN,PATIENT) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                     val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                     val result = serviceCategoryService.getAll(page, size)
