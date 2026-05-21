@@ -12,6 +12,14 @@ data class PractitionerLicenceRes(
     val updatedAt: String?,
 )
 
+data class LicencePageResult(
+    val items: List<PractitionerLicenceRes>,
+    val total: Long,
+    val page: Int,
+    val size: Int,
+    val pages: Long,
+)
+
 fun PractitionerLicence.toRes() = PractitionerLicenceRes(
     id = id,
     doctorId = doctorId,

@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.doctor.domain.service
 
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.AddLicenceUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.DeleteLicenceUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.licence.GetAllLicencesUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.GetLicenceByIdUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.GetMyLicencesUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.UpdateLicenceUseCase
@@ -13,6 +14,7 @@ class PractitionerLicenceService(
     private val deleteUseCase: DeleteLicenceUseCase,
     private val getMyLicencesUseCase: GetMyLicencesUseCase,
     private val getByIdUseCase: GetLicenceByIdUseCase,
+    private val getAllLicencesUseCase: GetAllLicencesUseCase,
 ) {
     suspend fun add(contentType:String, licence: ByteArray, model: PractitionerLicence) =
         addUseCase(contentType = contentType, licence = licence, model = model)
@@ -21,4 +23,5 @@ class PractitionerLicenceService(
     suspend fun delete(id: String, doctorId: String) = deleteUseCase(id, doctorId)
     suspend fun getAll(doctorId: String) = getMyLicencesUseCase(doctorId)
     suspend fun getById(id: String, doctorId: String) = getByIdUseCase(id, doctorId)
+    suspend fun getAllForAdmin(page: Int, size: Int) = getAllLicencesUseCase(page, size)
 }

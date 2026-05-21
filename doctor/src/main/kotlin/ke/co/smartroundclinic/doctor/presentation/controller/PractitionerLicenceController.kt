@@ -28,6 +28,20 @@ private const val ADMIN = "ADMIN"
 
 fun Route.practitionerLicenceController(service: PractitionerLicenceService) {
     authenticate("auth-jwt") {
+
+        // GET /admin/licences?page=1&size=20
+        // Admin lists all licences across all doctors.
+        route("/admin/licences") {
+            get {
+                call.requireRole(ADMIN) {
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val result = service.getAllForAdmin(page, size)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+        }
+
         route("/doctor/licence") {
             // POST /doctor/licences
             // Upload a new licence document.

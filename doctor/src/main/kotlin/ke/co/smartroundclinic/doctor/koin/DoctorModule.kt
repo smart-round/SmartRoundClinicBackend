@@ -45,6 +45,7 @@ import ke.co.smartroundclinic.doctor.domain.usecase.compliance.RejectComplianceU
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.SubmitComplianceUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.AddLicenceUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.DeleteLicenceUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.licence.GetAllLicencesUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.GetLicenceByIdUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.GetMyLicencesUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.licence.UpdateLicenceUseCase
@@ -117,9 +118,10 @@ val doctorModule = module {
     /**
      * Licence
      * */
-    single { AddLicenceUseCase(get(),get()) }
+    single { AddLicenceUseCase(get(), get()) }
     single { DeleteLicenceUseCase(get(), get()) }
-    single { GetLicenceByIdUseCase(get(),get()) }
+    single { GetAllLicencesUseCase(get(), get()) }
+    single { GetLicenceByIdUseCase(get(), get()) }
     single { GetMyLicencesUseCase(get(), get()) }
     single { UpdateLicenceUseCase(get()) }
 
@@ -181,7 +183,8 @@ val doctorModule = module {
             get(),
             get(),
             get(),
-            get()
+            get(),
+            get(),
         )
     }
     single {

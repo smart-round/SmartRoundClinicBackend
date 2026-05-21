@@ -87,6 +87,19 @@ class PractitionerLicenceRepositoryImpl(database: MongoDatabase) : PractitionerL
         Resource.Error(e.message ?: "Failed to fetch licences")
     }
 
+    override suspend fun getAllPaged(page: Int, size: Int): Resource<Pair<List<PractitionerLicenceEntity>, Long>> = try {
+        val safePage = maxOf(1, page)
+        val safeSize = minOf(maxOf(1, size), 100)
+        val total = col.countDocuments()
+        val items = col.find()
+            .skip((safePage - 1) * safeSize)
+            .limit(safeSize)
+            .toList()
+        Resource.Success(items to total)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch licences")
+    }
+
     override suspend fun getById(id: String, doctorId: String): Resource<PractitionerLicenceEntity?> = try {
 
         val result = col.find(
