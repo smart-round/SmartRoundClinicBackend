@@ -56,6 +56,7 @@ import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.ReplaceAdminPolic
 import ke.co.smartroundclinic.admin.domain.usecase.policyGroup.UpdatePolicyGroupUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityByIdUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.GetSubSpecialitiesUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.UnassignSpecialityFromServiceCategoryUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.UnassignSpecialityFromServiceTierUseCase
@@ -102,8 +103,9 @@ val adminModule = module {
     single { UnassignSpecialityFromServiceTierUseCase(get()) }
     single { AssignSpecialityToServiceCategoryUseCase(get()) }
     single { UnassignSpecialityFromServiceCategoryUseCase(get()) }
+    single { GetSpecialityServiceTierUseCase(get(), get()) }
 
-    single { SpecialityService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { SpecialityService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Service Categories
     single { CreateServiceCategoryUseCase(get()) }

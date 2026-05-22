@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.admin.domain.service
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceCategoryUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.CreateSpecialityUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.CreateSubSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.DeleteSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.DeleteSubSpecialityUseCase
@@ -32,6 +33,7 @@ class SpecialityService(
     private val unassignSpecialityFromServiceTierUseCase: UnassignSpecialityFromServiceTierUseCase,
     private val assignSpecialityToServiceCategoryUseCase: AssignSpecialityToServiceCategoryUseCase,
     private val unassignSpecialityFromServiceCategoryUseCase: UnassignSpecialityFromServiceCategoryUseCase,
+    private val getSpecialityServiceTierUseCase: GetSpecialityServiceTierUseCase,
 ) {
     suspend fun createSpeciality(req: CreateSpecialityReq, imageBytes: ByteArray?, contentType: String?) =
         createSpecialityUseCase(req, imageBytes, contentType)
@@ -74,4 +76,7 @@ class SpecialityService(
 
     suspend fun unassignFromServiceCategory(specialityId: String) =
         unassignSpecialityFromServiceCategoryUseCase(specialityId)
+
+    suspend fun getServiceTier(specialityId: String) =
+        getSpecialityServiceTierUseCase(specialityId)
 }
