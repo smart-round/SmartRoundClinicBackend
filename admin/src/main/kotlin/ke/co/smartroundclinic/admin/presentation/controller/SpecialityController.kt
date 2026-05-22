@@ -68,10 +68,9 @@ fun Route.specialityController(specialityService: SpecialityService) {
             }
 
             get("all") {
-                call.requireRole(ADMIN) {
                     val result = specialityService.getSpecialities()
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-                }
+
             }
 
 
