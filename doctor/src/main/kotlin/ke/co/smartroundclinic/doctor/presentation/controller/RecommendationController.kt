@@ -20,15 +20,5 @@ fun Route.recommendationController(service: RecommendationService) {
             }
         }
 
-        // GET /doctor/specializations/{specializationId}/doctors?page=1&size=20
-        route("/doctor/specializations/{specializationId}/doctors") {
-            get {
-                val specializationId = call.parameters["specializationId"]
-                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                val result = service.getRecommendations(specializationId, page, size)
-                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-            }
-        }
     }
 }

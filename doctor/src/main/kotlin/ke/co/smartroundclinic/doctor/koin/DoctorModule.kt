@@ -205,6 +205,7 @@ val doctorModule = module {
             get(),
             get(),
             get(),
+            get(),
         )
     }
 

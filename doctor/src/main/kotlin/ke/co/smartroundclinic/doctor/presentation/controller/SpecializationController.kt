@@ -64,6 +64,16 @@ fun Route.specializationController(service: SpecializationService) {
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
+
+            // GET /doctor/specializations/{specializationId}/doctors?page=1&size=20
+            get("/{specializationId}/doctors") {
+                val specializationId = call.parameters["specializationId"]
+                    ?: throw MissingParametersException("specializationId is required")
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                val result = service.getDoctorsBySpecialization(specializationId, page, size)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
         }
     }
 }
