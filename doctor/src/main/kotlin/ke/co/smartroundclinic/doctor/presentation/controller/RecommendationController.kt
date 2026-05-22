@@ -11,16 +11,19 @@ import ke.co.smartroundclinic.doctor.domain.service.RecommendationService
 fun Route.recommendationController(service: RecommendationService) {
     authenticate("auth-jwt") {
         route("/doctor/recommendations") {
-
-            // GET /doctor/recommendations?page=1&size=20
-            // General ranked list: doctors ordered by (speciality demand × doctor score).
-            // Doctors in high-booking specialities surface first; within a speciality the
-            // best-rated / most-booked doctors rank higher.
-
-            // GET /doctor/recommendations?specializationId=X&page=1&size=20
-            // Speciality-specific ranking: pure doctor score (rating 50%, bookings 35%, reviews 15%).
             get {
                 val specializationId = call.request.queryParameters["specializationId"]
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                val result = service.getRecommendations(specializationId, page, size)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        // GET /doctor/specializations/{specializationId}/doctors?page=1&size=20
+        route("/doctor/specializations/{specializationId}/doctors") {
+            get {
+                val specializationId = call.parameters["specializationId"]
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                 val result = service.getRecommendations(specializationId, page, size)
