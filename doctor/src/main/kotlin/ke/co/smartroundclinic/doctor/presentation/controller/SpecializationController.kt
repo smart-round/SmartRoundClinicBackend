@@ -66,7 +66,7 @@ fun Route.specializationController(service: SpecializationService) {
             }
 
             // GET /doctor/specializations/{specializationId}/doctors?page=1&size=20
-            get("/{specializationId}/doctors") {
+            get("doctors") {
                 val specializationId = call.parameters["specializationId"]
                     ?: throw MissingParametersException("specializationId is required")
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
