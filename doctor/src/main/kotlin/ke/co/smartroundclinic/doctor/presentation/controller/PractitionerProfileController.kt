@@ -17,6 +17,7 @@ import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val DOCTOR = "DOCTOR"
+private const val PATIENT = "PATIENT"
 
 fun Route.practitionerProfileController(service: PractitionerProfileService) {
     authenticate("auth-jwt") {
@@ -49,8 +50,9 @@ fun Route.practitionerProfileController(service: PractitionerProfileService) {
             // GET /doctor/profile/me
             // Fetch the authenticated doctor's own profile.
             get("me") {
-                call.requireRole(DOCTOR) {
-                    val doctorId = call.getUserId() ?: return@requireRole
+                call.requireRole(DOCTOR,PATIENT) {
+                    val id = call.parameters["id"]
+                    val doctorId =  (id ?: call.getUserId()) ?: return@requireRole
                     val result = service.getMyProfile(doctorId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
