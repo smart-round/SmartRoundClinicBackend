@@ -77,13 +77,14 @@ fun Route.articleController(service: ArticleService) {
             // ── Doctor: get own articles ─────────────────────────────────────
             route("my") {
                 get {
-                    call.requireRole(DOCTOR) {
-                        val doctorId = call.getUserId() ?: return@requireRole
+
+                        val id = call.request.queryParameters["id"]
+                        val doctorId = (id ?: call.getUserId()) ?: return@get
                         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                         val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                         val result = service.getByDoctor(doctorId, page, size)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-                    }
+
                 }
 
                 // ── Doctor: publish own article ──────────────────────────────────

@@ -17,6 +17,7 @@ import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
+private const val PATIENT = "PATIENT"
 
 fun Route.serviceTierController(serviceTierService: ServiceTierService) {
     authenticate("auth-jwt") {
@@ -39,7 +40,7 @@ fun Route.serviceTierController(serviceTierService: ServiceTierService) {
             }
 
             get {
-                call.requireRole(ADMIN) {
+                call.requireRole(ADMIN,PATIENT) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id path parameter is missing")
                     val result = serviceTierService.getById(id)
