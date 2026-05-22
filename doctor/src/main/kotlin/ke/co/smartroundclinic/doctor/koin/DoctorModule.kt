@@ -228,7 +228,7 @@ val doctorModule = module {
     /**
      * Recommendations
      * */
-    single { GetRecommendedDoctorsUseCase(get()) }
+    single { GetRecommendedDoctorsUseCase(get(), get()) }
     single { RecommendationService(get()) }
 
     /**
