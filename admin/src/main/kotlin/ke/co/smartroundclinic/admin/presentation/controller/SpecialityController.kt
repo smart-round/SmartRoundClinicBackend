@@ -125,14 +125,15 @@ fun Route.specialityController(specialityService: SpecialityService) {
 
 
             // GET /admin/specialities/{id}/service-tier
-            get("{id}/service-tier") {
-                val id = call.parameters["id"]
-                    ?: throw MissingParametersException("id path parameter is missing")
-                val result = specialityService.getServiceTier(id)
-                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-            }
+
 
             route("service-tier") {
+                get("price") {
+                    val id = call.parameters["id"]
+                        ?: throw MissingParametersException("id path parameter is missing")
+                    val result = specialityService.getServiceTier(id)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
                 post {
                     call.requireRole(ADMIN) {
                         val specialityId = call.parameters["specialityId"]
