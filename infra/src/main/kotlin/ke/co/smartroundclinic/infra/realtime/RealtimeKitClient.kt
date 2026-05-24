@@ -2,19 +2,24 @@ package ke.co.smartroundclinic.infra.realtime
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.AppConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 
 /**
  * Thin wrapper over Cloudflare's RealtimeKit REST API.
@@ -25,25 +30,41 @@ import kotlinx.serialization.Serializable
  */
 class RealtimeKitClient(private val http: HttpClient) {
 
+    private val log = LoggerFactory.getLogger(RealtimeKitClient::class.java)
+
     private val baseMeetingsPath: String
         get() = "${AppConfig.realtimeKit.baseUrl.trimEnd('/')}/accounts/${AppConfig.realtimeKit.accountId}/realtime/kit/${AppConfig.realtimeKit.appId}/meetings"
 
     /** Creates a new meeting. Returns the meeting id (`data.id`). */
     suspend fun createMeeting(title: String, preferredRegion: String? = null): Resource<String> = try {
+        log.info("Cloudflare RTK createMeeting -> $baseMeetingsPath")
+        val payload = outgoingJson.encodeToString(
+            CreateMeetingReq.serializer(),
+            CreateMeetingReq(title = title, preferredRegion = preferredRegion),
+        )
         val res: HttpResponse = http.post(baseMeetingsPath) {
             bearerAuth(AppConfig.realtimeKit.apiToken)
             contentType(ContentType.Application.Json)
             headers { append(HttpHeaders.Accept, "application/json") }
-            setBody(CreateMeetingReq(title = title, preferredRegion = preferredRegion))
+            setBody(TextContent(payload, ContentType.Application.Json))
+            timeout {
+                requestTimeoutMillis = 15_000
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 15_000
+            }
         }
+        val raw = res.bodyAsText()
         if (!res.status.isSuccess()) {
-            Resource.Error("Cloudflare RealtimeKit createMeeting failed: ${res.status.value}")
+            log.error("Cloudflare RTK createMeeting failed status=${res.status.value} body=$raw")
+            Resource.Error("Cloudflare RealtimeKit createMeeting ${res.status.value}: $raw")
         } else {
-            val body: CloudflareEnvelope<MeetingData> = res.body()
+            val body = jsonLenient.decodeFromString(CloudflareEnvelope.serializer(MeetingData.serializer()), raw)
             val id = body.data?.id
-            if (body.success && !id.isNullOrBlank()) Resource.Success(id) else Resource.Error("Cloudflare RealtimeKit returned no meeting id")
+            if (body.success && !id.isNullOrBlank()) Resource.Success(id)
+            else Resource.Error("Cloudflare RealtimeKit returned no meeting id: $raw")
         }
     } catch (e: Exception) {
+        log.error("Cloudflare RTK createMeeting threw — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to create RealtimeKit meeting")
     }
 
@@ -55,30 +76,56 @@ class RealtimeKitClient(private val http: HttpClient) {
         name: String?,
         picture: String?,
     ): Resource<ParticipantData> = try {
+        log.info("Cloudflare RTK addParticipant meeting=$meetingId user=$customParticipantId preset=$presetName")
+        val payload = outgoingJson.encodeToString(
+            AddParticipantReq.serializer(),
+            AddParticipantReq(
+                customParticipantId = customParticipantId,
+                presetName = presetName,
+                name = name?.takeIf { it.isNotBlank() },
+                picture = picture?.takeIf { it.isNotBlank() },
+            ),
+        )
         val res: HttpResponse = http.post("$baseMeetingsPath/$meetingId/participants") {
             bearerAuth(AppConfig.realtimeKit.apiToken)
             contentType(ContentType.Application.Json)
             headers { append(HttpHeaders.Accept, "application/json") }
-            setBody(AddParticipantReq(
-                customParticipantId = customParticipantId,
-                presetName = presetName,
-                name = name,
-                picture = picture,
-            ))
+            setBody(TextContent(payload, ContentType.Application.Json))
+            timeout {
+                requestTimeoutMillis = 15_000
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 15_000
+            }
         }
+        val raw = res.bodyAsText()
         if (!res.status.isSuccess()) {
-            Resource.Error("Cloudflare RealtimeKit addParticipant failed: ${res.status.value}")
+            log.error("Cloudflare RTK addParticipant failed status=${res.status.value} body=$raw")
+            Resource.Error("Cloudflare RealtimeKit addParticipant ${res.status.value}: $raw")
         } else {
-            val body: CloudflareEnvelope<ParticipantData> = res.body()
+            val body = jsonLenient.decodeFromString(CloudflareEnvelope.serializer(ParticipantData.serializer()), raw)
             val data = body.data
             if (body.success && data != null && data.token.isNotBlank()) Resource.Success(data)
-            else Resource.Error("Cloudflare RealtimeKit returned no participant token")
+            else Resource.Error("Cloudflare RealtimeKit returned no participant token: $raw")
         }
     } catch (e: Exception) {
+        log.error("Cloudflare RTK addParticipant threw — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to add RealtimeKit participant")
     }
 
     private fun HttpStatusCode.isSuccess() = value in 200..299
+
+    private val jsonLenient = kotlinx.serialization.json.Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        explicitNulls = false
+    }
+
+    /** Outgoing requests must NOT serialise `null` fields — Cloudflare validates
+     *  `picture` as a URI and rejects literal nulls with HTTP 400. */
+    private val outgoingJson = kotlinx.serialization.json.Json {
+        explicitNulls = false
+        encodeDefaults = false
+    }
 }
 
 @Serializable
@@ -117,7 +164,11 @@ data class ParticipantData(
     val id: String,
     val token: String,
     @SerialName("custom_participant_id") val customParticipantId: String,
-    @SerialName("preset_name") val presetName: String,
+    // Cloudflare actually returns `preset_id`, not `preset_name`, in the
+    // addParticipant response — both are kept optional so deserialization
+    // never depends on which one shows up.
+    @SerialName("preset_name") val presetName: String? = null,
+    @SerialName("preset_id") val presetId: String? = null,
     val name: String? = null,
     val picture: String? = null,
 )

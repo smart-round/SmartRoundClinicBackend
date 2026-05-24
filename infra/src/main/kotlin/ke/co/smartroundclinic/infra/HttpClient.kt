@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -19,6 +20,11 @@ fun provideHttpClient() = HttpClient(CIO) {
             isLenient = true
             ignoreUnknownKeys = true
         })
+    }
+    install(HttpTimeout) {
+        requestTimeoutMillis = 30_000
+        connectTimeoutMillis = 10_000
+        socketTimeoutMillis = 30_000
     }
 }
 
