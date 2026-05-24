@@ -70,7 +70,7 @@ class ConsultationChatService(
                 val uploadResult = storageRepository.upload(AppConfig.r2.bucket, key, bytes, contentType)
                 if (uploadResult is Resource.Error) return
 
-                val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 120.days.inWholeSeconds)) {
+                val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
                     is Resource.Success -> urlResult.data ?: key
                     is Resource.Error -> key
                 }
