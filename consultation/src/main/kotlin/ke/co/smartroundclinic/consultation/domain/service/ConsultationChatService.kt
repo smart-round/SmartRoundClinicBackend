@@ -12,7 +12,6 @@ import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
-import java.util.Base64
 import kotlin.time.Duration.Companion.days
 
 class ConsultationChatService(
@@ -36,6 +35,12 @@ class ConsultationChatService(
             is Resource.Error -> emptyList()
         }
 
+    /**
+     * WebSocket-only handler for incoming text messages from a connected client.
+     * File uploads no longer travel over the WebSocket — clients call
+     * `POST /consultation/{id}/files` (multipart) instead. The MongoDB change
+     * stream still broadcasts the resulting FILE message to all connected sockets.
+     */
     suspend fun handleIncomingMessage(
         consultationId: String,
         senderId: String,
@@ -44,56 +49,70 @@ class ConsultationChatService(
         rawJson: String,
     ) {
         val msg = json.decodeFromString<ConsultationWsMessage>(rawJson)
-        when (msg.type) {
-            MessageType.TEXT -> {
-                val text = msg.message?.takeIf { it.isNotBlank() } ?: return
-                repository.save(
-                    ConsultationMessageEntity(
-                        consultationId = consultationId,
-                        senderId = senderId,
-                        senderRole = senderRole,
-                        senderName = senderName,
-                        messageType = MessageType.TEXT,
-                        message = text,
-                    )
+        if (msg.type != MessageType.TEXT) return
+        val text = msg.message?.takeIf { it.isNotBlank() } ?: return
+        repository.save(
+            ConsultationMessageEntity(
+                consultationId = consultationId,
+                senderId = senderId,
+                senderRole = senderRole,
+                senderName = senderName,
+                messageType = MessageType.TEXT,
+                message = text,
+            )
+        )
+    }
+
+    /**
+     * Uploads a file to R2 under `consultation-files/{consultationId}/{messageId}.{ext}`
+     * and persists a FILE-type message. The change stream pushes the new message
+     * to any connected WebSocket clients.
+     */
+    suspend fun uploadFile(
+        consultationId: String,
+        senderId: String,
+        senderRole: String,
+        senderName: String,
+        fileName: String,
+        contentType: String,
+        bytes: ByteArray,
+    ): Resource<ConsultationMessageEntity> {
+        if (bytes.isEmpty()) return Resource.Error("Empty file")
+        val safeName = fileName.ifBlank { "file" }
+        val safeContentType = contentType.ifBlank { "application/octet-stream" }
+        val messageId = ObjectId().toString()
+        val ext = safeName.substringAfterLast(".", "bin")
+        val key = "consultation-files/$consultationId/$messageId.$ext"
+
+        val uploadResult = storageRepository.upload(AppConfig.r2.bucket, key, bytes, safeContentType)
+        if (uploadResult is Resource.Error) {
+            return Resource.Error(uploadResult.message ?: "Failed to upload file")
+        }
+
+        val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
+            is Resource.Success -> urlResult.data ?: key
+            is Resource.Error -> key
+        }
+
+        val entity = ConsultationMessageEntity(
+            id = messageId,
+            consultationId = consultationId,
+            senderId = senderId,
+            senderRole = senderRole,
+            senderName = senderName,
+            messageType = MessageType.FILE,
+            files = listOf(
+                ConsultationFile(
+                    fileName = safeName,
+                    url = fileUrl,
+                    contentType = safeContentType,
+                    sizeBytes = bytes.size.toLong(),
                 )
-            }
-            MessageType.FILE -> {
-                val rawData = msg.data ?: return
-                val fileName = msg.fileName?.takeIf { it.isNotBlank() } ?: "file"
-                val contentType = msg.contentType?.takeIf { it.isNotBlank() } ?: "application/octet-stream"
-                val bytes = Base64.getDecoder().decode(rawData)
-                val messageId = ObjectId().toString()
-                val ext = fileName.substringAfterLast(".", "bin")
-                val key = "consultation-files/$consultationId/$messageId.$ext"
-
-                val uploadResult = storageRepository.upload(AppConfig.r2.bucket, key, bytes, contentType)
-                if (uploadResult is Resource.Error) return
-
-                val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
-                    is Resource.Success -> urlResult.data ?: key
-                    is Resource.Error -> key
-                }
-
-                repository.save(
-                    ConsultationMessageEntity(
-                        id = messageId,
-                        consultationId = consultationId,
-                        senderId = senderId,
-                        senderRole = senderRole,
-                        senderName = senderName,
-                        messageType = MessageType.FILE,
-                        files = listOf(
-                            ConsultationFile(
-                                fileName = fileName,
-                                url = fileUrl,
-                                contentType = contentType,
-                                sizeBytes = bytes.size.toLong(),
-                            )
-                        ),
-                    )
-                )
-            }
+            ),
+        )
+        return when (val saveResult = repository.save(entity)) {
+            is Resource.Success -> Resource.Success(saveResult.data ?: entity)
+            is Resource.Error -> Resource.Error(saveResult.message ?: "Failed to save file message")
         }
     }
 }

@@ -1,4 +1,4 @@
-package ke.co.smartroundclinic.consultation.data.entity
+gitpackage ke.co.smartroundclinic.consultation.data.entity
 
 import ke.co.smartroundclinic.consultation.domain.model.ConsultationMessage
 import kotlinx.serialization.Serializable

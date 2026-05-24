@@ -1,12 +1,17 @@
 package ke.co.smartroundclinic.consultation.presentation.controller
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.http.content.streamProvider
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
@@ -19,6 +24,7 @@ import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionSer
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationMessageRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
+import ke.co.smartroundclinic.infra.plugins.getUserId
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -44,10 +50,75 @@ fun Route.consultationChatController(
             }
         }
 
+        // POST /consultation/{id}/files
+        // Multipart file upload. The saved FILE message is broadcast to any open
+        // WebSocket clients via the MongoDB change stream — the response is the
+        // single source of truth for the sender's optimistic message.
+        post("/consultation/{id}/files") {
+            val consultationId = call.parameters["id"]
+                ?: throw MissingParametersException("id path parameter is required")
+            val userId = call.getUserId() ?: return@post
+            val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
+
+            val session = when (val r = sessionService.repository.getById(consultationId)) {
+                is Resource.Success -> r.data
+                is Resource.Error -> null
+            }
+            if (session == null) {
+                return@post call.respond(HttpStatusCode.NotFound, mapOf("message" to "Consultation not found"))
+            }
+            if (userId != session.doctorId && userId != session.patientId) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "Not a participant"))
+            }
+
+            var fileBytes: ByteArray? = null
+            var fileName = "file"
+            var contentType = "application/octet-stream"
+            call.receiveMultipart().forEachPart { part ->
+                when (part) {
+                    is PartData.FileItem -> {
+                        fileName = part.originalFileName?.ifBlank { null } ?: fileName
+                        contentType = part.contentType?.toString()?.ifBlank { null } ?: contentType
+                        fileBytes = part.streamProvider().readBytes()
+                    }
+                    is PartData.FormItem -> {
+                        // Accept optional overrides if the client sends them
+                        when (part.name) {
+                            "fileName" -> fileName = part.value.ifBlank { fileName }
+                            "contentType" -> contentType = part.value.ifBlank { contentType }
+                        }
+                    }
+                    else -> Unit
+                }
+                part.dispose()
+            }
+
+            val bytes = fileBytes
+            if (bytes == null || bytes.isEmpty()) {
+                return@post call.respond(HttpStatusCode.BadRequest, mapOf("message" to "file part is required"))
+            }
+
+            val senderName = chatService.getUserName(userId) ?: "Unknown"
+            val result = chatService.uploadFile(
+                consultationId = consultationId,
+                senderId = userId,
+                senderRole = role,
+                senderName = senderName,
+                fileName = fileName,
+                contentType = contentType,
+                bytes = bytes,
+            )
+            val response = result.toDefaultResponse(
+                successStatusCode = HttpStatusCode.Created.value,
+                failedStatusCode = HttpStatusCode.InternalServerError.value,
+            ) { it?.toModel()?.toRes() }
+            call.respond(HttpStatusCode.fromValue(response.httpStatusCode), response)
+        }
+
         // WS /consultation/{id}/chat
-        // Real-time bidirectional chat. Only the doctor and patient of the consultation may connect.
-        // Send TEXT: {"type":"TEXT","message":"Hello"}
-        // Send FILE: {"type":"FILE","fileName":"report.pdf","contentType":"application/pdf","data":"<base64>"}
+        // Real-time text chat. Send TEXT frames only:
+        // {"type":"TEXT","message":"Hello"}
+        // Files go through POST /consultation/{id}/files (see above).
         webSocket("/consultation/{id}/chat") {
             val consultationId = call.parameters["id"] ?: run {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing consultation id"))
@@ -96,7 +167,7 @@ fun Route.consultationChatController(
                 }
             }
 
-            // Handle incoming frames from this client
+            // Handle incoming TEXT frames from this client
             for (frame in incoming) {
                 if (frame is Frame.Text) {
                     try {
