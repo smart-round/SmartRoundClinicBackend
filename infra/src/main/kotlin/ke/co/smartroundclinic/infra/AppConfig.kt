@@ -52,10 +52,20 @@ data class StaticAssetsConfig(
     val kenyanBanksJsonUrl: String = require("KENYAN_BANKS_JSON_URL"),
 )
 
+data class RealtimeKitConfig(
+    val accountId: String = require("CLOUDFLARE_ACCOUNT_ID"),
+    val appId: String = require("CLOUDFLARE_RTK_APP_ID"),
+    val apiToken: String = require("CLOUDFLARE_RTK_API_TOKEN"),
+    val baseUrl: String = EnvLoader.get("CLOUDFLARE_API_BASE_URL") ?: "https://api.cloudflare.com/client/v4",
+    val doctorPreset: String = EnvLoader.get("CLOUDFLARE_RTK_PRESET_DOCTOR") ?: "group_call_host",
+    val patientPreset: String = EnvLoader.get("CLOUDFLARE_RTK_PRESET_PATIENT") ?: "group_call_participant",
+)
+
 object AppConfig {
     val mongo = MongoDBConfig()
     val resend = ResendConfig()
     val jwt = JwtConfig()
     val r2 = R2Config()
     val staticAssets = StaticAssetsConfig()
+    val realtimeKit = RealtimeKitConfig()
 }

@@ -6,10 +6,12 @@ import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessage
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
+import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.EndConsultationUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.GetConsultationUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.StartConsultationUseCase
+import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -37,6 +39,11 @@ val consultationKoinModule = module {
      * Chat use cases
      */
     single { GetConsultationHistoryUseCase(get()) }
+
+    /**
+     * Call (Cloudflare RealtimeKit) use cases
+     */
+    single { JoinConsultationCallUseCase(get(), get(), get<RealtimeKitClient>()) }
 
     /**
      * Services

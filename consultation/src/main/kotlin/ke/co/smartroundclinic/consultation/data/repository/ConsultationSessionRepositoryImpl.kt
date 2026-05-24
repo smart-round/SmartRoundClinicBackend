@@ -72,6 +72,21 @@ class ConsultationSessionRepositoryImpl(
         Resource.Error(e.message ?: "Failed to fetch consultation")
     }
 
+    override suspend fun setVideoRoomId(id: String, videoRoomId: String): Resource<ConsultationSessionEntity?> = try {
+        val updated = col.findOneAndUpdate(
+            Filters.eq(ConsultationSessionEntity::id.name, id),
+            Updates.combine(
+                Updates.set(ConsultationSessionEntity::videoRoomId.name, videoRoomId),
+                Updates.set(ConsultationSessionEntity::updatedAt.name, Clock.System.now().toString()),
+            ),
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
+        )
+        Resource.Success(updated)
+    } catch (e: Exception) {
+        log.error("Failed to set videoRoomId on consultation id=$id — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to update consultation")
+    }
+
     override suspend fun end(id: String, doctorId: String): Resource<ConsultationSessionEntity?> = try {
         val updated = col.findOneAndUpdate(
             Filters.and(

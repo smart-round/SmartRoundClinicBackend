@@ -21,6 +21,7 @@ import io.ktor.websocket.readText
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
+import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationMessageRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
@@ -34,6 +35,7 @@ private val json = Json { ignoreUnknownKeys = true }
 fun Route.consultationChatController(
     chatService: ConsultationChatService,
     sessionService: ConsultationSessionService,
+    joinCallUseCase: JoinConsultationCallUseCase,
 ) {
     authenticate("auth-jwt") {
 
@@ -113,6 +115,17 @@ fun Route.consultationChatController(
                 failedStatusCode = HttpStatusCode.InternalServerError.value,
             ) { it?.toModel()?.toRes() }
             call.respond(HttpStatusCode.fromValue(response.httpStatusCode), response)
+        }
+
+        // POST /consultation/{id}/call/join
+        // Returns this user's Cloudflare RealtimeKit join token. Creates the
+        // meeting on first call and persists the id on the consultation.
+        post("/consultation/{id}/call/join") {
+            val consultationId = call.parameters["id"]
+                ?: throw MissingParametersException("id path parameter is required")
+            val userId = call.getUserId() ?: return@post
+            val result = joinCallUseCase(consultationId, userId)
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 
         // WS /consultation/{id}/chat
