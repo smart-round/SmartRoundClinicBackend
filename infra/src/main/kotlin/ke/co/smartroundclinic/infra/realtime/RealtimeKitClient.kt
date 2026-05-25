@@ -5,9 +5,9 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -130,12 +130,18 @@ class RealtimeKitClient : KoinComponent {
         null
     }
 
-    /** Ends an active meeting on Cloudflare. Participants are kicked out immediately. */
+    /** Sets a meeting status to INACTIVE on Cloudflare, ending the session for all participants. */
     suspend fun endMeeting(meetingId: String): Resource<Unit> = try {
-        log.info("Cloudflare RTK endMeeting -> $baseMeetingsPath/$meetingId")
-        val res: HttpResponse = http.delete("$baseMeetingsPath/$meetingId") {
+        log.info("Cloudflare RTK endMeeting -> PATCH $baseMeetingsPath/$meetingId")
+        val payload = outgoingJson.encodeToString(
+            UpdateMeetingStatusReq.serializer(),
+            UpdateMeetingStatusReq(status = "INACTIVE"),
+        )
+        val res: HttpResponse = http.patch("$baseMeetingsPath/$meetingId") {
             bearerAuth(AppConfig.realtimeKit.apiToken)
+            contentType(ContentType.Application.Json)
             headers { append(HttpHeaders.Accept, "application/json") }
+            setBody(TextContent(payload, ContentType.Application.Json))
             timeout {
                 requestTimeoutMillis = 15_000
                 connectTimeoutMillis = 5_000
@@ -234,6 +240,9 @@ internal data class CreateMeetingReq(
     val title: String,
     @SerialName("preferred_region") val preferredRegion: String? = null,
 )
+
+@Serializable
+internal data class UpdateMeetingStatusReq(val status: String)
 
 @Serializable
 internal data class MeetingData(val id: String)
