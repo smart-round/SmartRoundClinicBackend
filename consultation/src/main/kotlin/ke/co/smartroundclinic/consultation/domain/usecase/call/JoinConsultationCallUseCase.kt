@@ -40,13 +40,14 @@ class JoinConsultationCallUseCase(
     private suspend fun resolveMeetingId(sessionId: String, currentStoredId: String?): Resource<String> {
         val title = meetingTitle(sessionId)
 
-        // Step 1 — fast path: stored id is still LIVE
-        if (currentStoredId != null && client.getMeetingStatus(currentStoredId) == "LIVE") {
-            return Resource.Success(currentStoredId)
+        // Step 1 — fast path: stored id is still ACTIVE (Cloudflare returns "ACTIVE", not "LIVE")
+        if (currentStoredId != null) {
+            val status = client.getMeetingStatus(currentStoredId)
+            if (status != null && status != "INACTIVE") return Resource.Success(currentStoredId)
         }
 
-        // Step 2 — ask Cloudflare: is there already a LIVE meeting for this consultation?
-        val liveId = client.findLiveMeetingByTitle(title)
+        // Step 2 — ask Cloudflare: is there already an ACTIVE meeting for this consultation?
+        val liveId = client.findActiveMeetingByTitle(title)
         if (liveId != null) {
             sessions.setVideoRoomId(sessionId, liveId)   // keep DB in sync
             return Resource.Success(liveId)

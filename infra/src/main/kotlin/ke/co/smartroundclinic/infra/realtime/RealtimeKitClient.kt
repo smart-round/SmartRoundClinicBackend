@@ -80,7 +80,7 @@ class RealtimeKitClient : KoinComponent {
      * Used to detect whether a meeting for this consultation already exists on
      * Cloudflare before creating a new one.
      */
-    suspend fun findLiveMeetingByTitle(title: String): String? = try {
+    suspend fun findActiveMeetingByTitle(title: String): String? = try {
         log.info("Cloudflare RTK listMeetings searching for title=\"$title\"")
         val res: HttpResponse = http.get(baseMeetingsPath) {
             bearerAuth(AppConfig.realtimeKit.apiToken)
@@ -98,9 +98,9 @@ class RealtimeKitClient : KoinComponent {
             val raw = res.bodyAsText()
             val body = jsonLenient.decodeFromString(CloudflareMeetingListEnvelope.serializer(), raw)
             body.data
-                .firstOrNull { it.title == title && it.status == "LIVE" }
+                .firstOrNull { it.title == title && it.status != null && it.status != "INACTIVE" }
                 ?.id
-                .also { if (it != null) log.info("Cloudflare RTK found LIVE meeting id=$it for title=\"$title\"") }
+                .also { if (it != null) log.info("Cloudflare RTK found ACTIVE meeting id=$it for title=\"$title\"") }
         }
     } catch (e: Exception) {
         log.warn("Cloudflare RTK listMeetings threw — ${e.message}")
