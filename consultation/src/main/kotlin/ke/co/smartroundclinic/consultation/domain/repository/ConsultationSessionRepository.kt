@@ -7,6 +7,7 @@ interface ConsultationSessionRepository {
     suspend fun startOrGet(appointmentId: String, userId: String): Resource<ConsultationSessionEntity>
     suspend fun getById(id: String): Resource<ConsultationSessionEntity?>
     suspend fun getByAppointmentId(appointmentId: String): Resource<ConsultationSessionEntity?>
+    suspend fun getByVideoRoomId(videoRoomId: String): Resource<ConsultationSessionEntity?>
     suspend fun setVideoRoomId(id: String, videoRoomId: String): Resource<ConsultationSessionEntity?>
     /** Stores [videoRoomId] only if the session has no meeting ID yet.
      *  Returns the meeting ID that is actually stored after the call —

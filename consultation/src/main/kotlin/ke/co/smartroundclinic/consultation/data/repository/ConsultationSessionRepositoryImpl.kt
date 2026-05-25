@@ -72,6 +72,12 @@ class ConsultationSessionRepositoryImpl(
         Resource.Error(e.message ?: "Failed to fetch consultation")
     }
 
+    override suspend fun getByVideoRoomId(videoRoomId: String): Resource<ConsultationSessionEntity?> = try {
+        Resource.Success(col.find(Filters.eq(ConsultationSessionEntity::videoRoomId.name, videoRoomId)).firstOrNull())
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch consultation by videoRoomId")
+    }
+
     override suspend fun setVideoRoomId(id: String, videoRoomId: String): Resource<ConsultationSessionEntity?> = try {
         val updated = col.findOneAndUpdate(
             Filters.eq(ConsultationSessionEntity::id.name, id),
