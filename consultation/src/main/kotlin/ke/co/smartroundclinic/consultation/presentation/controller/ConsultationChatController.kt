@@ -21,6 +21,7 @@ import io.ktor.websocket.readText
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
+import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationMessageRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
@@ -36,6 +37,7 @@ fun Route.consultationChatController(
     chatService: ConsultationChatService,
     sessionService: ConsultationSessionService,
     joinCallUseCase: JoinConsultationCallUseCase,
+    endCallUseCase: EndCallUseCase,
 ) {
     authenticate("auth-jwt") {
 
@@ -125,6 +127,17 @@ fun Route.consultationChatController(
                 ?: throw MissingParametersException("id path parameter is required")
             val userId = call.getUserId() ?: return@post
             val result = joinCallUseCase(consultationId, userId)
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+        }
+
+        // POST /consultation/{id}/call/end  (doctor only)
+        // Ends the Cloudflare meeting and clears videoRoomId so the next call/join
+        // provisions a fresh meeting room.
+        post("/consultation/{id}/call/end") {
+            val consultationId = call.parameters["id"]
+                ?: throw MissingParametersException("id path parameter is required")
+            val doctorId = call.getUserId() ?: return@post
+            val result = endCallUseCase(consultationId, doctorId)
             call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 

@@ -87,6 +87,21 @@ class ConsultationSessionRepositoryImpl(
         Resource.Error(e.message ?: "Failed to update consultation")
     }
 
+    override suspend fun clearVideoRoomId(id: String): Resource<Unit> = try {
+        col.updateOne(
+            Filters.eq(ConsultationSessionEntity::id.name, id),
+            Updates.combine(
+                Updates.unset(ConsultationSessionEntity::videoRoomId.name),
+                Updates.set(ConsultationSessionEntity::updatedAt.name, Clock.System.now().toString()),
+            ),
+        )
+        log.info("Cleared videoRoomId on consultation id=$id")
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        log.error("Failed to clear videoRoomId on consultation id=$id — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to clear videoRoomId")
+    }
+
     override suspend fun end(id: String, doctorId: String): Resource<ConsultationSessionEntity?> = try {
         val updated = col.findOneAndUpdate(
             Filters.and(

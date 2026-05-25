@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -66,6 +67,31 @@ class RealtimeKitClient(private val http: HttpClient) {
     } catch (e: Exception) {
         log.error("Cloudflare RTK createMeeting threw — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to create RealtimeKit meeting")
+    }
+
+    /** Ends an active meeting on Cloudflare. Participants are kicked out immediately. */
+    suspend fun endMeeting(meetingId: String): Resource<Unit> = try {
+        log.info("Cloudflare RTK endMeeting -> $baseMeetingsPath/$meetingId")
+        val res: HttpResponse = http.delete("$baseMeetingsPath/$meetingId") {
+            bearerAuth(AppConfig.realtimeKit.apiToken)
+            headers { append(HttpHeaders.Accept, "application/json") }
+            timeout {
+                requestTimeoutMillis = 15_000
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 15_000
+            }
+        }
+        val raw = res.bodyAsText()
+        if (!res.status.isSuccess()) {
+            log.error("Cloudflare RTK endMeeting failed status=${res.status.value} body=$raw")
+            Resource.Error("Cloudflare RealtimeKit endMeeting ${res.status.value}: $raw")
+        } else {
+            log.info("Cloudflare RTK endMeeting succeeded meeting=$meetingId")
+            Resource.Success(Unit)
+        }
+    } catch (e: Exception) {
+        log.error("Cloudflare RTK endMeeting threw — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to end RealtimeKit meeting")
     }
 
     /** Adds a participant to the given meeting and returns the join auth token. */
