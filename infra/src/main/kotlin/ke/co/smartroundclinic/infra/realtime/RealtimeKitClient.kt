@@ -21,6 +21,8 @@ import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.AppConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 
 /**
@@ -30,8 +32,9 @@ import org.slf4j.LoggerFactory
  *  - https://developers.cloudflare.com/api/resources/realtime_kit/subresources/meetings
  *  - https://developers.cloudflare.com/api/resources/realtime_kit/subresources/meetings/subresources/participants
  */
-class RealtimeKitClient(private val http: HttpClient) {
+class RealtimeKitClient : KoinComponent {
 
+    private val http: HttpClient by inject()
     private val log = LoggerFactory.getLogger(RealtimeKitClient::class.java)
 
     private val baseMeetingsPath: String
@@ -68,6 +71,40 @@ class RealtimeKitClient(private val http: HttpClient) {
     } catch (e: Exception) {
         log.error("Cloudflare RTK createMeeting threw — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to create RealtimeKit meeting")
+    }
+
+    /**
+     * Lists all meetings in this app and returns the id of the first LIVE meeting
+     * whose title exactly matches [title], or null if none is found.
+     *
+     * Used to detect whether a meeting for this consultation already exists on
+     * Cloudflare before creating a new one.
+     */
+    suspend fun findLiveMeetingByTitle(title: String): String? = try {
+        log.info("Cloudflare RTK listMeetings searching for title=\"$title\"")
+        val res: HttpResponse = http.get(baseMeetingsPath) {
+            bearerAuth(AppConfig.realtimeKit.apiToken)
+            headers { append(HttpHeaders.Accept, "application/json") }
+            timeout {
+                requestTimeoutMillis = 10_000
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 10_000
+            }
+        }
+        if (!res.status.isSuccess()) {
+            log.warn("Cloudflare RTK listMeetings failed status=${res.status.value}")
+            null
+        } else {
+            val raw = res.bodyAsText()
+            val body = jsonLenient.decodeFromString(CloudflareMeetingListEnvelope.serializer(), raw)
+            body.data
+                .firstOrNull { it.title == title && it.status == "LIVE" }
+                ?.id
+                .also { if (it != null) log.info("Cloudflare RTK found LIVE meeting id=$it for title=\"$title\"") }
+        }
+    } catch (e: Exception) {
+        log.warn("Cloudflare RTK listMeetings threw — ${e.message}")
+        null
     }
 
     /** Returns the current status of a meeting ("LIVE", "INACTIVE", etc.), or null if not found. */
@@ -203,6 +240,19 @@ internal data class MeetingData(val id: String)
 
 @Serializable
 internal data class MeetingStatusData(val id: String, val status: String? = null)
+
+@Serializable
+internal data class MeetingListItem(
+    val id: String,
+    val title: String? = null,
+    val status: String? = null,
+)
+
+@Serializable
+internal data class CloudflareMeetingListEnvelope(
+    val success: Boolean = false,
+    val data: List<MeetingListItem> = emptyList(),
+)
 
 @Serializable
 internal data class AddParticipantReq(
