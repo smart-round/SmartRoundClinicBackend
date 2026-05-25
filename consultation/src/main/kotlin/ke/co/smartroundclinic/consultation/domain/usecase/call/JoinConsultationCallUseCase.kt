@@ -24,6 +24,12 @@ class JoinConsultationCallUseCase(
     private val messages: ConsultationMessageRepository,
     private val client: RealtimeKitClient,
 ) {
+    private suspend fun createMeeting(sessionId: String): String? =
+        when (val r = client.createMeeting(title = "Consultation $sessionId")) {
+            is Resource.Success -> r.data?.takeIf { it.isNotBlank() }
+            is Resource.Error -> null
+        }
+
     suspend operator fun invoke(consultationId: String, userId: String): DefaultResponse<JoinCallRes?> {
         val session = when (val r = sessions.getById(consultationId)) {
             is Resource.Success -> r.data
@@ -49,12 +55,34 @@ class JoinConsultationCallUseCase(
             )
         }
 
-        // Provision the Cloudflare meeting on first join
-        val meetingId = session.videoRoomId ?: run {
-            val created = client.createMeeting(title = "Consultation ${session.id}")
-            when (created) {
-                is Resource.Success -> {
-                    val id = created.data ?: return DefaultResponse(
+        val isDoctor = userId == session.doctorId
+        val preset = if (isDoctor) AppConfig.realtimeKit.doctorPreset else AppConfig.realtimeKit.patientPreset
+        val displayName = messages.getUserName(userId)
+
+        // Resolve or provision the Cloudflare meeting.
+        // If a videoRoomId is stored, check its status first:
+        //   - LIVE      → reuse it
+        //   - INACTIVE or not found → clear the stale ID and create a fresh meeting
+        // If no videoRoomId → create a new meeting.
+        var meetingId: String = when (val existingId = session.videoRoomId) {
+            null -> {
+                val id = createMeeting(session.id) ?: return DefaultResponse(
+                    httpStatusCode = HttpStatusCode.BadGateway.value,
+                    status = false,
+                    message = "Failed to create meeting",
+                    data = null,
+                )
+                sessions.setVideoRoomId(session.id, id)
+                id
+            }
+            else -> {
+                val status = client.getMeetingStatus(existingId)
+                if (status == "LIVE") {
+                    existingId
+                } else {
+                    // Meeting is INACTIVE or no longer exists — start fresh
+                    sessions.clearVideoRoomId(session.id)
+                    val id = createMeeting(session.id) ?: return DefaultResponse(
                         httpStatusCode = HttpStatusCode.BadGateway.value,
                         status = false,
                         message = "Failed to create meeting",
@@ -63,28 +91,41 @@ class JoinConsultationCallUseCase(
                     sessions.setVideoRoomId(session.id, id)
                     id
                 }
-                is Resource.Error -> return DefaultResponse(
-                    httpStatusCode = HttpStatusCode.BadGateway.value,
-                    status = false,
-                    message = created.message ?: "Failed to create meeting",
-                    data = null,
-                )
             }
         }
 
-        val isDoctor = userId == session.doctorId
-        val preset = if (isDoctor) AppConfig.realtimeKit.doctorPreset else AppConfig.realtimeKit.patientPreset
-        val displayName = messages.getUserName(userId)
-
-        return when (val participant = client.addParticipant(
+        val participant = client.addParticipant(
             meetingId = meetingId,
             customParticipantId = userId,
             presetName = preset,
             name = displayName,
             picture = null,
-        )) {
+        )
+
+        // Last-resort recovery: if addParticipant still fails (e.g. race condition),
+        // create one more fresh meeting and retry.
+        val resolvedParticipant = if (participant is Resource.Error) {
+            sessions.clearVideoRoomId(session.id)
+            val freshId = createMeeting(session.id) ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = "Failed to recreate meeting",
+                data = null,
+            )
+            sessions.setVideoRoomId(session.id, freshId)
+            meetingId = freshId
+            client.addParticipant(
+                meetingId = freshId,
+                customParticipantId = userId,
+                presetName = preset,
+                name = displayName,
+                picture = null,
+            )
+        } else participant
+
+        return when (resolvedParticipant) {
             is Resource.Success -> {
-                val p = participant.data!!
+                val p = resolvedParticipant.data!!
                 DefaultResponse(
                     httpStatusCode = HttpStatusCode.OK.value,
                     status = true,
@@ -100,7 +141,7 @@ class JoinConsultationCallUseCase(
             is Resource.Error -> DefaultResponse(
                 httpStatusCode = HttpStatusCode.BadGateway.value,
                 status = false,
-                message = participant.message ?: "Failed to add participant",
+                message = resolvedParticipant.message ?: "Failed to add participant",
                 data = null,
             )
         }

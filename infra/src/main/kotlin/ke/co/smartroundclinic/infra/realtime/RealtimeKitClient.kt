@@ -6,6 +6,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
+import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -67,6 +68,29 @@ class RealtimeKitClient(private val http: HttpClient) {
     } catch (e: Exception) {
         log.error("Cloudflare RTK createMeeting threw — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to create RealtimeKit meeting")
+    }
+
+    /** Returns the current status of a meeting ("LIVE", "INACTIVE", etc.), or null if not found. */
+    suspend fun getMeetingStatus(meetingId: String): String? = try {
+        log.info("Cloudflare RTK getMeeting -> $baseMeetingsPath/$meetingId")
+        val res: HttpResponse = http.get("$baseMeetingsPath/$meetingId") {
+            bearerAuth(AppConfig.realtimeKit.apiToken)
+            headers { append(HttpHeaders.Accept, "application/json") }
+            timeout {
+                requestTimeoutMillis = 10_000
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 10_000
+            }
+        }
+        val raw = res.bodyAsText()
+        if (!res.status.isSuccess()) null
+        else {
+            val body = jsonLenient.decodeFromString(CloudflareEnvelope.serializer(MeetingStatusData.serializer()), raw)
+            body.data?.status
+        }
+    } catch (e: Exception) {
+        log.warn("Cloudflare RTK getMeeting threw — ${e.message}")
+        null
     }
 
     /** Ends an active meeting on Cloudflare. Participants are kicked out immediately. */
@@ -176,6 +200,9 @@ internal data class CreateMeetingReq(
 
 @Serializable
 internal data class MeetingData(val id: String)
+
+@Serializable
+internal data class MeetingStatusData(val id: String, val status: String? = null)
 
 @Serializable
 internal data class AddParticipantReq(
