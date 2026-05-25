@@ -87,6 +87,36 @@ class ConsultationSessionRepositoryImpl(
         Resource.Error(e.message ?: "Failed to update consultation")
     }
 
+    override suspend fun setVideoRoomIdIfAbsent(id: String, videoRoomId: String): Resource<String> = try {
+        val updated = col.findOneAndUpdate(
+            Filters.and(
+                Filters.eq(ConsultationSessionEntity::id.name, id),
+                Filters.or(
+                    Filters.exists(ConsultationSessionEntity::videoRoomId.name, false),
+                    Filters.eq(ConsultationSessionEntity::videoRoomId.name, null),
+                ),
+            ),
+            Updates.combine(
+                Updates.set(ConsultationSessionEntity::videoRoomId.name, videoRoomId),
+                Updates.set(ConsultationSessionEntity::updatedAt.name, Clock.System.now().toString()),
+            ),
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
+        )
+        if (updated != null) {
+            // This request won the race — our meeting ID is now stored
+            Resource.Success(videoRoomId)
+        } else {
+            // Another request already stored a meeting ID — read and reuse it
+            val current = col.find(Filters.eq(ConsultationSessionEntity::id.name, id)).firstOrNull()
+            val existingId = current?.videoRoomId
+            if (!existingId.isNullOrBlank()) Resource.Success(existingId)
+            else Resource.Success(videoRoomId)
+        }
+    } catch (e: Exception) {
+        log.error("Failed to setVideoRoomIdIfAbsent on consultation id=$id — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to set videoRoomId")
+    }
+
     override suspend fun clearVideoRoomId(id: String): Resource<Unit> = try {
         col.updateOne(
             Filters.eq(ConsultationSessionEntity::id.name, id),

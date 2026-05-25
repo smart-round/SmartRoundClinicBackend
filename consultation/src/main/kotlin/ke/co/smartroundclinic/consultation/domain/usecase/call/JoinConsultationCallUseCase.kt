@@ -59,39 +59,36 @@ class JoinConsultationCallUseCase(
         val preset = if (isDoctor) AppConfig.realtimeKit.doctorPreset else AppConfig.realtimeKit.patientPreset
         val displayName = messages.getUserName(userId)
 
-        // Resolve or provision the Cloudflare meeting.
-        // If a videoRoomId is stored, check its status first:
-        //   - LIVE      → reuse it
-        //   - INACTIVE or not found → clear the stale ID and create a fresh meeting
-        // If no videoRoomId → create a new meeting.
+        // Resolve or provision the single shared Cloudflare meeting for this consultation.
+        //
+        // Both doctor and patient call this endpoint — the consultation's videoRoomId
+        // is the coordination point.  Rules:
+        //   1. If videoRoomId already exists → try to use it directly (don't recreate).
+        //   2. If videoRoomId is null → create a new meeting and store it atomically
+        //      (setVideoRoomIdIfAbsent) so a concurrent call from the other participant
+        //      gets the same meeting ID instead of creating a second one.
+        //   3. If addParticipant fails (meeting deleted/inactive in Cloudflare) →
+        //      clear the stale ID, create a fresh meeting using the same atomic write,
+        //      and retry once.
         var meetingId: String = when (val existingId = session.videoRoomId) {
             null -> {
-                val id = createMeeting(session.id) ?: return DefaultResponse(
+                val newId = createMeeting(session.id) ?: return DefaultResponse(
                     httpStatusCode = HttpStatusCode.BadGateway.value,
                     status = false,
                     message = "Failed to create meeting",
                     data = null,
                 )
-                sessions.setVideoRoomId(session.id, id)
-                id
-            }
-            else -> {
-                val status = client.getMeetingStatus(existingId)
-                if (status == "LIVE") {
-                    existingId
-                } else {
-                    // Meeting is INACTIVE or no longer exists — start fresh
-                    sessions.clearVideoRoomId(session.id)
-                    val id = createMeeting(session.id) ?: return DefaultResponse(
-                        httpStatusCode = HttpStatusCode.BadGateway.value,
+                when (val r = sessions.setVideoRoomIdIfAbsent(session.id, newId)) {
+                    is Resource.Success -> r.data!!  // either newId or the winner's id
+                    is Resource.Error -> return DefaultResponse(
+                        httpStatusCode = HttpStatusCode.InternalServerError.value,
                         status = false,
-                        message = "Failed to create meeting",
+                        message = r.message ?: "Failed to persist meeting",
                         data = null,
                     )
-                    sessions.setVideoRoomId(session.id, id)
-                    id
                 }
             }
+            else -> existingId
         }
 
         val participant = client.addParticipant(
@@ -102,8 +99,8 @@ class JoinConsultationCallUseCase(
             picture = null,
         )
 
-        // Last-resort recovery: if addParticipant still fails (e.g. race condition),
-        // create one more fresh meeting and retry.
+        // Meeting was deleted or went inactive in Cloudflare — clear the stale ID,
+        // create a fresh meeting, and retry once.
         val resolvedParticipant = if (participant is Resource.Error) {
             sessions.clearVideoRoomId(session.id)
             val freshId = createMeeting(session.id) ?: return DefaultResponse(
@@ -112,10 +109,17 @@ class JoinConsultationCallUseCase(
                 message = "Failed to recreate meeting",
                 data = null,
             )
-            sessions.setVideoRoomId(session.id, freshId)
-            meetingId = freshId
+            when (val r = sessions.setVideoRoomIdIfAbsent(session.id, freshId)) {
+                is Resource.Success -> meetingId = r.data!!
+                is Resource.Error -> return DefaultResponse(
+                    httpStatusCode = HttpStatusCode.InternalServerError.value,
+                    status = false,
+                    message = r.message ?: "Failed to persist meeting",
+                    data = null,
+                )
+            }
             client.addParticipant(
-                meetingId = freshId,
+                meetingId = meetingId,
                 customParticipantId = userId,
                 presetName = preset,
                 name = displayName,
