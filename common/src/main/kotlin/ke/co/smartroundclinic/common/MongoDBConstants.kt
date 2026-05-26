@@ -61,6 +61,8 @@ object MongoDBConstants {
      */
     const val NOTIFICATION_DB = "src_notification"
     const val NOTIFICATIONS = "notifications"
+    const val USER_DEVICE_TOKENS = "user_device_tokens"
+    const val PUSH_NOTIFICATION_LOGS = "push_notification_logs"
 
     /**
      * MongoDB Database and Entities for CONSULTATION

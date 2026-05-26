@@ -17,6 +17,8 @@ import ke.co.smartroundclinic.infra.plugins.getRole
 import ke.co.smartroundclinic.infra.plugins.requirePermission
 import ke.co.smartroundclinic.notification.domain.service.NotificationService
 import ke.co.smartroundclinic.notification.presentation.dto.request.CreateNotificationReq
+import ke.co.smartroundclinic.notification.presentation.dto.request.RegisterDeviceTokenReq
+import ke.co.smartroundclinic.notification.presentation.dto.request.SendPushNotificationReq
 
 private const val ADMIN = "ADMIN"
 
@@ -28,9 +30,10 @@ private fun roleToDestination(role: String?): NotificationDestination = when (ro
 
 fun Route.notificationController(service: NotificationService) {
     authenticate("auth-jwt") {
+
+        // ── In-app notifications ───────────────────────────────────────────────
         route("/notification") {
 
-            // ── Admin: send a notification (requires MANAGE_NOTIFICATIONS) ────
             post {
                 call.requirePermission(ADMIN) {
                     val req = call.receive<CreateNotificationReq>()
@@ -39,7 +42,6 @@ fun Route.notificationController(service: NotificationService) {
                 }
             }
 
-            // ── Admin: get all notifications (requires MANAGE_NOTIFICATIONS) ──
             get("all") {
                 call.requirePermission(ADMIN) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
@@ -49,7 +51,6 @@ fun Route.notificationController(service: NotificationService) {
                 }
             }
 
-            // ── Admin: delete a notification (requires MANAGE_NOTIFICATIONS) ──
             delete {
                 call.requirePermission(ADMIN) {
                     val id = call.request.queryParameters["id"]
@@ -59,7 +60,6 @@ fun Route.notificationController(service: NotificationService) {
                 }
             }
 
-            // ── Any JWT: get own notifications (targeted + broadcasts for role) ──
             get("my") {
                 val userId = call.getUserId() ?: return@get
                 val destination = roleToDestination(call.getRole())
@@ -69,7 +69,6 @@ fun Route.notificationController(service: NotificationService) {
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
 
-            // ── Any JWT: mark own notification as read ────────────────────────
             patch("read") {
                 val userId = call.getUserId() ?: return@patch
                 val destination = roleToDestination(call.getRole())
@@ -79,12 +78,56 @@ fun Route.notificationController(service: NotificationService) {
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
 
-            // ── Any JWT: get single notification ──────────────────────────────
             get {
                 val id = call.request.queryParameters["id"]
                     ?: throw MissingParametersException("id query parameter is missing")
                 val result = service.getById(id)
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        // ── Device token management ────────────────────────────────────────────
+        route("/notification/device-token") {
+
+            // Register FCM token for the authenticated user
+            post {
+                val userId = call.getUserId() ?: return@post
+                val role = call.getRole() ?: "DOCTOR"
+                val req = call.receive<RegisterDeviceTokenReq>()
+                val result = service.registerDeviceToken(req, userId, role)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+
+            // Unregister a specific FCM token (owner only)
+            delete {
+                val userId = call.getUserId() ?: return@delete
+                val tokenId = call.request.queryParameters["tokenId"]
+                    ?: throw MissingParametersException("tokenId query parameter is missing")
+                val result = service.unregisterDeviceToken(tokenId, userId)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        // ── Push notifications ─────────────────────────────────────────────────
+        route("/notification/push") {
+
+            // Send push: recipientId (specific user) or destination (DOCTOR/PATIENT/ALL)
+            post {
+                call.requirePermission(ADMIN) {
+                    val req = call.receive<SendPushNotificationReq>()
+                    val result = service.sendPush(req)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // Push notification dispatch logs
+            get("logs") {
+                call.requirePermission(ADMIN) {
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val result = service.getPushLogs(page, size)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
             }
         }
     }

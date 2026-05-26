@@ -33,9 +33,9 @@ val consultationKoinModule = module {
     /**
      * Session use cases
      */
-    single { StartConsultationUseCase(get()) }
+    single { StartConsultationUseCase(get(), getOrNull()) }
     single { GetConsultationUseCase(get()) }
-    single { EndConsultationUseCase(get()) }
+    single { EndConsultationUseCase(get(), getOrNull()) }
 
     /**
      * Chat use cases
@@ -45,9 +45,9 @@ val consultationKoinModule = module {
     /**
      * Call (Cloudflare RealtimeKit) use cases
      */
-    single { JoinConsultationCallUseCase(get(), get(), get<RealtimeKitClient>()) }
-    single { EndCallUseCase(get(), get<RealtimeKitClient>()) }
-    single { HandleMeetingEndedWebhookUseCase(get(), get<RealtimeKitClient>()) }
+    single { JoinConsultationCallUseCase(get(), get(), get<RealtimeKitClient>(), getOrNull()) }
+    single { EndCallUseCase(get(), get<RealtimeKitClient>(), getOrNull()) }
+    single { HandleMeetingEndedWebhookUseCase(get(), get<RealtimeKitClient>(), getOrNull()) }
 
     /**
      * Services

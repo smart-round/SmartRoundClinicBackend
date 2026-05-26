@@ -2,6 +2,9 @@ package ke.co.smartroundclinic.consultation.domain.usecase.call
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
 import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
@@ -15,6 +18,7 @@ import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 class EndCallUseCase(
     private val sessions: ConsultationSessionRepository,
     private val client: RealtimeKitClient,
+    private val notificationSender: NotificationSender? = null,
 ) {
     suspend operator fun invoke(consultationId: String, doctorId: String): DefaultResponse<Unit?> {
         val session = when (val r = sessions.getById(consultationId)) {
@@ -51,6 +55,16 @@ class EndCallUseCase(
                 else -> Unit
             }
             sessions.clearVideoRoomId(consultationId)
+        }
+
+        runCatching {
+            notificationSender?.send(
+                title = "Call Ended",
+                message = "The video call has been ended by your doctor",
+                channel = NotificationChannel.PUSH_NOTIFICATION,
+                destination = NotificationDestination.PATIENT,
+                recipientId = session.patientId,
+            )
         }
 
         return DefaultResponse(

@@ -1,3 +1,3 @@
 package ke.co.smartroundclinic.common
 
-enum class NotificationDestination { ADMIN, PATIENT, DOCTOR }
+enum class NotificationDestination { ADMIN, PATIENT, DOCTOR, ALL }

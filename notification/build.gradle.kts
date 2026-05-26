@@ -11,6 +11,5 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
     implementation(libs.kotlin.resend)
-
-
+    implementation(libs.firebase.admin)
 }

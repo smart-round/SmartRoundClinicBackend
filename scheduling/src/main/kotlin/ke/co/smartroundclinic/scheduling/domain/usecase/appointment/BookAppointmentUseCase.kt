@@ -1,6 +1,9 @@
 package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.toEntity
 import ke.co.smartroundclinic.scheduling.data.repository.ConsultationInfoResult
@@ -22,6 +25,7 @@ class BookAppointmentUseCase(
     private val scheduleRepository: DoctorScheduleRepository,
     private val overrideRepository: SlotOverrideRepository,
     private val serviceTierLookup: ServiceTierLookup,
+    private val notificationSender: NotificationSender? = null,
 ) {
     suspend operator fun invoke(req: BookAppointmentReq, patientId: String): DefaultResponse<AppointmentRes?> {
         val tierInfo = serviceTierLookup.getConsultationInfoForDoctor(req.doctorId)
@@ -76,7 +80,26 @@ class BookAppointmentUseCase(
 
         val slotEnd = SlotEngine.fromMinutes(SlotEngine.toMinutes(req.slotStart) + consultationDuration + gracePeriod)
 
-        return appointmentRepository.book(req.toModel(patientId, slotEnd, serviceTierId, consultationDuration).toEntity())
-            .toDefaultResponse(successStatusCode = 201, failedStatusCode = 409) { it?.toModel()?.toRes() }
+        val result = appointmentRepository.book(req.toModel(patientId, slotEnd, serviceTierId, consultationDuration).toEntity())
+        if (result is Resource.Success && result.data != null) {
+            val appt = result.data!!
+            runCatching {
+                notificationSender?.send(
+                    title = "New Appointment Request",
+                    message = "You have a new appointment request for ${appt.date} at ${appt.slotStart}",
+                    channel = NotificationChannel.PUSH_NOTIFICATION,
+                    destination = NotificationDestination.DOCTOR,
+                    recipientId = appt.doctorId,
+                )
+                notificationSender?.send(
+                    title = "Appointment Booked",
+                    message = "Your appointment on ${appt.date} at ${appt.slotStart} has been booked successfully",
+                    channel = NotificationChannel.PUSH_NOTIFICATION,
+                    destination = NotificationDestination.PATIENT,
+                    recipientId = appt.patientId,
+                )
+            }
+        }
+        return result.toDefaultResponse(successStatusCode = 201, failedStatusCode = 409) { it?.toModel()?.toRes() }
     }
 }

@@ -2,6 +2,9 @@ package ke.co.smartroundclinic.consultation.domain.usecase.call
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
@@ -23,44 +26,30 @@ class JoinConsultationCallUseCase(
     private val sessions: ConsultationSessionRepository,
     private val messages: ConsultationMessageRepository,
     private val client: RealtimeKitClient,
+    private val notificationSender: NotificationSender? = null,
 ) {
-    // Meeting title is derived from the consultation id — unique and stable.
     private fun meetingTitle(sessionId: String) = "Consultation $sessionId"
 
-    /**
-     * Resolves the meeting id to use for this consultation:
-     *
-     *  1. If DB has a videoRoomId AND Cloudflare reports it as LIVE → reuse it.
-     *  2. Otherwise ask Cloudflare for any LIVE meeting whose title matches
-     *     this consultation's title — if one exists another request already
-     *     created it, just join that one.
-     *  3. If still nothing → create a new meeting and store it atomically
-     *     (setVideoRoomIdIfAbsent) so concurrent requests all land on the same id.
-     */
     private suspend fun resolveMeetingId(sessionId: String, currentStoredId: String?): Resource<String> {
         val title = meetingTitle(sessionId)
 
-        // Step 1 — fast path: stored id is still ACTIVE (Cloudflare returns "ACTIVE", not "LIVE")
         if (currentStoredId != null) {
             val status = client.getMeetingStatus(currentStoredId)
             if (status != null && status != "INACTIVE") return Resource.Success(currentStoredId)
         }
 
-        // Step 2 — ask Cloudflare: is there already an ACTIVE meeting for this consultation?
         val liveId = client.findActiveMeetingByTitle(title)
         if (liveId != null) {
-            sessions.setVideoRoomId(sessionId, liveId)   // keep DB in sync
+            sessions.setVideoRoomId(sessionId, liveId)
             return Resource.Success(liveId)
         }
 
-        // Step 3 — nothing live: create a fresh meeting
         if (currentStoredId != null) sessions.clearVideoRoomId(sessionId)
         val newId = when (val r = client.createMeeting(title)) {
             is Resource.Success -> r.data?.takeIf { it.isNotBlank() }
                 ?: return Resource.Error("Cloudflare returned no meeting id")
             is Resource.Error -> return Resource.Error(r.message ?: "Failed to create meeting")
         }
-        // Atomic store — if another request already stored a meeting, use that one instead
         return sessions.setVideoRoomIdIfAbsent(sessionId, newId)
     }
 
@@ -111,7 +100,6 @@ class JoinConsultationCallUseCase(
             picture = null,
         )
 
-        // Safety-net: addParticipant still failed — resolve once more and retry
         val resolvedParticipant = if (participant is Resource.Error) {
             sessions.clearVideoRoomId(session.id)
             meetingId = when (val r = resolveMeetingId(session.id, null)) {
@@ -135,6 +123,16 @@ class JoinConsultationCallUseCase(
         return when (resolvedParticipant) {
             is Resource.Success -> {
                 val p = resolvedParticipant.data!!
+                runCatching {
+                    notificationSender?.send(
+                        title = if (isDoctor) "Doctor Joined the Call" else "Patient Joined the Call",
+                        message = if (isDoctor) "Your doctor has joined the video call"
+                                  else "Your patient has joined the video call",
+                        channel = NotificationChannel.PUSH_NOTIFICATION,
+                        destination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR,
+                        recipientId = if (isDoctor) session.patientId else session.doctorId,
+                    )
+                }
                 DefaultResponse(
                     httpStatusCode = HttpStatusCode.OK.value,
                     status = true,

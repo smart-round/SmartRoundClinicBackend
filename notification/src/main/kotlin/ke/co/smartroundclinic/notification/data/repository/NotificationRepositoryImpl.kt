@@ -10,7 +10,10 @@ import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.notification.data.entity.NotificationEntity
 import ke.co.smartroundclinic.notification.domain.model.NotificationStatus
+import ke.co.smartroundclinic.notification.domain.model.UserType
 import ke.co.smartroundclinic.notification.domain.repository.NotificationRepository
+import ke.co.smartroundclinic.notification.domain.repository.PushNotificationRepository
+import ke.co.smartroundclinic.notification.domain.repository.UserDeviceTokenRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
@@ -18,7 +21,11 @@ import kotlinx.coroutines.withContext
 import org.bson.types.ObjectId
 import kotlin.time.Clock
 
-class NotificationRepositoryImpl(database: MongoDatabase) : NotificationRepository, NotificationSender {
+class NotificationRepositoryImpl(
+    database: MongoDatabase,
+    private val deviceTokenRepo: UserDeviceTokenRepository,
+    private val pushRepo: PushNotificationRepository,
+) : NotificationRepository, NotificationSender {
 
     private val collection = database.getCollection<NotificationEntity>(MongoDBConstants.NOTIFICATIONS)
 
@@ -52,12 +59,16 @@ class NotificationRepositoryImpl(database: MongoDatabase) : NotificationReposito
         try {
             val safePage = maxOf(1, page)
             val safeSize = minOf(maxOf(1, size), 100)
-            // Targeted (recipientId matches) OR broadcast (no recipientId, destination matches role)
+            // Targeted (recipientId matches) OR broadcast matching role or ALL destination
             val filter = Filters.or(
                 Filters.eq(NotificationEntity::recipientId.name, userId),
                 Filters.and(
                     Filters.eq(NotificationEntity::recipientId.name, null),
-                    Filters.eq(NotificationEntity::destination.name, destination.name),
+                    Filters.`in`(
+                        NotificationEntity::destination.name,
+                        destination.name,
+                        NotificationDestination.ALL.name,
+                    ),
                 ),
             )
             val total = collection.countDocuments(filter)
@@ -152,5 +163,22 @@ class NotificationRepositoryImpl(database: MongoDatabase) : NotificationReposito
                 recipientId = recipientId,
             )
         )
+
+        if (channel == NotificationChannel.PUSH_NOTIFICATION) {
+            val tokensResource = if (recipientId != null) {
+                deviceTokenRepo.getByUser(recipientId)
+            } else {
+                when (destination) {
+                    NotificationDestination.DOCTOR -> deviceTokenRepo.getByUserType(UserType.DOCTOR)
+                    NotificationDestination.PATIENT -> deviceTokenRepo.getByUserType(UserType.PATIENT)
+                    NotificationDestination.ALL -> deviceTokenRepo.getAll()
+                    else -> Resource.Success(emptyList())
+                }
+            }
+            val tokens = (tokensResource as? Resource.Success)?.data ?: emptyList()
+            if (tokens.isNotEmpty()) {
+                runCatching { pushRepo.send(tokens, title, message) }
+            }
+        }
     }
 }

@@ -128,11 +128,11 @@ val doctorModule = module {
     /**
      * Compliance
      * */
-    single { ApproveComplianceUseCase(get(),get(),get()) }
+    single { ApproveComplianceUseCase(get(), get(), get(), getOrNull()) }
     single { GetAllComplianceUseCase(get(), get()) }
     single { GetComplianceByIdUseCase(get(), get()) }
     single { GetMyComplianceStatusUseCase(get()) }
-    single { RejectComplianceUseCase(get(),get(),get()) }
+    single { RejectComplianceUseCase(get(), get(), get(), getOrNull()) }
     single { SubmitComplianceUseCase(get(),get(),get(),get()) }
     single { ComplianceCheckUseCase(get(), get()) }
 

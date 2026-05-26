@@ -1,12 +1,18 @@
 package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
 
-class CancelAppointmentUseCase(private val repository: AppointmentRepository) {
+class CancelAppointmentUseCase(
+    private val repository: AppointmentRepository,
+    private val notificationSender: NotificationSender? = null,
+) {
     suspend operator fun invoke(
         id: String,
         userId: String,
@@ -23,7 +29,28 @@ class CancelAppointmentUseCase(private val repository: AppointmentRepository) {
         if (!authorized) return Resource.Error<Nothing>("Not authorized to cancel this appointment")
             .toDefaultResponse(failedStatusCode = 403) { null }
 
-        return repository.updateStatus(id, "CANCELLED", cancellationReason = reason, cancelledBy = userId)
-            .toDefaultResponse { it?.toModel()?.toRes() }
+        val result = repository.updateStatus(id, "CANCELLED", cancellationReason = reason, cancelledBy = userId)
+        if (result is Resource.Success && result.data != null) {
+            runCatching {
+                if (role == "DOCTOR") {
+                    notificationSender?.send(
+                        title = "Appointment Cancelled",
+                        message = "Your appointment on ${entity.date} at ${entity.slotStart} has been cancelled by your doctor",
+                        channel = NotificationChannel.PUSH_NOTIFICATION,
+                        destination = NotificationDestination.PATIENT,
+                        recipientId = entity.patientId,
+                    )
+                } else {
+                    notificationSender?.send(
+                        title = "Appointment Cancelled",
+                        message = "A patient has cancelled their appointment on ${entity.date} at ${entity.slotStart}",
+                        channel = NotificationChannel.PUSH_NOTIFICATION,
+                        destination = NotificationDestination.DOCTOR,
+                        recipientId = entity.doctorId,
+                    )
+                }
+            }
+        }
+        return result.toDefaultResponse { it?.toModel()?.toRes() }
     }
 }

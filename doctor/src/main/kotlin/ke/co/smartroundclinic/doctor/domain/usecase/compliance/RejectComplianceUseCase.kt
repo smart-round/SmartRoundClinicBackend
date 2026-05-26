@@ -8,6 +8,9 @@ import ke.co.smartroundclinic.doctor.domain.model.toModel
 import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.presentation.dto.response.ComplianceRes
 import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.notification.config.EmailConfig
 import ke.co.smartroundclinic.notification.domain.model.EmailWithTemplate
 import ke.co.smartroundclinic.notification.domain.model.Template
@@ -18,7 +21,8 @@ import kotlinx.coroutines.withContext
 class RejectComplianceUseCase(
     private val repository: ComplianceRepository,
     private val emailRepository: EmailRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val notificationSender: NotificationSender? = null,
 ) {
     suspend operator fun invoke(id: String, adminId: String, reason: String): DefaultResponse<ComplianceRes?> = withContext(
         Dispatchers.IO) {
@@ -29,6 +33,15 @@ class RejectComplianceUseCase(
         val user = userRepository.getUser(doctorId)
         if (user is Resource.Error) return@withContext user.toDefaultResponse()
         sendApplicationRejectEmail(user.data?.fullName ?: "", user.data?.email ?: "", reason)
+        runCatching {
+            notificationSender?.send(
+                title = "Application Unsuccessful",
+                message = "Your doctor application was not approved. Please review the feedback and resubmit.",
+                channel = NotificationChannel.PUSH_NOTIFICATION,
+                destination = NotificationDestination.DOCTOR,
+                recipientId = doctorId,
+            )
+        }
         rejected.toDefaultResponse(
             successStatusCode = 200,
             successMessage = "Rejected successfully",

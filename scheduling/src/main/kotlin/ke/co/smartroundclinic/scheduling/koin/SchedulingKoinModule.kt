@@ -39,16 +39,16 @@ val schedulingKoinModule = module {
     single { ServiceTierLookup(get(named("adminDb")), get(named("doctorDb"))) }
 
     // Appointment use cases
-    single { BookAppointmentUseCase(get(), get(), get(), get()) }
+    single { BookAppointmentUseCase(get(), get(), get(), get(), getOrNull()) }
     single { GetAllAppointmentsUseCase(get()) }
     single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }
     single { GetAppointmentByIdUseCase(get()) }
     single { GetPatientAppointmentsUseCase(get()) }
     single { GetDoctorAppointmentsUseCase(get()) }
-    single { ConfirmAppointmentUseCase(get()) }
-    single { CancelAppointmentUseCase(get()) }
-    single { CompleteAppointmentUseCase(get()) }
-    single { MarkNoShowUseCase(get()) }
+    single { ConfirmAppointmentUseCase(get(), getOrNull()) }
+    single { CancelAppointmentUseCase(get(), getOrNull()) }
+    single { CompleteAppointmentUseCase(get(), getOrNull()) }
+    single { MarkNoShowUseCase(get(), getOrNull()) }
 
     // Schedule use cases
     single { UpsertScheduleUseCase(get()) }
