@@ -113,7 +113,7 @@ fun Route.notificationController(service: NotificationService) {
 
             // Send push: recipientId (specific user) or destination (DOCTOR/PATIENT/ALL)
             post {
-                call.requirePermission(ADMIN) {
+                call.requirePermission("SUPER_ADMIN",ADMIN) {
                     val req = call.receive<SendPushNotificationReq>()
                     val result = service.sendPush(req)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)

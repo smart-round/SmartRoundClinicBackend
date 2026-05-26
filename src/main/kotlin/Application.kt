@@ -36,6 +36,7 @@ import ke.co.smartroundclinic.support.validation.registerSupportValidators
 import ke.co.smartroundclinic.patient.patientModule
 import ke.co.smartroundclinic.patient.koin.patientModule as patientKoinModule
 import ke.co.smartroundclinic.patient.validation.registerPatientValidators
+import ke.co.smartroundclinic.notification.presentation.validation.registerNotificationValidators
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -53,6 +54,7 @@ fun Application.module() {
             registerSupportValidators()
             registerPatientValidators()
             registerConsultationValidators()
+            registerNotificationValidators()
         }
     )
     authModule()
