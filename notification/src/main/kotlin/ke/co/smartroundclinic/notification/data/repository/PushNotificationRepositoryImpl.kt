@@ -23,7 +23,7 @@ private const val FCM_BATCH_SIZE = 500
 
 class PushNotificationRepositoryImpl(
     database: MongoDatabase,
-    private val messaging: FirebaseMessaging,
+    private val messaging: FirebaseMessaging?,
 ) : PushNotificationRepository {
 
     private val logCollection = database.getCollection<PushNotificationLogEntity>(MongoDBConstants.PUSH_NOTIFICATION_LOGS)
@@ -34,6 +34,9 @@ class PushNotificationRepositoryImpl(
         body: String,
         data: Map<String, String>,
     ): Resource<PushNotificationSummary> = withContext(Dispatchers.IO) {
+        if (messaging == null) {
+            return@withContext Resource.Error("Push notifications not configured (FCM credentials missing)")
+        }
         if (tokens.isEmpty()) {
             return@withContext Resource.Error("No device tokens found for the specified target")
         }
