@@ -37,6 +37,9 @@ import ke.co.smartroundclinic.patient.patientModule
 import ke.co.smartroundclinic.patient.koin.patientModule as patientKoinModule
 import ke.co.smartroundclinic.patient.validation.registerPatientValidators
 import ke.co.smartroundclinic.notification.presentation.validation.registerNotificationValidators
+import ke.co.smartroundclinic.payments.paymentsModule
+import ke.co.smartroundclinic.payments.koin.paymentsKoinModule
+import ke.co.smartroundclinic.payments.presentation.validation.registerPaymentValidators
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -46,7 +49,7 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(
-        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule),
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule, paymentsKoinModule),
         validators = {
             registerDoctorValidators()
             registerAdminValidators()
@@ -55,6 +58,7 @@ fun Application.module() {
             registerPatientValidators()
             registerConsultationValidators()
             registerNotificationValidators()
+            registerPaymentValidators()
         }
     )
     authModule()
@@ -66,6 +70,7 @@ fun Application.module() {
     supportModule()
     patientModule()
     consultationModule()
+    paymentsModule()
     val root = routing {
         get("/") {
             call.respondText("Hello World!")

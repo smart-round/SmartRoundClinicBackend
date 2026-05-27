@@ -11,6 +11,7 @@ include(":scheduling")
 include(":support")
 include(":article")
 include(":consultation")
+include(":payments")
 
 dependencyResolutionManagement {
     repositories {

@@ -79,4 +79,10 @@ object MongoDBConstants {
     const val SLOT_OVERRIDES = "slot_overrides"
     const val APPOINTMENTS = "appointments"
 
+    /**
+     * MongoDB Database and Entities for PAYMENTS
+     */
+    const val PAYMENTS_DB = "src_payments"
+    const val PAYMENTS = "payments"
+
 }
