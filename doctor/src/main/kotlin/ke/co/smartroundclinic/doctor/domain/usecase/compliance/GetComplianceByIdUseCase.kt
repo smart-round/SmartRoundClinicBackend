@@ -16,14 +16,14 @@ class GetComplianceByIdUseCase(
 ) {
     suspend operator fun invoke(id: String): DefaultResponse<ComplianceRes?> {
         val resource = repository.getById(id)
-        val profile: DoctorProfileInfo? = if (resource is Resource.Success && resource.data != null) {
-            profileLookup.lookup(resource.data!!.doctorId)
-        } else null
+        val doctorId = if (resource is Resource.Success) resource.data?.doctorId else null
+        val profile: DoctorProfileInfo? = doctorId?.let { profileLookup.lookup(it) }
+        val specializations = doctorId?.let { profileLookup.lookupSpecializations(it) } ?: emptyList()
 
         return resource.toDefaultResponse(
             failedStatusCode = HttpStatusCode.InternalServerError.value,
         ) { entity ->
-            entity?.toModel()?.toRes(profile)
+            entity?.toModel()?.toRes(profile, specializations)
         }.let { response ->
             if (response.status && response.data == null)
                 response.copy(

@@ -23,6 +23,7 @@ data class ComplianceRes(
     val createdAt: String,
     val updatedAt: String?,
     val doctorProfile: DoctorProfileInfo?,
+    val specializations: List<SpecializationWithNamesRes>,
 )
 
 data class CompliancePageResult(
@@ -33,7 +34,10 @@ data class CompliancePageResult(
     val pages: Long,
 )
 
-fun Compliance.toRes(doctorProfile: DoctorProfileInfo? = null) = ComplianceRes(
+fun Compliance.toRes(
+    doctorProfile: DoctorProfileInfo? = null,
+    specializations: List<SpecializationWithNamesRes> = emptyList(),
+) = ComplianceRes(
     id = id,
     doctorId = doctorId,
     status = status,
@@ -44,4 +48,5 @@ fun Compliance.toRes(doctorProfile: DoctorProfileInfo? = null) = ComplianceRes(
     createdAt = createdAt,
     updatedAt = updatedAt,
     doctorProfile = doctorProfile,
+    specializations = specializations,
 )

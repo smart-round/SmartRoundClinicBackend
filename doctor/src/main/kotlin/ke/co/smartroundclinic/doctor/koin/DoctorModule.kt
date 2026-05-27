@@ -87,7 +87,7 @@ val doctorModule = module {
     single<PractitionerProfileRepository> { PractitionerProfileRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<CertificationRepository> { CertificationRepositoryImpl(get(named("doctorDb"))) }
     single<ComplianceRepository> { ComplianceRepositoryImpl(get(named("doctorDb"))) }
-    single { DoctorProfileLookup(get(named("doctorDb")), get(named("authDb"))) }
+    single { DoctorProfileLookup(get(named("doctorDb")), get(named("authDb")), get(named("adminDb"))) }
     single<PractitionerLicenceRepository> { PractitionerLicenceRepositoryImpl(get(named("doctorDb"))) }
     single<SpecializationRepositoryImpl> { SpecializationRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<SpecializationRepository> { get<SpecializationRepositoryImpl>() }
