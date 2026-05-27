@@ -21,7 +21,42 @@ data class AppointmentRes(
     val updatedAt: String?,
 )
 
-fun Appointment.toAdminRes() = toRes().copy(notes = null)
+@Serializable
+data class AppointmentAdminRes(
+    val id: String,
+    val doctorId: String,
+    val doctorName: String?,
+    val doctorSpecialities: List<String>,
+    val patientId: String,
+    val serviceTierId: String = "",
+    val consultationDuration: Int = 0,
+    val date: String,
+    val slotStart: String,
+    val slotEnd: String,
+    val status: String,
+    val bookedAt: String,
+    val cancellationReason: String?,
+    val cancelledBy: String?,
+    val updatedAt: String?,
+)
+
+fun Appointment.toAdminRes(doctorName: String?, doctorSpecialities: List<String>) = AppointmentAdminRes(
+    id = id,
+    doctorId = doctorId,
+    doctorName = doctorName,
+    doctorSpecialities = doctorSpecialities,
+    patientId = patientId,
+    serviceTierId = serviceTierId,
+    consultationDuration = consultationDuration,
+    date = date,
+    slotStart = slotStart,
+    slotEnd = slotEnd,
+    status = status,
+    bookedAt = bookedAt,
+    cancellationReason = cancellationReason,
+    cancelledBy = cancelledBy,
+    updatedAt = updatedAt,
+)
 
 fun Appointment.toRes() = AppointmentRes(
     id = id,
