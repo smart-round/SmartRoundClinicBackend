@@ -27,6 +27,7 @@ class RecommendationRepositoryImpl(
     private val log = LoggerFactory.getLogger(RecommendationRepositoryImpl::class.java)
     private val profileCol = doctorDb.getCollection<PractitionerProfileEntity>(MongoDBConstants.DOCTOR_PROFILES)
     private val specializationsCol = doctorDb.getCollection<SpecializationEntity>(MongoDBConstants.DOCTOR_SPECIALIZATIONS)
+    private val complianceCol = doctorDb.getCollection<Document>(MongoDBConstants.DOCTOR_COMPLIANCE)
     private val specialitiesCol = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SPECIALITIES)
     private val subSpecialitiesCol = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SUB_SPECIALITIES)
     private val appointmentsCol = schedulingDb.getCollection<Document>(MongoDBConstants.APPOINTMENTS)
@@ -53,12 +54,18 @@ class RecommendationRepositoryImpl(
                 .also { if (it.isEmpty()) return Resource.Success(emptyList<RecommendedDoctorRes>() to 0L) }
         }
 
+        // Only include doctors who have been verified (compliance approved)
+        val verifiedDoctorIds = loadVerifiedDoctorIds()
+
         // Load only the relevant profiles
-        val profiles = if (allowedDoctorIds != null) {
-            profileCol.find(Filters.`in`(PractitionerProfileEntity::doctorId.name, allowedDoctorIds)).toList()
-        } else {
-            profileCol.find().toList()
+        val profileFilter = when {
+            allowedDoctorIds != null -> Filters.`in`(PractitionerProfileEntity::doctorId.name, allowedDoctorIds.intersect(verifiedDoctorIds))
+            else -> Filters.`in`(PractitionerProfileEntity::doctorId.name, verifiedDoctorIds)
         }
+        if ((allowedDoctorIds != null && allowedDoctorIds.intersect(verifiedDoctorIds).isEmpty()) || verifiedDoctorIds.isEmpty()) {
+            return Resource.Success(emptyList<RecommendedDoctorRes>() to 0L)
+        }
+        val profiles = profileCol.find(profileFilter).toList()
         if (profiles.isEmpty()) return Resource.Success(emptyList<RecommendedDoctorRes>() to 0L)
 
         // Pre-fetch all speciality/sub-speciality names needed
@@ -149,6 +156,15 @@ class RecommendationRepositoryImpl(
     } catch (e: Exception) {
         log.error("Failed to compute recommendations — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to fetch recommendations")
+    }
+
+    private suspend fun loadVerifiedDoctorIds(): Set<String> = try {
+        complianceCol.find(Filters.eq("isApproved", true)).toList()
+            .mapNotNull { it.getString("doctorId") }
+            .toSet()
+    } catch (e: Exception) {
+        log.warn("Could not load verified doctor IDs — ${e.message}")
+        emptySet()
     }
 
     private suspend fun loadDoctorInfo(doctorIds: Set<String>): Map<String, Pair<String?, String?>> = try {
