@@ -66,6 +66,15 @@ class DoctorProfileLookup(
         emptyMap()
     }
 
+    suspend fun searchDoctorIdsByName(name: String): Set<String> = try {
+        usersCol.find(Filters.regex("fullName", name, "i")).toList()
+            .mapNotNull { it.getString("id") }
+            .toSet()
+    } catch (e: Exception) {
+        log.warn("Could not search doctors by name — ${e.message}")
+        emptySet()
+    }
+
     suspend fun lookupSpecializations(doctorId: String): List<SpecializationWithNamesRes> = try {
         val specs = specializationsCol.find(Filters.eq(SpecializationEntity::doctorId.name, doctorId)).toList()
         buildSpecializationRes(specs)

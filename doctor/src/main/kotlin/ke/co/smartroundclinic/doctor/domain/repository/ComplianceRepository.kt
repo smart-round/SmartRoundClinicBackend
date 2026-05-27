@@ -9,5 +9,5 @@ interface ComplianceRepository {
     suspend fun reject(id: String, adminId: String, reason: String): Resource<ComplianceEntity?>
     suspend fun getByDoctorId(doctorId: String): Resource<ComplianceEntity?>
     suspend fun getById(id: String): Resource<ComplianceEntity?>
-    suspend fun getAll(page: Int, size: Int): Resource<Pair<List<ComplianceEntity>, Long>>
+    suspend fun getAll(page: Int, size: Int, status: String? = null, doctorIds: Set<String>? = null): Resource<Pair<List<ComplianceEntity>, Long>>
 }

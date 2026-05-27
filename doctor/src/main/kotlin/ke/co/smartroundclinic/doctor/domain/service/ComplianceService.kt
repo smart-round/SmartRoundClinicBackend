@@ -19,6 +19,6 @@ class ComplianceService(
     suspend fun approve(id: String, adminId: String) = approveUseCase(id, adminId)
     suspend fun reject(id: String, adminId: String, reason: String) = rejectUseCase(id, adminId, reason)
     suspend fun getMyStatus(doctorId: String) = getMyStatusUseCase(doctorId)
-    suspend fun getAll(page: Int, size: Int) = getAllUseCase(page, size)
+    suspend fun getAll(page: Int, size: Int, status: String? = null, name: String? = null) = getAllUseCase(page, size, status, name)
     suspend fun getById(id: String) = getByIdUseCase(id)
 }

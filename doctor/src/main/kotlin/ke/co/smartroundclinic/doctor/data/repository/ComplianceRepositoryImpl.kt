@@ -97,14 +97,29 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
         Resource.Error(e.message ?: "Failed to fetch compliance record")
     }
 
-    override suspend fun getAll(page: Int, size: Int): Resource<Pair<List<ComplianceEntity>, Long>> = try {
+    override suspend fun getAll(page: Int, size: Int, status: String?, doctorIds: Set<String>?): Resource<Pair<List<ComplianceEntity>, Long>> = try {
         val safePage = maxOf(1, page)
         val safeSize = minOf(maxOf(1, size), 100)
-        val total = col.countDocuments()
-        val items = col.find()
-            .skip((safePage - 1) * safeSize)
-            .limit(safeSize)
-            .toList()
+
+        val filters = mutableListOf<org.bson.conversions.Bson>()
+        when (status?.uppercase()) {
+            "APPROVED" -> filters.add(Filters.eq(ComplianceEntity::isApproved.name, true))
+            "REJECTED" -> {
+                filters.add(Filters.eq(ComplianceEntity::isApproved.name, false))
+                filters.add(Filters.ne(ComplianceEntity::approvedBy.name, null))
+            }
+            "PENDING" -> {
+                filters.add(Filters.eq(ComplianceEntity::isApproved.name, false))
+                filters.add(Filters.eq(ComplianceEntity::approvedBy.name, null))
+            }
+        }
+        if (!doctorIds.isNullOrEmpty()) {
+            filters.add(Filters.`in`(ComplianceEntity::doctorId.name, doctorIds))
+        }
+
+        val query = if (filters.isEmpty()) col.find() else col.find(Filters.and(filters))
+        val total = if (filters.isEmpty()) col.countDocuments() else col.countDocuments(Filters.and(filters))
+        val items = query.skip((safePage - 1) * safeSize).limit(safeSize).toList()
         Resource.Success(items to total)
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch compliance records")

@@ -48,13 +48,15 @@ fun Route.complianceController(service: ComplianceService) {
         // ── Admin: review and approve/reject doctors ──────────────────────────
         route("/admin/compliance") {
 
-            // GET /admin/compliance?page=1&size=20
-            // Admin lists all compliance records.
+            // GET /admin/compliance?page=1&size=20&status=APPROVED|PENDING|REJECTED&name=John
+            // Admin lists all compliance records with optional status and name filters.
             get {
                 call.requireRole(ADMIN) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                     val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                    val result = service.getAll(page, size)
+                    val status = call.request.queryParameters["status"]
+                    val name = call.request.queryParameters["name"]
+                    val result = service.getAll(page, size, status, name)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }

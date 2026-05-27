@@ -14,8 +14,18 @@ class GetAllComplianceUseCase(
     private val repository: ComplianceRepository,
     private val profileLookup: DoctorProfileLookup,
 ) {
-    suspend operator fun invoke(page: Int, size: Int): DefaultResponse<CompliancePageResult?> {
-        val resource = repository.getAll(page, size)
+    suspend operator fun invoke(page: Int, size: Int, status: String? = null, name: String? = null): DefaultResponse<CompliancePageResult?> {
+        val nameFilteredIds: Set<String>? = name?.takeIf { it.isNotBlank() }
+            ?.let { profileLookup.searchDoctorIdsByName(it) }
+
+        // If a name was searched but no matching doctors found, return empty immediately
+        if (name != null && name.isNotBlank() && nameFilteredIds != null && nameFilteredIds.isEmpty()) {
+            return Resource.Success(emptyList<Nothing>() to 0L).toDefaultResponse {
+                CompliancePageResult(items = emptyList(), total = 0L, page = page, size = size, pages = 0L)
+            }
+        }
+
+        val resource = repository.getAll(page, size, status, nameFilteredIds)
         val doctorIds: Set<String> = if (resource is Resource.Success && resource.data != null)
             resource.data!!.first.map { it.doctorId }.toSet()
         else emptySet()
