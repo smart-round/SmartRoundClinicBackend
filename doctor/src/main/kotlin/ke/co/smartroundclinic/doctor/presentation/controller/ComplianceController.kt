@@ -61,7 +61,7 @@ fun Route.complianceController(service: ComplianceService) {
 
             // GET /admin/compliance/{id}
             // Admin gets a single compliance record by id.
-            get {
+            get("doctor") {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id path parameter is required")
