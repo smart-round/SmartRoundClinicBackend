@@ -96,6 +96,28 @@ fun Route.complianceController(service: ComplianceService) {
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
+
+            // PUT /admin/compliance/{id}/monetize
+            // Admin enables monetization for an approved doctor.
+            put("monetize") {
+                call.requireRole(ADMIN) {
+                    val id = call.parameters["id"]
+                        ?: throw MissingParametersException("id path parameter is required")
+                    val result = service.setMonetization(id, true)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // PUT /admin/compliance/{id}/demonetize
+            // Admin disables monetization — doctor becomes invisible to patients.
+            put("demonetize") {
+                call.requireRole(ADMIN) {
+                    val id = call.parameters["id"]
+                        ?: throw MissingParametersException("id path parameter is required")
+                    val result = service.setMonetization(id, false)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ data class ComplianceEntity(
     val id: String = ObjectId().toString(),
     val doctorId: String,
     val isApproved: Boolean = false,
+    val isMonetized: Boolean = false,
     val approvedAt: String? = null,
     val approvedBy: String? = null,
     val failedApprovalReason: String? = null,

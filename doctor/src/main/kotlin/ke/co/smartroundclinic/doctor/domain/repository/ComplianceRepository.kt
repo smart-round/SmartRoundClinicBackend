@@ -10,4 +10,5 @@ interface ComplianceRepository {
     suspend fun getByDoctorId(doctorId: String): Resource<ComplianceEntity?>
     suspend fun getById(id: String): Resource<ComplianceEntity?>
     suspend fun getAll(page: Int, size: Int, status: String? = null, doctorIds: Set<String>? = null): Resource<Pair<List<ComplianceEntity>, Long>>
+    suspend fun setMonetization(id: String, isMonetized: Boolean): Resource<ComplianceEntity?>
 }

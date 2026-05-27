@@ -159,7 +159,12 @@ class RecommendationRepositoryImpl(
     }
 
     private suspend fun loadVerifiedDoctorIds(): Set<String> = try {
-        complianceCol.find(Filters.eq("isApproved", true)).toList()
+        complianceCol.find(
+            Filters.and(
+                Filters.eq("isApproved", true),
+                Filters.eq("isMonetized", true),
+            )
+        ).toList()
             .mapNotNull { it.getString("doctorId") }
             .toSet()
     } catch (e: Exception) {

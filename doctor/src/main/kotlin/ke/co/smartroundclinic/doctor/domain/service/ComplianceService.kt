@@ -6,6 +6,7 @@ import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetComplianceById
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetMyComplianceStatusUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.RejectComplianceUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.SubmitComplianceUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ToggleMonetizationUseCase
 
 class ComplianceService(
     private val submitUseCase: SubmitComplianceUseCase,
@@ -14,6 +15,7 @@ class ComplianceService(
     private val getMyStatusUseCase: GetMyComplianceStatusUseCase,
     private val getAllUseCase: GetAllComplianceUseCase,
     private val getByIdUseCase: GetComplianceByIdUseCase,
+    private val toggleMonetizationUseCase: ToggleMonetizationUseCase,
 ) {
     suspend fun submit(doctorId: String) = submitUseCase(doctorId)
     suspend fun approve(id: String, adminId: String) = approveUseCase(id, adminId)
@@ -21,4 +23,5 @@ class ComplianceService(
     suspend fun getMyStatus(doctorId: String) = getMyStatusUseCase(doctorId)
     suspend fun getAll(page: Int, size: Int, status: String? = null, name: String? = null) = getAllUseCase(page, size, status, name)
     suspend fun getById(id: String) = getByIdUseCase(id)
+    suspend fun setMonetization(id: String, isMonetized: Boolean) = toggleMonetizationUseCase(id, isMonetized)
 }

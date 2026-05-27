@@ -45,6 +45,7 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
             Filters.eq(ComplianceEntity::id.name, id),
             Updates.combine(
                 Updates.set(ComplianceEntity::isApproved.name, true),
+                Updates.set(ComplianceEntity::isMonetized.name, true),
                 Updates.set(ComplianceEntity::approvedBy.name, adminId),
                 Updates.set(ComplianceEntity::approvedAt.name, now),
                 Updates.unset(ComplianceEntity::failedApprovalReason.name),
@@ -123,5 +124,24 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
         Resource.Success(items to total)
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch compliance records")
+    }
+
+    override suspend fun setMonetization(id: String, isMonetized: Boolean): Resource<ComplianceEntity?> = try {
+        val entity = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull()
+            ?: return Resource.Error("No compliance record found with id=$id")
+        if (!entity.isApproved) return Resource.Error("Doctor must be approved before monetization can be changed")
+        val updated = col.findOneAndUpdate(
+            Filters.eq(ComplianceEntity::id.name, id),
+            Updates.combine(
+                Updates.set(ComplianceEntity::isMonetized.name, isMonetized),
+                Updates.set(ComplianceEntity::updatedAt.name, Clock.System.now().toString()),
+            ),
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
+        )
+        log.info("Compliance id=$id monetization set to $isMonetized")
+        Resource.Success(updated)
+    } catch (e: Exception) {
+        log.error("Failed to set monetization for compliance id=$id — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to update monetization status")
     }
 }
