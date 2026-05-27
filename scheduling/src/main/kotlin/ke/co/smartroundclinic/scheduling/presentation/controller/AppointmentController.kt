@@ -57,14 +57,22 @@ fun Route.appointmentController(appointmentService: AppointmentService) {
             }
 
             get("/doctor/all") {
-                call.requireRole(DOCTOR, ADMIN) {
-                    val id = call.getUserId()
-                    val doctorId = (id ?: call.parameters["doctorId"]) ?: throw MissingParametersException("doctorId is required")
+                call.requireRole(DOCTOR) {
+                    val id = call.getUserId() ?: return@requireRole
+                    val filter = call.request.queryParameters["filter"]
+                    val result = appointmentService.getDoctorAppointmentDetails(id, filter)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+            get("/doctor/admin/all") {
+                call.requireRole(ADMIN) {
+                    val doctorId = call.parameters["doctorId"] ?: throw MissingParametersException("doctorId is required")
                     val filter = call.request.queryParameters["filter"]
                     val result = appointmentService.getDoctorAppointmentDetails(doctorId, filter)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
+
 
             get("/doctor") {
                 call.requireRole(DOCTOR, PATIENT) {
