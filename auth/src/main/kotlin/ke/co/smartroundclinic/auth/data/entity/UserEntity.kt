@@ -50,6 +50,7 @@ data class UserEntity(
         password = password,
         phoneNumber = phoneNumber,
         dateOfBirth = dateOfBirth,
+        policyGroupIds = policyGroupIds ?: emptyList(),
         createdAt = createdAt,
         updatedAt = updatedAt,
         profilePicture = profilePicture
