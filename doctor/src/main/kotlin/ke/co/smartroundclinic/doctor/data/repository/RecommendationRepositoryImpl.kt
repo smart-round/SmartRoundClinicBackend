@@ -168,7 +168,7 @@ class RecommendationRepositoryImpl(
             .mapNotNull { it.getString("doctorId") }
             .toSet()
     } catch (e: Exception) {
-        log.warn("Could not load verified doctor IDs — ${e.message}")
+        log.warn("Could not load verified/monetized doctor IDs — ${e.message}")
         emptySet()
     }
 
