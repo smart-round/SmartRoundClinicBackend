@@ -47,6 +47,7 @@ data class User(
         verificationStatus = verificationStatus,
         phoneNumber = phoneNumber,
         dateOfBirth = dateOfBirth,
+        policyGroupIds = policyGroupIds,
         createdAt = createdAt,
         updatedAt = updatedAt,
         profilePicture = profilePicture

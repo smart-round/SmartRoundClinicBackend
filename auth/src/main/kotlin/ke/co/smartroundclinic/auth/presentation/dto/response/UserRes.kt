@@ -17,6 +17,7 @@ data class UserRes(
     val phoneNumber: String?,
     val dateOfBirth: String?,
     val profilePicture: String?,
+    val policyGroupIds: List<String> = emptyList(),
     val createdAt: String,
     val updatedAt: String?,
     val personalInfo: PatientProfile? = null,
