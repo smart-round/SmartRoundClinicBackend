@@ -22,6 +22,7 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorApp
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAppointmentByIdUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsForAdminUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.DeactivateDayUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetAvailableSlotsUseCase
@@ -44,6 +45,7 @@ val schedulingKoinModule = module {
     single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }
     single { GetAppointmentByIdUseCase(get()) }
     single { GetPatientAppointmentsUseCase(get()) }
+    single { GetPatientAppointmentsForAdminUseCase(get()) }
     single { GetDoctorAppointmentsUseCase(get()) }
     single { ConfirmAppointmentUseCase(get(), getOrNull()) }
     single { CancelAppointmentUseCase(get(), getOrNull()) }
@@ -59,7 +61,7 @@ val schedulingKoinModule = module {
     single { GetCalendarRangeUseCase(get(), get(), get()) }
 
     // Services
-    single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single { ScheduleService(get(), get(), get(), get(), get()) }
     single { CalendarService(get(), get()) }
 }

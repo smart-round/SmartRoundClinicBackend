@@ -9,6 +9,7 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorApp
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAppointmentByIdUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsForAdminUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
 import ke.co.smartroundclinic.scheduling.presentation.dto.request.BookAppointmentReq
 import ke.co.smartroundclinic.scheduling.presentation.dto.request.CancelAppointmentReq
@@ -19,6 +20,7 @@ class AppointmentService(
     private val getAllAppointmentsUseCase: GetAllAppointmentsUseCase,
     private val getDoctorAppointmentDetailsUseCase: GetDoctorAppointmentDetailsUseCase,
     private val getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
+    private val getPatientAppointmentsForAdminUseCase: GetPatientAppointmentsForAdminUseCase,
     private val getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase,
     private val confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private val cancelAppointmentUseCase: CancelAppointmentUseCase,
@@ -30,6 +32,7 @@ class AppointmentService(
     suspend fun getAll() = getAllAppointmentsUseCase()
     suspend fun getDoctorAppointmentDetails(doctorId: String, filter: String? = null) = getDoctorAppointmentDetailsUseCase(doctorId, filter)
     suspend fun getByPatient(patientId: String) = getPatientAppointmentsUseCase(patientId)
+    suspend fun getByPatientForAdmin(patientId: String) = getPatientAppointmentsForAdminUseCase(patientId)
     suspend fun getByDoctor(doctorId: String, date: String) = getDoctorAppointmentsUseCase(doctorId, date)
     suspend fun confirm(id: String, doctorId: String) = confirmAppointmentUseCase(id, doctorId)
     suspend fun cancel(id: String, userId: String, role: String, req: CancelAppointmentReq) =

@@ -21,6 +21,8 @@ data class AppointmentRes(
     val updatedAt: String?,
 )
 
+fun Appointment.toAdminRes() = toRes().copy(notes = null)
+
 fun Appointment.toRes() = AppointmentRes(
     id = id,
     doctorId = doctorId,
