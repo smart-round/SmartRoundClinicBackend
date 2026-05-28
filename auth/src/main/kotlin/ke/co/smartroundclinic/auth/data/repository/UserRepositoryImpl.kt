@@ -14,6 +14,9 @@ import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.common.UserProfilePictureResolver
+import ke.co.smartroundclinic.infra.AppConfig
+import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -28,7 +31,8 @@ class UserRepositoryImpl(
     private val credentialsHasher: CredentialsHasher,
     private val tokenProvider: TokenProvider,
     private val permissionResolver: PolicyGroupPermissionResolver? = null,
-) : UserRepository, PatientNameResolver {
+    private val storageRepository: StorageRepository? = null,
+) : UserRepository, PatientNameResolver, UserProfilePictureResolver {
 
     private val collection = database.getCollection<UserEntity>(MongoDBConstants.AUTH_USER)
     private val logger = KtorSimpleLogger(this::class.simpleName!!)
@@ -129,6 +133,28 @@ class UserRepositoryImpl(
                     .find(Filters.`in`(UserEntity::id.name, patientIds))
                     .toList()
                     .associate { it.id to it.fullName }
+            } catch (_: Exception) {
+                emptyMap()
+            }
+        }
+
+    override suspend fun getProfilePictureUrls(userIds: List<String>): Map<String, String?> =
+        withContext(Dispatchers.IO) {
+            if (userIds.isEmpty()) return@withContext emptyMap()
+            try {
+                collection
+                    .find(Filters.`in`(UserEntity::id.name, userIds))
+                    .toList()
+                    .associate { entity ->
+                        val url = if (entity.profilePicture != null && storageRepository != null) {
+                            (storageRepository.presignedGetUrl(
+                                bucket = AppConfig.r2.bucket,
+                                key = entity.profilePicture,
+                                expiresInSeconds = 86400,
+                            ) as? Resource.Success)?.data
+                        } else null
+                        entity.id to url
+                    }
             } catch (_: Exception) {
                 emptyMap()
             }

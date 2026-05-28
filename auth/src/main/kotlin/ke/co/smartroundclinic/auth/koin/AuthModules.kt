@@ -32,6 +32,8 @@ import ke.co.smartroundclinic.auth.domain.usecase.UpgradeToSuperAdminUseCase
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.PatientProfileResolver
 import ke.co.smartroundclinic.common.PolicyGroupPermissionResolver
+import ke.co.smartroundclinic.common.UserProfilePictureResolver
+import ke.co.smartroundclinic.infra.storage.StorageRepository
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -44,10 +46,12 @@ val authModule = module {
             get(),
             get(),
             getOrNull<PolicyGroupPermissionResolver>(),
+            getOrNull<StorageRepository>(),
         )
     }
     single<UserRepository> { get<UserRepositoryImpl>() }
     single<PatientNameResolver> { get<UserRepositoryImpl>() }
+    single<UserProfilePictureResolver> { get<UserRepositoryImpl>() }
     single<TokenRepository> { TokenRepositoryImpl(get(named("authDb"))) }
 
     single { SignInUseCase(get()) }

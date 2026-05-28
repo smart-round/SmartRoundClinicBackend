@@ -7,6 +7,7 @@ data class DoctorAppointmentDetailRes(
     val doctorId: String,
     val patientId: String,
     val patientName: String?,
+    val patientProfilePicture: String?,
     val doctorSpecialities: List<String>,
     val date: String,
     val slotStart: String,
@@ -19,11 +20,16 @@ data class DoctorAppointmentDetailRes(
     val updatedAt: String?,
 )
 
-fun Appointment.toDetailRes(patientName: String?, doctorSpecialities: List<String>) = DoctorAppointmentDetailRes(
+fun Appointment.toDetailRes(
+    patientName: String?,
+    patientProfilePicture: String?,
+    doctorSpecialities: List<String>,
+) = DoctorAppointmentDetailRes(
     id = id,
     doctorId = doctorId,
     patientId = patientId,
     patientName = patientName,
+    patientProfilePicture = patientProfilePicture,
     doctorSpecialities = doctorSpecialities,
     date = date,
     slotStart = slotStart,
