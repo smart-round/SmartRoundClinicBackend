@@ -10,6 +10,7 @@ data class AppointmentRes(
     val patientId: String,
     val doctorName: String? = null,
     val doctorProfilePicture: String? = null,
+    val doctorSpeciality: String? = null,
     val serviceTierId: String = "",
     val consultationDuration: Int = 0,
     val date: String,
@@ -63,12 +64,14 @@ fun Appointment.toAdminRes(doctorName: String?, doctorSpecialities: List<String>
 fun Appointment.toRes(
     doctorName: String? = null,
     doctorProfilePicture: String? = null,
+    doctorSpeciality: String? = null,
 ) = AppointmentRes(
     id = id,
     doctorId = doctorId,
     patientId = patientId,
     doctorName = doctorName,
     doctorProfilePicture = doctorProfilePicture,
+    doctorSpeciality = doctorSpeciality,
     serviceTierId = serviceTierId,
     consultationDuration = consultationDuration,
     date = date,
