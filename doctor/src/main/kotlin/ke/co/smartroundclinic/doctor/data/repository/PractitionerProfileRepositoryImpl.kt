@@ -5,6 +5,7 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import com.mongodb.client.model.ReturnDocument
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import kotlin.time.Clock
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctor.data.entity.PractitionerProfileEntity
@@ -55,7 +56,7 @@ class PractitionerProfileRepositoryImpl(
         update.yearsOfExperience?.let  { fields.add(Updates.set(PractitionerProfileEntity::yearsOfExperience.name, it)) }
         update.languages?.let          { fields.add(Updates.set(PractitionerProfileEntity::languages.name, it)) }
         update.facilityName?.let       { fields.add(Updates.set(PractitionerProfileEntity::facilityName.name, it)) }
-        fields.add(Updates.set(PractitionerProfileEntity::updatedAt.name, System.currentTimeMillis()))
+        fields.add(Updates.set(PractitionerProfileEntity::updatedAt.name, Clock.System.now().toString()))
 
         val updated = col.findOneAndUpdate(
             Filters.eq(PractitionerProfileEntity::doctorId.name, doctorId),
