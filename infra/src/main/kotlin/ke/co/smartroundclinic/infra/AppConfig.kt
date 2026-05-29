@@ -61,6 +61,11 @@ data class RealtimeKitConfig(
     val patientPreset: String = EnvLoader.get("CLOUDFLARE_RTK_PRESET_PATIENT") ?: "group_call_participant",
 )
 
+data class PaystackConfig(
+    val secretKey: String = require("PAYSTACK_TEST_SECRETE_KEY"),
+    val baseUrl: String = EnvLoader.get("PAYSTACK_BASE_URL") ?: "https://api.paystack.co",
+)
+
 object AppConfig {
     val mongo = MongoDBConfig()
     val resend = ResendConfig()
@@ -68,4 +73,5 @@ object AppConfig {
     val r2 = R2Config()
     val staticAssets = StaticAssetsConfig()
     val realtimeKit = RealtimeKitConfig()
+    val paystack = PaystackConfig()
 }

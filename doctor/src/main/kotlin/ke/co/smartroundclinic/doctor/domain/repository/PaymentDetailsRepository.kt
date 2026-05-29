@@ -11,5 +11,5 @@ interface PaymentDetailsRepository {
     suspend fun deletePaymentDetails(doctorId: String): Resource<Nothing>
     suspend fun getAllPaymentDetails(page: Int, size: Int): Resource<Pair<List<PractitionerPaymentDetailsEntity>, Long>>
     suspend fun getPaymentDetailsById(id: String): Resource<PractitionerPaymentDetailsEntity?>
-
+    suspend fun saveSubaccountCode(doctorId: String, code: String): Resource<Nothing>
 }
