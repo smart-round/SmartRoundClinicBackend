@@ -8,6 +8,8 @@ import ke.co.smartroundclinic.payments.data.remote.dto.request.CreatePaymentLink
 import ke.co.smartroundclinic.payments.data.remote.dto.response.PaymentLinkRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreateAppointmentPaymentLinkBody
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class CreateAppointmentPaymentLinkUseCase(
@@ -36,7 +38,8 @@ class CreateAppointmentPaymentLinkUseCase(
             )
         }
 
-        val title = "Appointment with Dr ${participants.doctorName} - ${participants.patientName}"
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm"))
+        val title = "Appointment with Dr ${participants.doctorName} - ${participants.patientName} $timestamp"
             .replace(Regex("[^a-zA-Z0-9_ \\-]"), " ")
             .replace(Regex(" {2,}"), " ")
             .trim()
@@ -48,7 +51,7 @@ class CreateAppointmentPaymentLinkUseCase(
                 title = title,
                 isActive = true,
                 redirectUrl = config.callbackUrl,
-                amount = participants.followUpFee,
+                amount = participants.followUpFee.toInt(),
                 usageLimit = 5,
                 currency = "KES",
                 mobileTarrif = config.mobileTarrif,

@@ -19,7 +19,7 @@ class CreatePaymentLinkUseCase(
                 title = "SmartRound Clinic Payment",
                 isActive = body.isActive,
                 redirectUrl = config.callbackUrl,
-                amount = body.amount,
+                amount = body.amount?.toInt(),
                 usageLimit = 5,
                 currency = body.currency,
                 mobileTarrif = config.mobileTarrif,
