@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
 data class CreatePaymentLinkBody(
     @SerialName("is_active") val isActive: Boolean? = null,
     val amount: Double? = null,
-    @SerialName("usage_limit") val usageLimit: Int? = null,
     val currency: String? = null,
 )
 

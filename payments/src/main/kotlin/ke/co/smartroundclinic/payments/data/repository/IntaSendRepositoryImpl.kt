@@ -35,13 +35,19 @@ class IntaSendRepositoryImpl(
         contentType(ContentType.Application.Json)
     }
 
+    /** Turns a relative IntaSend path like /pay/{id}/ into a full URL. */
+    private fun PaymentLinkRes.withFullUrl() = url?.let { u ->
+        if (u.startsWith("http")) this else copy(url = "${config.intaSendHost}$u")
+    } ?: this
+
     override suspend fun listPaymentLinks(page: Int): Resource<PaginatedPaymentLinksRes> = try {
         val response = http.get("${config.baseUrl}/paymentlinks/") {
             auth()
             parameter("page", page)
         }
         if (response.status.isSuccess()) {
-            Resource.Success(response.body(), "Payment links fetched successfully")
+            val body = response.body<PaginatedPaymentLinksRes>()
+            Resource.Success(body.copy(results = body.results.map { it.withFullUrl() }), "Payment links fetched successfully")
         } else {
             val error = response.body<IntaSendErrorRes>()
             log.warn("listPaymentLinks page=$page — IntaSend error: ${error.message()}")
@@ -58,7 +64,7 @@ class IntaSendRepositoryImpl(
             setBody(body)
         }
         if (response.status.isSuccess()) {
-            Resource.Success(response.body(), "Payment link created successfully")
+            Resource.Success(response.body<PaymentLinkRes>().withFullUrl(), "Payment link created successfully")
         } else {
             val error = response.body<IntaSendErrorRes>()
             log.warn("createPaymentLink title=${body.title} — IntaSend error: ${error.message()}")
@@ -74,7 +80,7 @@ class IntaSendRepositoryImpl(
             auth()
         }
         if (response.status.isSuccess()) {
-            Resource.Success(response.body(), "Payment link fetched successfully")
+            Resource.Success(response.body<PaymentLinkRes>().withFullUrl(), "Payment link fetched successfully")
         } else {
             val error = response.body<IntaSendErrorRes>()
             log.warn("getPaymentLink($id) — IntaSend error: ${error.message()}")
@@ -91,7 +97,7 @@ class IntaSendRepositoryImpl(
             setBody(body)
         }
         if (response.status.isSuccess()) {
-            Resource.Success(response.body(), "Payment link updated successfully")
+            Resource.Success(response.body<PaymentLinkRes>().withFullUrl(), "Payment link updated successfully")
         } else {
             val error = response.body<IntaSendErrorRes>()
             log.warn("updatePaymentLink($id) — IntaSend error: ${error.message()}")

@@ -20,7 +20,7 @@ class CreatePaymentLinkUseCase(
                 isActive = body.isActive,
                 redirectUrl = config.callbackUrl,
                 amount = body.amount,
-                usageLimit = body.usageLimit,
+                usageLimit = 5,
                 currency = body.currency,
                 mobileTarrif = config.mobileTarrif,
                 cardTarrif = config.cardTarrif,
