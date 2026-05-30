@@ -26,7 +26,7 @@ private data class UserDoc(
 @Serializable
 private data class ServiceTierDoc(
     val id: String,
-    val followUpFee: Long? = null,
+    val followUpFee: Double? = null,
 )
 
 // ── Public result type ─────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ data class AppointmentParticipants(
     val patientId: String,
     val doctorName: String,
     val patientName: String,
-    val followUpFee: Long,
+    val followUpFee: Double,
 )
 
 // ── Lookup ─────────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ class AppointmentInfoLookup(
         val followUpFee = appointment.serviceTierId?.let { tierId ->
             serviceTiers.find(Filters.eq("id", tierId)).firstOrNull()?.followUpFee
                 .also { if (it == null) log.warn("followUpFee missing on service tier id=$tierId") }
-        } ?: 0L
+        } ?: 0.0
 
         return AppointmentParticipants(
             doctorId = appointment.doctorId,

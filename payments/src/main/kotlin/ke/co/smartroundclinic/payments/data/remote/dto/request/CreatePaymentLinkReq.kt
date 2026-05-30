@@ -9,7 +9,7 @@ data class CreatePaymentLinkReq(
     val title: String,
     @SerialName("is_active") val isActive: Boolean? = null,
     @SerialName("redirect_url") val redirectUrl: String? = null,
-    val amount: Int? = null,
+    val amount: Double? = null,
     @SerialName("usage_limit") val usageLimit: Int? = null,
     val currency: String? = null,
     @SerialName("mobile_tarrif") val mobileTarrif: String? = null,
