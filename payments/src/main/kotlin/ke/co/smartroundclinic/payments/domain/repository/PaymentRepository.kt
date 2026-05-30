@@ -10,5 +10,5 @@ interface PaymentRepository {
     suspend fun getByPatientId(patientId: String, page: Int, size: Int): Resource<Pair<List<PaymentEntity>, Long>>
     suspend fun getByDoctorId(doctorId: String, page: Int, size: Int): Resource<Pair<List<PaymentEntity>, Long>>
     suspend fun getAll(page: Int, size: Int, status: String?): Resource<Pair<List<PaymentEntity>, Long>>
-    suspend fun updateStatus(id: String, status: String, transactionRef: String?): Resource<PaymentEntity?>
+    suspend fun updateStatus(id: String, status: String, transactionRef: String?, paymentMethod: String? = null): Resource<PaymentEntity?>
 }

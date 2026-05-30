@@ -77,12 +77,13 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
         Resource.Error(e.message ?: "Failed to fetch payments")
     }
 
-    override suspend fun updateStatus(id: String, status: String, transactionRef: String?): Resource<PaymentEntity?> = try {
+    override suspend fun updateStatus(id: String, status: String, transactionRef: String?, paymentMethod: String?): Resource<PaymentEntity?> = try {
         val updates = mutableListOf(
             Updates.set(PaymentEntity::status.name, status.uppercase()),
             Updates.set(PaymentEntity::updatedAt.name, Clock.System.now().toString()),
         )
         if (transactionRef != null) updates.add(Updates.set(PaymentEntity::transactionRef.name, transactionRef))
+        if (paymentMethod != null) updates.add(Updates.set(PaymentEntity::paymentMethod.name, paymentMethod))
         val updated = col.findOneAndUpdate(
             Filters.eq(PaymentEntity::id.name, id),
             Updates.combine(updates),

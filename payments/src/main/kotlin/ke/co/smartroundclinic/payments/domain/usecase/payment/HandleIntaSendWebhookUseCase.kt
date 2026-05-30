@@ -46,6 +46,7 @@ class HandleIntaSendWebhookUseCase(
                     id = existing.id,
                     status = PaymentEntity.PaymentStatus.COMPLETED.name,
                     transactionRef = payload.mpesaReference ?: invoiceId,
+                    paymentMethod = payload.provider,
                 )
                 log.info("Payment COMPLETED for appointmentId=$appointmentId invoiceId=$invoiceId mpesaRef=${payload.mpesaReference}")
             }
