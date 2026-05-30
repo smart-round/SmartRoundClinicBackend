@@ -34,7 +34,7 @@ private const val ADMIN = "ADMIN"
 private const val DOCTOR = "DOCTOR"
 private const val PATIENT = "PATIENT"
 
-fun Route.intaSendController(service: IntaSendService) {
+fun Route.intaSendController(service: IntaSendService, webhookChallenge: String) {
 
     // ── Unauthenticated callback endpoints ────────────────────────────────────
 
@@ -50,12 +50,20 @@ fun Route.intaSendController(service: IntaSendService) {
                 webhookGson.fromJson(raw, IntaSendCallbackPayload::class.java)
             }.getOrNull()
 
-            if (payload != null) {
-                runCatching { service.handleWebhook(payload) }
-                    .onFailure { log.error("Webhook handler failed — ${it.message}", it) }
-            } else {
+            if (payload == null) {
                 log.warn("IntaSend webhook could not be parsed — raw=$raw")
+                call.respond(HttpStatusCode.OK)
+                return@post
             }
+
+            if (payload.challenge != webhookChallenge) {
+                log.warn("IntaSend webhook rejected — challenge mismatch (received=${payload.challenge})")
+                call.respond(HttpStatusCode.OK)
+                return@post
+            }
+
+            runCatching { service.handleWebhook(payload) }
+                .onFailure { log.error("Webhook handler failed — ${it.message}", it) }
 
             call.respond(HttpStatusCode.OK)
         }

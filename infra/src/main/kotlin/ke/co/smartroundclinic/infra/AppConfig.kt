@@ -68,6 +68,7 @@ data class IntaSendConfig(
     val callBackBaseUrl: String = require("CALLBACK_URL"),
     val mobileTarrif: String = EnvLoader.get("INTASEND_MOBILE_TARRIF") ?: "CUSTOMER-PAYS",
     val cardTarrif: String = EnvLoader.get("INTASEND_CARD_TARRIF") ?: "CUSTOMER-PAYS",
+    val webhookChallenge: String = require("INTASEND_WEBHOOK_CHALLENGE"),
 ) {
     val callbackUrl: String get() = "$callBackBaseUrl/payments/intasend/callback"
     /** IntaSend host used to turn relative payment page paths into full URLs. */

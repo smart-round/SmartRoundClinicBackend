@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.payments
 
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
+import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.domain.service.PaymentService
 import ke.co.smartroundclinic.payments.presentation.controller.doctorPaymentsController
@@ -15,7 +16,7 @@ fun Application.paymentsModule() {
     val intaSendService: IntaSendService by inject()
     routing {
         paymentController(paymentService)
-        intaSendController(intaSendService)
+        intaSendController(intaSendService, AppConfig.intaSend.webhookChallenge)
         doctorPaymentsController(paymentService)
         patientPaymentsController(paymentService)
     }
