@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.payments.domain.usecase.paymentlink
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.IntaSendConfig
 import ke.co.smartroundclinic.payments.data.entity.PaymentEntity
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
@@ -41,6 +42,16 @@ class CreateAppointmentPaymentLinkUseCase(
                 httpStatusCode = HttpStatusCode.Forbidden.value,
                 status = false,
                 message = "You are not authorized to create a payment link for this appointment",
+                data = null,
+            )
+        }
+
+        val existingPayment = (paymentRepository.getByAppointmentId(body.appointmentId) as? Resource.Success)?.data
+        if (existingPayment?.status == PaymentEntity.PaymentStatus.COMPLETED) {
+            return DefaultResponse(
+                httpStatusCode = HttpStatusCode.Conflict.value,
+                status = false,
+                message = "This appointment has already been paid for",
                 data = null,
             )
         }
