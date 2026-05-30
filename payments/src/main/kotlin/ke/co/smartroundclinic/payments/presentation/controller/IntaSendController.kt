@@ -1,5 +1,7 @@
 package ke.co.smartroundclinic.payments.presentation.controller
 
+import com.google.gson.FieldNamingPolicy
+import com.google.gson.GsonBuilder
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
@@ -22,6 +24,12 @@ import org.slf4j.LoggerFactory
 
 private val log = LoggerFactory.getLogger("IntaSendController")
 
+// Gson with snake_case → camelCase mapping to deserialize IntaSend's webhook body
+private val webhookGson = GsonBuilder()
+    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+    .serializeNulls()
+    .create()
+
 private const val ADMIN = "ADMIN"
 private const val DOCTOR = "DOCTOR"
 private const val PATIENT = "PATIENT"
@@ -32,22 +40,23 @@ fun Route.intaSendController(service: IntaSendService) {
 
     route("/payments/intasend/callback") {
 
-        // POST — IntaSend webhook: server-to-server notification after payment
+        // POST — IntaSend webhook: server-to-server notification after payment.
+        // Read body ONCE as raw text, then parse with Gson (server uses Gson, not kotlinx).
         post {
             val raw = call.receiveText()
             log.info("IntaSend webhook received: $raw")
-            runCatching {
-                call.receive<IntaSendCallbackPayload>().also { payload ->
-                    log.info(
-                        "IntaSend callback parsed — invoiceId=${payload.invoiceId} " +
-                        "state=${payload.state} value=${payload.value} " +
-                        "currency=${payload.currency} account=${payload.account} " +
-                        "mpesaRef=${payload.mpesaReference} apiRef=${payload.apiRef}"
-                    )
-                }
-            }.onFailure {
-                log.warn("IntaSend callback body could not be parsed as known payload — raw=$raw")
+
+            val payload = runCatching {
+                webhookGson.fromJson(raw, IntaSendCallbackPayload::class.java)
+            }.getOrNull()
+
+            if (payload != null) {
+                runCatching { service.handleWebhook(payload) }
+                    .onFailure { log.error("Webhook handler failed — ${it.message}", it) }
+            } else {
+                log.warn("IntaSend webhook could not be parsed — raw=$raw")
             }
+
             call.respond(HttpStatusCode.OK)
         }
 
@@ -55,7 +64,7 @@ fun Route.intaSendController(service: IntaSendService) {
         get {
             val params = call.request.queryParameters.entries()
                 .joinToString(", ") { (k, v) -> "$k=${v.joinToString(",")}" }
-            log.info("IntaSend redirect callback received — params: $params")
+            log.info("IntaSend redirect callback — params: $params")
             call.respond(HttpStatusCode.OK)
         }
     }
@@ -64,9 +73,10 @@ fun Route.intaSendController(service: IntaSendService) {
 
     authenticate("auth-jwt") {
 
-        // POST /payments/intasend/appointments — Patient creates a payment link for their appointment.
-        // Title and link ID are auto-filled; the response includes `data.url` — the IntaSend
-        // payment page the patient opens to complete the payment.
+        // POST /payments/intasend/appointments
+        // Patient creates a payment link for their appointment.
+        // Title, ID, amount, and currency are all auto-filled.
+        // Response includes data.url — the IntaSend payment page the patient uses.
         post("/payments/intasend/appointments") {
             call.requireRole(PATIENT) {
                 val patientId = call.getUserId() ?: return@requireRole
@@ -78,7 +88,7 @@ fun Route.intaSendController(service: IntaSendService) {
 
         route("/payments/intasend/links") {
 
-            // POST /payments/intasend/links — create a new payment link (ADMIN)
+            // POST /payments/intasend/links — admin creates a generic payment link
             post {
                 call.requireRole(ADMIN) {
                     val body = call.receive<CreatePaymentLinkBody>()
@@ -87,7 +97,7 @@ fun Route.intaSendController(service: IntaSendService) {
                 }
             }
 
-            // GET /payments/intasend/links?page=1 — list all payment links (ADMIN)
+            // GET /payments/intasend/links?page=1
             get {
                 call.requireRole(ADMIN) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
@@ -96,7 +106,7 @@ fun Route.intaSendController(service: IntaSendService) {
                 }
             }
 
-            // GET /payments/intasend/links/{id} — retrieve a single payment link
+            // GET /payments/intasend/links/{id}
             get("{id}") {
                 call.requireRole(ADMIN, DOCTOR) {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
@@ -105,7 +115,7 @@ fun Route.intaSendController(service: IntaSendService) {
                 }
             }
 
-            // PUT /payments/intasend/links/{id} — update a payment link (ADMIN)
+            // PUT /payments/intasend/links/{id}
             put("{id}") {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id is required")

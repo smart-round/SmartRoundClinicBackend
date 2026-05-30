@@ -37,7 +37,7 @@ class IntaSendRepositoryImpl(
 
     /** Turns a relative IntaSend path like /pay/{id}/ into a full URL. */
     private fun PaymentLinkRes.withFullUrl() = url?.let { u ->
-        if (u.startsWith("http")) this else copy(url = "${config.intaSendHost}$u")
+        if (u.startsWith("http")) this else copy(url = "${config.paymentBaseUrl}$u")
     } ?: this
 
     override suspend fun listPaymentLinks(page: Int): Resource<PaginatedPaymentLinksRes> = try {

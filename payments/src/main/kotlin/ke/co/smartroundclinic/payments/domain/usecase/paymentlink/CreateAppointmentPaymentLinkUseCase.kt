@@ -3,20 +3,27 @@ package ke.co.smartroundclinic.payments.domain.usecase.paymentlink
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.infra.IntaSendConfig
+import ke.co.smartroundclinic.payments.data.entity.PaymentEntity
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.remote.dto.request.CreatePaymentLinkReq
 import ke.co.smartroundclinic.payments.data.remote.dto.response.PaymentLinkRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
+import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreateAppointmentPaymentLinkBody
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.time.Clock
 
 class CreateAppointmentPaymentLinkUseCase(
     private val repository: IntaSendRepository,
+    private val paymentRepository: PaymentRepository,
     private val config: IntaSendConfig,
     private val lookup: AppointmentInfoLookup,
 ) {
+    private val log = LoggerFactory.getLogger(CreateAppointmentPaymentLinkUseCase::class.java)
+
     suspend operator fun invoke(
         body: CreateAppointmentPaymentLinkBody,
         requestingPatientId: String,
@@ -45,19 +52,43 @@ class CreateAppointmentPaymentLinkUseCase(
             .trim()
             .take(140)
 
-        return repository.createPaymentLink(
+        val amount = participants.tierPrice.toInt()
+
+        val result = repository.createPaymentLink(
             CreatePaymentLinkReq(
                 id = UUID.randomUUID().toString(),
+                apiRef = body.appointmentId,
                 title = title,
                 isActive = true,
                 redirectUrl = config.callbackUrl,
-                amount = participants.followUpFee.toInt(),
+                amount = amount,
                 usageLimit = 5,
                 currency = "KES",
                 mobileTarrif = config.mobileTarrif,
                 cardTarrif = config.cardTarrif,
             )
-        ).toDefaultResponse(
+        )
+
+        if (result is ke.co.smartroundclinic.common.Resource.Success) {
+            runCatching {
+                paymentRepository.save(
+                    PaymentEntity(
+                        id = UUID.randomUUID().toString(),
+                        appointmentId = body.appointmentId,
+                        patientId = participants.patientId,
+                        doctorId = participants.doctorId,
+                        amount = amount.toDouble(),
+                        currency = "KES",
+                        status = PaymentEntity.PaymentStatus.PENDING,
+                        paymentMethod = "M-PESA",
+                        transactionRef = result.data?.id,
+                        createdAt = Clock.System.now().toString(),
+                    )
+                )
+            }.onFailure { log.error("Failed to save payment entity for appointmentId=${body.appointmentId} — ${it.message}", it) }
+        }
+
+        return result.toDefaultResponse(
             successStatusCode = HttpStatusCode.Created.value,
             failedStatusCode = HttpStatusCode.BadGateway.value,
         ) { it }

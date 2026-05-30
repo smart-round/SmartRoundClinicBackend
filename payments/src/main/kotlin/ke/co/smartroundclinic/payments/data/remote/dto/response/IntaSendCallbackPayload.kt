@@ -1,18 +1,31 @@
 package ke.co.smartroundclinic.payments.data.remote.dto.response
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+data class CardInfo(
+    val binCountry: String? = null,
+    val cardType: String? = null,
+)
 
-@Serializable
 data class IntaSendCallbackPayload(
-    @SerialName("invoice_id") val invoiceId: String? = null,
+    val invoiceId: String? = null,
     val state: String? = null,
+    val provider: String? = null,
+    val charges: String? = null,
+    val netAmount: String? = null,
+    val currency: String? = null,
     val value: String? = null,
     val account: String? = null,
-    @SerialName("api_ref") val apiRef: String? = null,
-    @SerialName("mpesa_reference") val mpesaReference: String? = null,
-    val currency: String? = null,
-    @SerialName("created_at") val createdAt: String? = null,
-    val charges: String? = null,
-    @SerialName("net_amount") val netAmount: String? = null,
+    val apiRef: String? = null,
+    val providerRef: String? = null,
+    val clearingStatus: String? = null,
+    val mpesaReference: String? = null,
+    val host: String? = null,
+    val cardInfo: CardInfo? = null,
+    val retryCount: Double? = null,
+    val failedReason: String? = null,
+    val failedCode: String? = null,
+    val failedCodeLink: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val challenge: String? = null,
+    val topic: String? = null,
 )

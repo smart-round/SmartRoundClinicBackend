@@ -1,5 +1,7 @@
 package ke.co.smartroundclinic.payments.domain.service
 
+import ke.co.smartroundclinic.payments.data.remote.dto.response.IntaSendCallbackPayload
+import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreateAppointmentPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
@@ -15,6 +17,7 @@ class IntaSendService(
     private val getUseCase: GetPaymentLinkUseCase,
     private val updateUseCase: UpdatePaymentLinkUseCase,
     private val createForAppointmentUseCase: CreateAppointmentPaymentLinkUseCase,
+    private val handleWebhookUseCase: HandleIntaSendWebhookUseCase,
 ) {
     suspend fun create(body: CreatePaymentLinkBody) = createUseCase(body)
     suspend fun list(page: Int) = listUseCase(page)
@@ -22,4 +25,5 @@ class IntaSendService(
     suspend fun update(id: String, body: UpdatePaymentLinkBody) = updateUseCase(id, body)
     suspend fun createForAppointment(body: CreateAppointmentPaymentLinkBody, patientId: String) =
         createForAppointmentUseCase(body, patientId)
+    suspend fun handleWebhook(payload: IntaSendCallbackPayload) = handleWebhookUseCase(payload)
 }

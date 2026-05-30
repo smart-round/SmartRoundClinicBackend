@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CreatePaymentLinkReq(
     val id: String? = null,
+    @SerialName("api_ref") val apiRef: String? = null,
     val title: String,
     @SerialName("is_active") val isActive: Boolean? = null,
     @SerialName("redirect_url") val redirectUrl: String? = null,

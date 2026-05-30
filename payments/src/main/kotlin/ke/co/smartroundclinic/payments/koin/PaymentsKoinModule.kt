@@ -15,6 +15,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByDoctorUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreateAppointmentPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
@@ -43,6 +44,7 @@ val paymentsKoinModule = module {
     single { ListPaymentLinksUseCase(get()) }
     single { GetPaymentLinkUseCase(get()) }
     single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
-    single { CreateAppointmentPaymentLinkUseCase(get(), AppConfig.intaSend, get()) }
-    single { IntaSendService(get(), get(), get(), get(), get()) }
+    single { CreateAppointmentPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
+    single { HandleIntaSendWebhookUseCase(get()) }
+    single { IntaSendService(get(), get(), get(), get(), get(), get()) }
 }
