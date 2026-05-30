@@ -22,7 +22,9 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
 
     override suspend fun save(entity: PaymentEntity): Resource<PaymentEntity> = try {
         val existing = col.find(Filters.eq(PaymentEntity::appointmentId.name, entity.appointmentId)).firstOrNull()
-        if (existing != null) return Resource.Error("A payment for this appointment already exists")
+        if (existing != null && existing.status == PaymentEntity.PaymentStatus.COMPLETED) {
+            return Resource.Error("A completed payment for this appointment already exists")
+        }
         col.insertOne(entity)
         log.info("Payment created id=${entity.id} appointmentId=${entity.appointmentId}")
         Resource.Success(entity, "Payment initiated successfully")

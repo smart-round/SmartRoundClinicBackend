@@ -3,8 +3,10 @@ package ke.co.smartroundclinic.payments.koin
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.repository.IntaSendRepositoryImpl
+import ke.co.smartroundclinic.payments.data.repository.PaymentLogRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentRepositoryImpl
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
+import ke.co.smartroundclinic.payments.domain.repository.PaymentLogRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.domain.service.PaymentService
@@ -26,6 +28,7 @@ import org.koin.dsl.module
 
 val paymentsKoinModule = module {
     single<PaymentRepository> { PaymentRepositoryImpl(get(named("paymentsDb"))) }
+    single<PaymentLogRepository> { PaymentLogRepositoryImpl(get(named("paymentsDb"))) }
     single<IntaSendRepository> { IntaSendRepositoryImpl(get(), AppConfig.intaSend) }
 
     // General payment use cases
@@ -45,6 +48,6 @@ val paymentsKoinModule = module {
     single { GetPaymentLinkUseCase(get()) }
     single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { CreateAppointmentPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
-    single { HandleIntaSendWebhookUseCase(get()) }
+    single { HandleIntaSendWebhookUseCase(get(), get()) }
     single { IntaSendService(get(), get(), get(), get(), get(), get()) }
 }

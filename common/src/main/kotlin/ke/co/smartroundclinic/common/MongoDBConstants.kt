@@ -84,5 +84,6 @@ object MongoDBConstants {
      */
     const val PAYMENTS_DB = "src_payments"
     const val PAYMENTS = "payments"
+    const val PAYMENT_LOGS = "payment_logs"
 
 }
