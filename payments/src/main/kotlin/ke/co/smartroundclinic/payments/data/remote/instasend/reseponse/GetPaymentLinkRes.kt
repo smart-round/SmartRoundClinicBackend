@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class GetPaymentLink(
+data class GetPaymentLinkRes(
     @SerialName("amount")
     val amount: Int,
     @SerialName("card_tarrif")
@@ -23,7 +23,7 @@ data class GetPaymentLink(
     @SerialName("qrcode_file")
     val qrcodeFile: String,
     @SerialName("redirect_url")
-    val redirectUrl: Any?,
+    val redirectUrl: String? = null,
     @SerialName("title")
     val title: String,
     @SerialName("updated_at")

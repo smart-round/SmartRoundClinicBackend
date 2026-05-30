@@ -65,6 +65,8 @@ data class IntaSendConfig(
     val secretKey: String = require("INTASEND_SECRET_KEY"),
     val baseUrl: String = EnvLoader.get("INTASEND_BASE_URL") ?: "https://api.intasend.com/api/v1",
     val paymentBaseUrl: String = require("INTASEND_PAYMENT_BASE_URL"),
+    val mobileTarrif: String = EnvLoader.get("INTASEND_MOBILE_TARRIF") ?: "BUSINESS-PAYS",
+    val cardTarrif: String = EnvLoader.get("INTASEND_CARD_TARRIF") ?: "BUSINESS-PAYS",
 ) {
     val callbackUrl: String get() = "$paymentBaseUrl/payments/intasend/callback"
 }

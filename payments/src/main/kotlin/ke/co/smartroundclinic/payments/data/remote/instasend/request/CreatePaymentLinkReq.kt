@@ -9,7 +9,7 @@ data class CreatePaymentLinkReq(
     @SerialName("amount")
     val amount: Int,
     @SerialName("card_tarrif")
-    val cardTarrif: String,
+    val cardTarrif: CardTarrif = CardTarrif.BUSINESS_PAYS,
     @SerialName("currency")
     val currency: String,
     @SerialName("id")
@@ -17,7 +17,7 @@ data class CreatePaymentLinkReq(
     @SerialName("is_active")
     val isActive: Boolean,
     @SerialName("mobile_tarrif")
-    val mobileTarrif: String,
+    val mobileTarrif: MobileTarrif = MobileTarrif.CUSTOMER_PAYS,
     @SerialName("redirect_url")
     val redirectUrl: String,
     @SerialName("title")
@@ -25,3 +25,13 @@ data class CreatePaymentLinkReq(
     @SerialName("usage_limit")
     val usageLimit: Int
 )
+
+enum class MobileTarrif(val value: String) {
+    CUSTOMER_PAYS("CUSTOMER-PAYS"),
+    BUSINESS_PAYS("BUSINESS-PAYS"),
+}
+
+enum class CardTarrif(val value: String) {
+    CUSTOMER_PAYS("CUSTOMER-PAYS"),
+    BUSINESS_PAYS("BUSINESS-PAYS"),
+}

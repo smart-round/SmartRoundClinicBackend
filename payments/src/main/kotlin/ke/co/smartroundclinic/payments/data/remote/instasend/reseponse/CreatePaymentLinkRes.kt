@@ -23,7 +23,7 @@ data class CreatePaymentLinkRes(
     @SerialName("qrcode_file")
     val qrcodeFile: String,
     @SerialName("redirect_url")
-    val redirectUrl: Any?,
+    val redirectUrl: String?,
     @SerialName("title")
     val title: String,
     @SerialName("updated_at")

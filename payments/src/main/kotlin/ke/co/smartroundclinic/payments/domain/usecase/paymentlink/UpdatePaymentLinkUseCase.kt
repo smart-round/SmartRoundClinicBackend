@@ -22,8 +22,8 @@ class UpdatePaymentLinkUseCase(
                 amount = body.amount,
                 usageLimit = body.usageLimit,
                 currency = body.currency,
-                mobileTarrif = body.mobileTarrif,
-                cardTarrif = body.cardTarrif,
+                mobileTarrif = config.mobileTarrif,
+                cardTarrif = config.cardTarrif,
             )
         ).toDefaultResponse(
             failedStatusCode = HttpStatusCode.BadGateway.value,

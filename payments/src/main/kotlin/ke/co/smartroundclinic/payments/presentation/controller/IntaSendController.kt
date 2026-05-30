@@ -11,9 +11,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
+import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
 import ke.co.smartroundclinic.payments.data.remote.dto.response.IntaSendCallbackPayload
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
+import ke.co.smartroundclinic.payments.presentation.dto.request.CreateAppointmentPaymentLinkBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreatePaymentLinkBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.UpdatePaymentLinkBody
 import org.slf4j.LoggerFactory
@@ -22,6 +24,7 @@ private val log = LoggerFactory.getLogger("IntaSendController")
 
 private const val ADMIN = "ADMIN"
 private const val DOCTOR = "DOCTOR"
+private const val PATIENT = "PATIENT"
 
 fun Route.intaSendController(service: IntaSendService) {
 
@@ -60,6 +63,19 @@ fun Route.intaSendController(service: IntaSendService) {
     // ── Authenticated payment-link management ─────────────────────────────────
 
     authenticate("auth-jwt") {
+
+        // POST /payments/intasend/appointments — Patient creates a payment link for their appointment.
+        // Title and link ID are auto-filled; the response includes `data.url` — the IntaSend
+        // payment page the patient opens to complete the payment.
+        post("/payments/intasend/appointments") {
+            call.requireRole(PATIENT) {
+                val patientId = call.getUserId() ?: return@requireRole
+                val body = call.receive<CreateAppointmentPaymentLinkBody>()
+                val result = service.createForAppointment(body, patientId)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
         route("/payments/intasend/links") {
 
             // POST /payments/intasend/links — create a new payment link (ADMIN)

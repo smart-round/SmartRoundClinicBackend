@@ -10,8 +10,6 @@ data class CreatePaymentLinkBody(
     val amount: Int? = null,
     @SerialName("usage_limit") val usageLimit: Int? = null,
     val currency: String? = null,
-    @SerialName("mobile_tarrif") val mobileTarrif: String? = null,
-    @SerialName("card_tarrif") val cardTarrif: String? = null,
 )
 
 @Serializable
@@ -21,6 +19,12 @@ data class UpdatePaymentLinkBody(
     val amount: Int? = null,
     @SerialName("usage_limit") val usageLimit: Int? = null,
     val currency: String? = null,
-    @SerialName("mobile_tarrif") val mobileTarrif: String? = null,
-    @SerialName("card_tarrif") val cardTarrif: String? = null,
+)
+
+/** Patient-facing: create a payment link for their appointment. Title and ID are auto-filled. */
+@Serializable
+data class CreateAppointmentPaymentLinkBody(
+    val appointmentId: String,
+    val amount: Int? = null,
+    val currency: String? = null,
 )

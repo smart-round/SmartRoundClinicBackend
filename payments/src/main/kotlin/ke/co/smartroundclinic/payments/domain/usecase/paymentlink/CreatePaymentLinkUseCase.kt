@@ -21,8 +21,8 @@ class CreatePaymentLinkUseCase(
                 amount = body.amount,
                 usageLimit = body.usageLimit,
                 currency = body.currency,
-                mobileTarrif = body.mobileTarrif,
-                cardTarrif = body.cardTarrif,
+                mobileTarrif = config.mobileTarrif,
+                cardTarrif = config.cardTarrif,
             )
         ).toDefaultResponse(
             successStatusCode = HttpStatusCode.Created.value,

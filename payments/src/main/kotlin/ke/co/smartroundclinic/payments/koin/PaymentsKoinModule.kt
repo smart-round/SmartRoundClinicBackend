@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.payments.koin
 
 import ke.co.smartroundclinic.infra.AppConfig
+import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.repository.IntaSendRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentRepositoryImpl
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
@@ -14,6 +15,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByDoctorUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreateAppointmentPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.ListPaymentLinksUseCase
@@ -36,9 +38,11 @@ val paymentsKoinModule = module {
     single { PaymentService(get(), get(), get(), get(), get(), get(), get()) }
 
     // IntaSend payment-link use cases
+    single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb"))) }
     single { CreatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { ListPaymentLinksUseCase(get()) }
     single { GetPaymentLinkUseCase(get()) }
     single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
-    single { IntaSendService(get(), get(), get(), get()) }
+    single { CreateAppointmentPaymentLinkUseCase(get(), AppConfig.intaSend, get()) }
+    single { IntaSendService(get(), get(), get(), get(), get()) }
 }
