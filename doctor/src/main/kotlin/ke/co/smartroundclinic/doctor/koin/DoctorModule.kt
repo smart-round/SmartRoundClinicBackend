@@ -73,7 +73,6 @@ import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBankByCodeUseC
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBanksByBranchCodeUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.GetAllLocalBanksUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.SearchLocalBanksByNameUseCase
-import ke.co.smartroundclinic.common.AccountResolver
 import ke.co.smartroundclinic.common.DoctorOnboardingHandler
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ComplianceCheckUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ToggleMonetizationUseCase
@@ -130,7 +129,7 @@ val doctorModule = module {
     /**
      * Compliance
      * */
-    single { ApproveComplianceUseCase(get(), get(), get(), get(), getOrNull(), getOrNull(), getOrNull<AccountResolver>()) }
+    single { ApproveComplianceUseCase(get(), get(), get(), getOrNull()) }
     single { GetAllComplianceUseCase(get(), get()) }
     single { GetComplianceByIdUseCase(get(), get()) }
     single { GetMyComplianceStatusUseCase(get()) }
@@ -151,9 +150,9 @@ val doctorModule = module {
     /**
      * Payment Details
      * */
-    single { AddPaymentDetailsUseCase(get(), getOrNull<AccountResolver>()) }
+    single { AddPaymentDetailsUseCase(get()) }
     single { GetPaymentDetailsUseCase(get()) }
-    single { UpdatePaymentDetailsUseCase(get(), getOrNull(), getOrNull<AccountResolver>()) }
+    single { UpdatePaymentDetailsUseCase(get()) }
     single { DeletePaymentDetailsUseCase(get()) }
     single { GetAllPaymentDetailsUseCase(get()) }
     single { GetPaymentDetailsByIdUseCase(get()) }

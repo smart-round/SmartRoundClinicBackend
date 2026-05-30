@@ -105,16 +105,4 @@ class PaymentDetailsRepositoryImpl(database: MongoDatabase) : PaymentDetailsRepo
         log.error("Failed to fetch payment details id=$id — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to fetch payment details")
     }
-
-    override suspend fun saveSubaccountCode(doctorId: String, code: String): Resource<Nothing> = try {
-        col.updateOne(
-            Filters.eq(PractitionerPaymentDetailsEntity::doctorId.name, doctorId),
-            Updates.set(PractitionerPaymentDetailsEntity::paystackSubaccountCode.name, code),
-        )
-        log.info("Paystack subaccount code saved for doctorId=$doctorId")
-        Resource.Success(null)
-    } catch (e: Exception) {
-        log.error("Failed to save subaccount code for doctorId=$doctorId — ${e.message}", e)
-        Resource.Error(e.message ?: "Failed to save subaccount code")
-    }
 }

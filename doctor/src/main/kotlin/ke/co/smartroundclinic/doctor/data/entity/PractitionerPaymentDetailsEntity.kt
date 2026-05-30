@@ -13,7 +13,6 @@ data class PractitionerPaymentDetailsEntity(
     val branchCode: String,
     val accountNumber: String,
     val accountName: String,
-    val paystackSubaccountCode: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
