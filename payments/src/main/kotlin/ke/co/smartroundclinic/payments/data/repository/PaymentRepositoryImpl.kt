@@ -77,6 +77,44 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
         Resource.Error(e.message ?: "Failed to fetch payments")
     }
 
+    override suspend fun getByTransactionRef(transactionRef: String): Resource<PaymentEntity?> = try {
+        Resource.Success(col.find(Filters.eq(PaymentEntity::transactionRef.name, transactionRef)).firstOrNull())
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch payment")
+    }
+
+    override suspend fun updateFromWebhook(
+        id: String,
+        status: String,
+        invoiceId: String?,
+        mpesaReference: String?,
+        charges: String?,
+        netAmount: String?,
+        account: String?,
+        paymentMethod: String?,
+    ): Resource<PaymentEntity?> = try {
+        val updates = mutableListOf(
+            Updates.set(PaymentEntity::status.name, status.uppercase()),
+            Updates.set(PaymentEntity::updatedAt.name, Clock.System.now().toString()),
+        )
+        invoiceId?.let     { updates.add(Updates.set(PaymentEntity::invoiceId.name, it)) }
+        mpesaReference?.let { updates.add(Updates.set(PaymentEntity::mpesaReference.name, it)) }
+        charges?.let        { updates.add(Updates.set(PaymentEntity::charges.name, it)) }
+        netAmount?.let      { updates.add(Updates.set(PaymentEntity::netAmount.name, it)) }
+        account?.let        { updates.add(Updates.set(PaymentEntity::account.name, it)) }
+        paymentMethod?.let  { updates.add(Updates.set(PaymentEntity::paymentMethod.name, it)) }
+        val updated = col.findOneAndUpdate(
+            Filters.eq(PaymentEntity::id.name, id),
+            Updates.combine(updates),
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
+        ) ?: return Resource.Error("Payment not found")
+        log.info("Payment id=$id updated from webhook — status=$status invoiceId=$invoiceId mpesaRef=$mpesaReference")
+        Resource.Success(updated)
+    } catch (e: Exception) {
+        log.error("Failed to update payment from webhook id=$id — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to update payment")
+    }
+
     override suspend fun updateStatus(id: String, status: String, transactionRef: String?, paymentMethod: String?): Resource<PaymentEntity?> = try {
         val updates = mutableListOf(
             Updates.set(PaymentEntity::status.name, status.uppercase()),

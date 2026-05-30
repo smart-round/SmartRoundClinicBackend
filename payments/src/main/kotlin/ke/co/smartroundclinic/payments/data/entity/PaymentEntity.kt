@@ -14,11 +14,16 @@ data class PaymentEntity(
     val status: PaymentStatus = PaymentStatus.PENDING,
     val paymentMethod: String? = null,
     val transactionRef: String? = null,
+    val invoiceId: String? = null,
+    val mpesaReference: String? = null,
+    val charges: String? = null,
+    val netAmount: String? = null,
+    val account: String? = null,
     val notes: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
-    enum class PaymentStatus { PENDING, COMPLETED, FAILED, REFUNDED }
+    enum class PaymentStatus { PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED }
 
     fun toModel() = Payment(
         id = id,
@@ -30,6 +35,11 @@ data class PaymentEntity(
         status = status.name,
         paymentMethod = paymentMethod,
         transactionRef = transactionRef,
+        invoiceId = invoiceId,
+        mpesaReference = mpesaReference,
+        charges = charges,
+        netAmount = netAmount,
+        account = account,
         notes = notes,
         createdAt = createdAt,
         updatedAt = updatedAt,
