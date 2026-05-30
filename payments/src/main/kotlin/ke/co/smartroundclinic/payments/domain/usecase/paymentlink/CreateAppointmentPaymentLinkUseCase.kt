@@ -36,7 +36,11 @@ class CreateAppointmentPaymentLinkUseCase(
             )
         }
 
-        val title = "Appointment with Dr. ${participants.doctorName} - ${participants.patientName}"
+        val title = "Appointment with Dr ${participants.doctorName} - ${participants.patientName}"
+            .replace(Regex("[^a-zA-Z0-9_ \\-]"), " ")
+            .replace(Regex(" {2,}"), " ")
+            .trim()
+            .take(140)
 
         return repository.createPaymentLink(
             CreatePaymentLinkReq(
