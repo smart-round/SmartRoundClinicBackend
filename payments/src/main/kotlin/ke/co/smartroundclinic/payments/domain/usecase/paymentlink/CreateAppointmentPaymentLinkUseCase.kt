@@ -44,8 +44,8 @@ class CreateAppointmentPaymentLinkUseCase(
                 title = title,
                 isActive = true,
                 redirectUrl = config.callbackUrl,
-                amount = body.amount,
-                currency = body.currency,
+                amount = participants.followUpFee.toInt(),
+                currency = "KES",
                 mobileTarrif = config.mobileTarrif,
                 cardTarrif = config.cardTarrif,
             )

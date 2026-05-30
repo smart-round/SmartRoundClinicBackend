@@ -38,7 +38,7 @@ val paymentsKoinModule = module {
     single { PaymentService(get(), get(), get(), get(), get(), get(), get()) }
 
     // IntaSend payment-link use cases
-    single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb"))) }
+    single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb")), get(named("adminDb"))) }
     single { CreatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { ListPaymentLinksUseCase(get()) }
     single { GetPaymentLinkUseCase(get()) }

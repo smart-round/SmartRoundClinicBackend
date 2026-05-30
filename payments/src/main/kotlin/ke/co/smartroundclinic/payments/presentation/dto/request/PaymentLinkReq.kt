@@ -20,10 +20,9 @@ data class UpdatePaymentLinkBody(
     val currency: String? = null,
 )
 
-/** Patient-facing: create a payment link for their appointment. Title and ID are auto-filled. */
+/** Patient-facing: create a payment link for their appointment.
+ *  Title, ID, amount (followUpFee from service tier), and currency (KES) are all auto-filled. */
 @Serializable
 data class CreateAppointmentPaymentLinkBody(
     val appointmentId: String,
-    val amount: Int? = null,
-    val currency: String? = null,
 )
