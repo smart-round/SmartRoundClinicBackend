@@ -4,8 +4,32 @@ import com.mongodb.client.model.Filters
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import kotlinx.coroutines.flow.firstOrNull
-import org.bson.Document
+import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
+
+// ── Minimal typed projections for cross-module lookups ────────────────────────
+
+@Serializable
+private data class AppointmentDoc(
+    val id: String,
+    val doctorId: String,
+    val patientId: String,
+    val serviceTierId: String? = null,
+)
+
+@Serializable
+private data class UserDoc(
+    val id: String,
+    val fullName: String,
+)
+
+@Serializable
+private data class ServiceTierDoc(
+    val id: String,
+    val followUpFee: Long? = null,
+)
+
+// ── Public result type ─────────────────────────────────────────────────────────
 
 data class AppointmentParticipants(
     val doctorId: String,
@@ -15,15 +39,17 @@ data class AppointmentParticipants(
     val followUpFee: Long,
 )
 
+// ── Lookup ─────────────────────────────────────────────────────────────────────
+
 class AppointmentInfoLookup(
     schedulingDb: MongoDatabase,
     authDb: MongoDatabase,
     adminDb: MongoDatabase,
 ) {
     private val log = LoggerFactory.getLogger(AppointmentInfoLookup::class.java)
-    private val appointments = schedulingDb.getCollection<Document>(MongoDBConstants.APPOINTMENTS)
-    private val users = authDb.getCollection<Document>(MongoDBConstants.AUTH_USER)
-    private val serviceTiers = adminDb.getCollection<Document>(MongoDBConstants.ADMIN_SERVICE_TIERS)
+    private val appointments = schedulingDb.getCollection<AppointmentDoc>(MongoDBConstants.APPOINTMENTS)
+    private val users = authDb.getCollection<UserDoc>(MongoDBConstants.AUTH_USER)
+    private val serviceTiers = adminDb.getCollection<ServiceTierDoc>(MongoDBConstants.ADMIN_SERVICE_TIERS)
 
     suspend fun getParticipants(appointmentId: String): AppointmentParticipants? {
         val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull()
@@ -31,24 +57,20 @@ class AppointmentInfoLookup(
             log.warn("AppointmentInfoLookup: appointment not found id=$appointmentId")
             return null
         }
-        val doctorId = appointment.getString("doctorId") ?: return null
-        val patientId = appointment.getString("patientId") ?: return null
-        val serviceTierId = appointment.getString("serviceTierId")
 
-        val doctorName = users.find(Filters.eq("id", doctorId)).firstOrNull()
-            ?.getString("fullName") ?: "Unknown Doctor"
-        val patientName = users.find(Filters.eq("id", patientId)).firstOrNull()
-            ?.getString("fullName") ?: "Unknown Patient"
+        val doctorName = users.find(Filters.eq("id", appointment.doctorId)).firstOrNull()
+            ?.fullName ?: "Unknown Doctor"
+        val patientName = users.find(Filters.eq("id", appointment.patientId)).firstOrNull()
+            ?.fullName ?: "Unknown Patient"
 
-        val followUpFee = serviceTierId?.let { tierId ->
-            serviceTiers.find(Filters.eq("id", tierId)).firstOrNull()
-                ?.getLong("followUpFee")
+        val followUpFee = appointment.serviceTierId?.let { tierId ->
+            serviceTiers.find(Filters.eq("id", tierId)).firstOrNull()?.followUpFee
                 .also { if (it == null) log.warn("followUpFee missing on service tier id=$tierId") }
         } ?: 0L
 
         return AppointmentParticipants(
-            doctorId = doctorId,
-            patientId = patientId,
+            doctorId = appointment.doctorId,
+            patientId = appointment.patientId,
             doctorName = doctorName,
             patientName = patientName,
             followUpFee = followUpFee,
