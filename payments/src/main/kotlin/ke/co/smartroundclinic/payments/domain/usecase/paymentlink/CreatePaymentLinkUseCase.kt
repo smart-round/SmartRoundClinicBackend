@@ -8,6 +8,7 @@ import ke.co.smartroundclinic.payments.data.remote.dto.response.PaymentLinkRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreatePaymentLinkBody
 
+
 class CreatePaymentLinkUseCase(
     private val repository: IntaSendRepository,
     private val config: IntaSendConfig,
@@ -15,7 +16,7 @@ class CreatePaymentLinkUseCase(
     suspend operator fun invoke(body: CreatePaymentLinkBody): DefaultResponse<PaymentLinkRes?> =
         repository.createPaymentLink(
             CreatePaymentLinkReq(
-                title = body.title,
+                title = "SmartRound Clinic Payment",
                 isActive = body.isActive,
                 redirectUrl = config.callbackUrl,
                 amount = body.amount,

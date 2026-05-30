@@ -15,6 +15,10 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByDoctorUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
+import ke.co.smartroundclinic.payments.data.repository.IntaSendPaymentRepositoryImpl
+import ke.co.smartroundclinic.payments.domain.repository.IntaSendPaymentRepository
+import ke.co.smartroundclinic.payments.domain.service.IntaSendPaymentService
+import ke.co.smartroundclinic.payments.domain.usecase.payment.InitiateMpesaStkPushUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreateAppointmentPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
@@ -26,6 +30,7 @@ import org.koin.dsl.module
 val paymentsKoinModule = module {
     single<PaymentRepository> { PaymentRepositoryImpl(get(named("paymentsDb"))) }
     single<IntaSendRepository> { IntaSendRepositoryImpl(get(), AppConfig.intaSend) }
+    single<IntaSendPaymentRepository> { IntaSendPaymentRepositoryImpl(get(), AppConfig.intaSend) }
 
     // General payment use cases
     single { InitiatePaymentUseCase(get()) }
@@ -45,4 +50,8 @@ val paymentsKoinModule = module {
     single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { CreateAppointmentPaymentLinkUseCase(get(), AppConfig.intaSend, get()) }
     single { IntaSendService(get(), get(), get(), get(), get()) }
+
+    // IntaSend actual payment use cases
+    single { InitiateMpesaStkPushUseCase(get(), AppConfig.intaSend) }
+    single { IntaSendPaymentService(get()) }
 }
