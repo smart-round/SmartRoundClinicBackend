@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.domain.service.PaymentService
 import ke.co.smartroundclinic.payments.domain.usecase.GetAllPaymentsUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.GetDoctorPaymentSummaryUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentByAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentByIdUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByDoctorUseCase
@@ -39,7 +40,8 @@ val paymentsKoinModule = module {
     single { GetPaymentsByDoctorUseCase(get()) }
     single { GetAllPaymentsUseCase(get()) }
     single { UpdatePaymentStatusUseCase(get()) }
-    single { PaymentService(get(), get(), get(), get(), get(), get(), get()) }
+    single { GetDoctorPaymentSummaryUseCase(get()) }
+    single { PaymentService(get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // IntaSend payment-link use cases
     single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb")), get(named("adminDb"))) }

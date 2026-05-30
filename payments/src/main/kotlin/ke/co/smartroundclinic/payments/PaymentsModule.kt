@@ -4,7 +4,9 @@ import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.domain.service.PaymentService
+import ke.co.smartroundclinic.payments.presentation.controller.doctorPaymentsController
 import ke.co.smartroundclinic.payments.presentation.controller.intaSendController
+import ke.co.smartroundclinic.payments.presentation.controller.patientPaymentsController
 import ke.co.smartroundclinic.payments.presentation.controller.paymentController
 import org.koin.ktor.ext.inject
 
@@ -14,5 +16,7 @@ fun Application.paymentsModule() {
     routing {
         paymentController(paymentService)
         intaSendController(intaSendService)
+        doctorPaymentsController(paymentService)
+        patientPaymentsController(paymentService)
     }
 }

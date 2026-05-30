@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.payments.domain.service
 
 import ke.co.smartroundclinic.payments.domain.usecase.GetAllPaymentsUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.GetDoctorPaymentSummaryUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentByAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentByIdUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByDoctorUseCase
@@ -18,6 +19,7 @@ class PaymentService(
     private val getByDoctorUseCase: GetPaymentsByDoctorUseCase,
     private val getAllUseCase: GetAllPaymentsUseCase,
     private val updateStatusUseCase: UpdatePaymentStatusUseCase,
+    private val getDoctorSummaryUseCase: GetDoctorPaymentSummaryUseCase,
 ) {
     suspend fun initiate(req: InitiatePaymentReq, patientId: String) = initiateUseCase(req, patientId)
     suspend fun getById(id: String) = getByIdUseCase(id)
@@ -26,4 +28,5 @@ class PaymentService(
     suspend fun getByDoctor(doctorId: String, page: Int, size: Int) = getByDoctorUseCase(doctorId, page, size)
     suspend fun getAll(page: Int, size: Int, status: String?) = getAllUseCase(page, size, status)
     suspend fun updateStatus(id: String, req: UpdatePaymentStatusReq) = updateStatusUseCase(id, req.status, req.transactionRef)
+    suspend fun getDoctorSummary(doctorId: String) = getDoctorSummaryUseCase(doctorId)
 }
