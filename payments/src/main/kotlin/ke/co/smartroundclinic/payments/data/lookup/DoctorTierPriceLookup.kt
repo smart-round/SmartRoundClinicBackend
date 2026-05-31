@@ -65,15 +65,15 @@ class DoctorTierPriceLookup(
             return null
         }
 
-        val tierPrice = tierDoc.getDouble("tierPrice") ?: run {
+        val tierPrice = tierDoc.getDoubleOrNull("tierPrice") ?: run {
             log.warn("Service tier $serviceTierId has no tierPrice")
             return null
         }
 
-        val followUpFee = tierDoc.getDouble("followUpFee") ?: 0.0
+        val followUpFee = tierDoc.getDoubleOrNull("followUpFee") ?: 0.0
 
         val commissionRate = try {
-            commissionRatesCol.find().firstOrNull()?.getDouble("commissionRate") ?: 0.0
+            commissionRatesCol.find().firstOrNull()?.getDoubleOrNull("commissionRate") ?: 0.0
         } catch (e: Exception) {
             log.warn("Could not fetch commission rate — ${e.message}")
             0.0
@@ -82,3 +82,13 @@ class DoctorTierPriceLookup(
         return DoctorTierInfo(tierPrice = tierPrice, followUpFee = followUpFee, commissionRate = commissionRate)
     }
 }
+
+// MongoDB stores whole numbers as Long; Document.getDouble() hard-casts and throws.
+private fun Document.getDoubleOrNull(key: String): Double? =
+    when (val v = get(key)) {
+        is Double -> v
+        is Long   -> v.toDouble()
+        is Int    -> v.toDouble()
+        is Number -> v.toDouble()
+        else      -> null
+    }
