@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.payments.koin
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
+import ke.co.smartroundclinic.payments.data.lookup.DoctorTierPriceLookup
 import ke.co.smartroundclinic.payments.data.repository.IntaSendRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentLogRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentRepositoryImpl
@@ -27,6 +28,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreateAppointmentPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePaymentLinkUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePreBookingPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.ListPaymentLinksUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.UpdatePaymentLinkUseCase
@@ -65,11 +67,13 @@ val paymentsKoinModule = module {
     // IntaSend payment-link use cases
     single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb")), get(named("adminDb"))) }
     single { DoctorPaymentDetailsLookup(get(named("doctorDb"))) }
+    single { DoctorTierPriceLookup(get(named("adminDb")), get(named("doctorDb"))) }
     single { CreatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { ListPaymentLinksUseCase(get()) }
     single { GetPaymentLinkUseCase(get()) }
     single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { CreateAppointmentPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
+    single { CreatePreBookingPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
     single { HandleIntaSendWebhookUseCase(get(), get()) }
 
     // Withdrawal use cases
@@ -78,7 +82,7 @@ val paymentsKoinModule = module {
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
 
-    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
     single { GetPlatformOverviewUseCase(get(), get(), get()) }

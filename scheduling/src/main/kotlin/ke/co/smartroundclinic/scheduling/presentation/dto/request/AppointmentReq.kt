@@ -9,6 +9,7 @@ data class BookAppointmentReq(
     val doctorId: String,
     val date: String,
     val slotStart: String,
+    val transactionRef: String,
     val notes: String? = null,
 ) {
     fun toModel(patientId: String, slotEnd: String, serviceTierId: String, consultationDuration: Int) = Appointment(

@@ -25,3 +25,10 @@ data class UpdatePaymentLinkBody(
 data class CreateAppointmentPaymentLinkBody(
     val appointmentId: String,
 )
+
+/** Patient-facing: create a payment link before an appointment is booked.
+ *  Amount is resolved from the doctor's service tier; no appointmentId required at this stage. */
+@Serializable
+data class CreatePreBookingPaymentLinkBody(
+    val doctorId: String,
+)

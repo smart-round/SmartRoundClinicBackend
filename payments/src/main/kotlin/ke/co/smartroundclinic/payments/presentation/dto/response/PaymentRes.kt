@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PaymentRes(
     val id: String,
-    val appointmentId: String,
+    val appointmentId: String?,
     val patientId: String,
     val doctorId: String,
     val amount: Double,

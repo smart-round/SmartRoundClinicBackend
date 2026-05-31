@@ -6,6 +6,7 @@ import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.toEntity
+import ke.co.smartroundclinic.scheduling.data.lookup.PaymentVerificationLookup
 import ke.co.smartroundclinic.scheduling.data.repository.ConsultationInfoResult
 import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
@@ -25,6 +26,7 @@ class BookAppointmentUseCase(
     private val scheduleRepository: DoctorScheduleRepository,
     private val overrideRepository: SlotOverrideRepository,
     private val serviceTierLookup: ServiceTierLookup,
+    private val paymentVerificationLookup: PaymentVerificationLookup,
     private val notificationSender: NotificationSender? = null,
 ) {
     suspend operator fun invoke(req: BookAppointmentReq, patientId: String): DefaultResponse<AppointmentRes?> {
@@ -78,11 +80,37 @@ class BookAppointmentUseCase(
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
 
+        // Verify payment before creating the appointment
+        val payment = paymentVerificationLookup.getByTransactionRef(req.transactionRef)
+            ?: return Resource.Error<Nothing>("Payment not found for the provided transaction reference")
+                .toDefaultResponse(failedStatusCode = 400) { null }
+
+        if (payment.status != "COMPLETED") {
+            return Resource.Error<Nothing>("Payment has not been completed. Current status: ${payment.status}")
+                .toDefaultResponse(failedStatusCode = 402) { null }
+        }
+
+        if (payment.doctorId != req.doctorId) {
+            return Resource.Error<Nothing>("Payment was not made for this doctor")
+                .toDefaultResponse(failedStatusCode = 400) { null }
+        }
+
+        if (payment.patientId != patientId) {
+            return Resource.Error<Nothing>("Payment does not belong to this patient")
+                .toDefaultResponse(failedStatusCode = 403) { null }
+        }
+
+        if (!payment.appointmentId.isNullOrBlank()) {
+            return Resource.Error<Nothing>("This payment has already been used to book another appointment")
+                .toDefaultResponse(failedStatusCode = 409) { null }
+        }
+
         val slotEnd = SlotEngine.fromMinutes(SlotEngine.toMinutes(req.slotStart) + consultationDuration + gracePeriod)
 
         val result = appointmentRepository.book(req.toModel(patientId, slotEnd, serviceTierId, consultationDuration).toEntity())
         if (result is Resource.Success && result.data != null) {
             val appt = result.data!!
+            runCatching { paymentVerificationLookup.linkToAppointment(payment.id, appt.id) }
             runCatching {
                 notificationSender?.send(
                     title = "New Appointment Request",

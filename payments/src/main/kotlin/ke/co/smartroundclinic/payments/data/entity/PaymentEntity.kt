@@ -6,7 +6,7 @@ import kotlin.time.Clock
 
 data class PaymentEntity(
     val id: String = ObjectId().toString(),
-    val appointmentId: String,
+    val appointmentId: String? = null,
     val patientId: String,
     val doctorId: String,
     val amount: Double,

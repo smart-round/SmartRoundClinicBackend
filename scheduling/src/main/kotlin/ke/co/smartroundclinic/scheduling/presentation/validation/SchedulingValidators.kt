@@ -15,6 +15,7 @@ fun RequestValidationConfig.registerSchedulingValidators() {
             else if (!isValidDate(req.date)) add("date must be a valid ISO date (YYYY-MM-DD)")
             if (req.slotStart.isNullOrBlank()) add("slotStart is required")
             else if (!isValidTime(req.slotStart)) add("slotStart must be in HH:mm format")
+            if (req.transactionRef.isNullOrBlank()) add("transactionRef is required")
         }
         if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
     }

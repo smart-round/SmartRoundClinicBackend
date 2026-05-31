@@ -5,7 +5,7 @@ import kotlin.time.Clock
 
 data class CommissionPaymentEntry(
     val paymentId: String,
-    val appointmentId: String,
+    val appointmentId: String?,
     val doctorId: String,
     val amount: Double,
     val commissionRate: Double,

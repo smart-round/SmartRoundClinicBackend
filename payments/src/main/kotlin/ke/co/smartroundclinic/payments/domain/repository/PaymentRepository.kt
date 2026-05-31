@@ -14,6 +14,7 @@ interface PaymentRepository {
     suspend fun getAllByDoctorId(doctorId: String): Resource<List<PaymentEntity>>
     suspend fun getAllForAdmin(status: String? = null): Resource<List<PaymentEntity>>
     suspend fun updateStatus(id: String, status: String, transactionRef: String?, paymentMethod: String? = null): Resource<PaymentEntity?>
+    suspend fun linkToAppointment(paymentId: String, appointmentId: String): Resource<Unit>
     suspend fun updateFromWebhook(
         id: String,
         status: String,

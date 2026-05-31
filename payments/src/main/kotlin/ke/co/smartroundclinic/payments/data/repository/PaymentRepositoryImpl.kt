@@ -21,9 +21,11 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
     private val col = database.getCollection<PaymentEntity>(MongoDBConstants.PAYMENTS)
 
     override suspend fun save(entity: PaymentEntity): Resource<PaymentEntity> = try {
-        val existing = col.find(Filters.eq(PaymentEntity::appointmentId.name, entity.appointmentId)).firstOrNull()
-        if (existing != null && existing.status == PaymentEntity.PaymentStatus.COMPLETED) {
-            return Resource.Error("A completed payment for this appointment already exists")
+        if (entity.appointmentId != null) {
+            val existing = col.find(Filters.eq(PaymentEntity::appointmentId.name, entity.appointmentId)).firstOrNull()
+            if (existing != null && existing.status == PaymentEntity.PaymentStatus.COMPLETED) {
+                return Resource.Error("A completed payment for this appointment already exists")
+            }
         }
         col.insertOne(entity)
         log.info("Payment created id=${entity.id} appointmentId=${entity.appointmentId}")
@@ -31,6 +33,21 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
     } catch (e: Exception) {
         log.error("Failed to save payment — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to initiate payment")
+    }
+
+    override suspend fun linkToAppointment(paymentId: String, appointmentId: String): Resource<Unit> = try {
+        col.findOneAndUpdate(
+            Filters.eq(PaymentEntity::id.name, paymentId),
+            Updates.combine(
+                Updates.set(PaymentEntity::appointmentId.name, appointmentId),
+                Updates.set(PaymentEntity::updatedAt.name, Clock.System.now().toString()),
+            ),
+        ) ?: return Resource.Error("Payment not found")
+        log.info("Payment id=$paymentId linked to appointmentId=$appointmentId")
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        log.error("Failed to link payment id=$paymentId to appointment id=$appointmentId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to link payment to appointment")
     }
 
     override suspend fun getById(id: String): Resource<PaymentEntity?> = try {

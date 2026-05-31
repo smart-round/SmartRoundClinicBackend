@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.scheduling.koin
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
+import ke.co.smartroundclinic.scheduling.data.lookup.PaymentVerificationLookup
 import ke.co.smartroundclinic.scheduling.data.repository.AppointmentRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.DoctorScheduleRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
@@ -44,9 +45,10 @@ val schedulingKoinModule = module {
     single<SlotOverrideRepository> { SlotOverrideRepositoryImpl(get(named("schedulingDb"))) }
     single { ServiceTierLookup(get(named("adminDb")), get(named("doctorDb"))) }
     single { AppointmentAdminLookup(get(named("authDb")), get(named("paymentsDb"))) }
+    single { PaymentVerificationLookup(get(named("paymentsDb"))) }
 
     // Appointment use cases
-    single { BookAppointmentUseCase(get(), get(), get(), get(), getOrNull()) }
+    single { BookAppointmentUseCase(get(), get(), get(), get(), get(), getOrNull()) }
     single { GetAllAppointmentsUseCase(get()) }
     single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>(), getOrNull<UserProfilePictureResolver>()) }
     single { GetAppointmentByIdUseCase(get()) }

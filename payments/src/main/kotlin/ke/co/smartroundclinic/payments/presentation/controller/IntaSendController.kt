@@ -19,6 +19,7 @@ import ke.co.smartroundclinic.payments.data.remote.dto.response.IntaSendCallback
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreateAppointmentPaymentLinkBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreatePaymentLinkBody
+import ke.co.smartroundclinic.payments.presentation.dto.request.CreatePreBookingPaymentLinkBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.UpdatePaymentLinkBody
 import org.slf4j.LoggerFactory
 
@@ -92,6 +93,19 @@ fun Route.intaSendController(service: IntaSendService, webhookChallenge: String)
                 val patientId = call.getUserId() ?: return@requireRole
                 val body = call.receive<CreateAppointmentPaymentLinkBody>()
                 val result = service.createForAppointment(body, patientId)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        // POST /payments/intasend/pre-booking
+        // Patient creates a payment link BEFORE booking an appointment.
+        // Amount is resolved from the doctor's service tier. The returned transactionRef
+        // must be supplied when calling POST /scheduling/appointments.
+        post("/payments/intasend/pre-booking") {
+            call.requireRole(PATIENT) {
+                val patientId = call.getUserId() ?: return@requireRole
+                val body = call.receive<CreatePreBookingPaymentLinkBody>()
+                val result = service.createPreBookingLink(body.doctorId, patientId)
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
         }
