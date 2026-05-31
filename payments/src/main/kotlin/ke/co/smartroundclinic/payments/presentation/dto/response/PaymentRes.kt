@@ -19,6 +19,9 @@ data class PaymentRes(
     val netAmount: String?,
     val account: String?,
     val notes: String?,
+    val commissionRate: Double,
+    val platformFee: Double,
+    val netEarnings: Double,
     val createdAt: String,
     val updatedAt: String?,
 )

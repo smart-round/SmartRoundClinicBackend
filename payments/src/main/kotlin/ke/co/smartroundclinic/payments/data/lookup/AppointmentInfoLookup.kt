@@ -30,6 +30,12 @@ private data class ServiceTierDoc(
     val tierPrice: Double? = null,
 )
 
+@Serializable
+private data class CommissionRateDoc(
+    val id: String,
+    val commissionRate: Double = 0.0,
+)
+
 // ── Public result type ─────────────────────────────────────────────────────────
 
 data class AppointmentParticipants(
@@ -39,6 +45,7 @@ data class AppointmentParticipants(
     val patientName: String,
     val followUpFee: Double,
     val tierPrice: Double,
+    val commissionRate: Double,
 )
 
 // ── Lookup ─────────────────────────────────────────────────────────────────────
@@ -52,6 +59,10 @@ class AppointmentInfoLookup(
     private val appointments = schedulingDb.getCollection<AppointmentDoc>(MongoDBConstants.APPOINTMENTS)
     private val users = authDb.getCollection<UserDoc>(MongoDBConstants.AUTH_USER)
     private val serviceTiers = adminDb.getCollection<ServiceTierDoc>(MongoDBConstants.ADMIN_SERVICE_TIERS)
+    private val commissionRates = adminDb.getCollection<CommissionRateDoc>(MongoDBConstants.ADMIN_COMMISSION_RATES)
+
+    suspend fun getCommissionRate(): Double =
+        commissionRates.find().firstOrNull()?.commissionRate ?: 0.0
 
     suspend fun getParticipants(appointmentId: String): AppointmentParticipants? {
         val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull()
@@ -70,6 +81,8 @@ class AppointmentInfoLookup(
                 .also { if (it == null) log.warn("followUpFee missing on service tier id=$tierId") }
         }
 
+        val commissionRate = commissionRates.find().firstOrNull()?.commissionRate ?: 0.0
+
         return AppointmentParticipants(
             doctorId = appointment.doctorId,
             patientId = appointment.patientId,
@@ -77,6 +90,7 @@ class AppointmentInfoLookup(
             patientName = patientName,
             followUpFee = followUpFee?.followUpFee ?: 0.0,
             tierPrice = followUpFee?.tierPrice ?: 0.0,
+            commissionRate = commissionRate,
         )
     }
 }

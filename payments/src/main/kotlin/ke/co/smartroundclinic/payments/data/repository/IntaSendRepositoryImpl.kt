@@ -13,6 +13,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import io.ktor.utils.io.core.toByteArray
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.IntaSendConfig
 import ke.co.smartroundclinic.payments.data.remote.dto.request.CreatePaymentLinkReq
@@ -20,6 +23,12 @@ import ke.co.smartroundclinic.payments.data.remote.dto.request.UpdatePaymentLink
 import ke.co.smartroundclinic.payments.data.remote.dto.response.IntaSendErrorRes
 import ke.co.smartroundclinic.payments.data.remote.dto.response.PaginatedPaymentLinksRes
 import ke.co.smartroundclinic.payments.data.remote.dto.response.PaymentLinkRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.ApproveSendMoneyRequestReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.CheckSendMoneyStatusReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyRequestReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.ApproveSendMoneyRequestRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CheckSendMoneyStatusRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import org.slf4j.LoggerFactory
 
@@ -30,8 +39,20 @@ class IntaSendRepositoryImpl(
 
     private val log = LoggerFactory.getLogger(IntaSendRepositoryImpl::class.java)
 
+    private val json = Json {
+        encodeDefaults = true
+        ignoreUnknownKeys = true
+    }
+
     private fun HttpRequestBuilder.auth() {
         header(HttpHeaders.Authorization, "Bearer ${config.secretKey}")
+        contentType(ContentType.Application.Json)
+    }
+
+    private inline fun <reified T> HttpRequestBuilder.jsonBody(value: T) {
+        val encoded = json.encodeToString(value)
+        log.debug("IntaSend outgoing body: $encoded")
+        setBody(encoded.toByteArray())
         contentType(ContentType.Application.Json)
     }
 
@@ -47,7 +68,10 @@ class IntaSendRepositoryImpl(
         }
         if (response.status.isSuccess()) {
             val body = response.body<PaginatedPaymentLinksRes>()
-            Resource.Success(body.copy(results = body.results.map { it.withFullUrl() }), "Payment links fetched successfully")
+            Resource.Success(
+                body.copy(results = body.results.map { it.withFullUrl() }),
+                "Payment links fetched successfully"
+            )
         } else {
             val error = response.body<IntaSendErrorRes>()
             log.warn("listPaymentLinks page=$page — IntaSend error: ${error.message()}")
@@ -106,5 +130,62 @@ class IntaSendRepositoryImpl(
     } catch (e: Exception) {
         log.error("updatePaymentLink($id) failed — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to update payment link")
+    }
+
+    override suspend fun createSendMoneyRequest(
+        idNumber: String,
+        body: CreateSendMoneyRequestReq,
+    ): Resource<CreateSendMoneyRequestRes> = try {
+        val outgoing = body.copy(transactions = body.transactions.map { it.addIdNumber(idNumber) })
+        val response = http.post("${config.baseUrl}/send-money/initiate/") {
+            auth()
+            jsonBody(outgoing)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<CreateSendMoneyRequestRes>(), "Send money request created successfully")
+        } else {
+            val error = response.body<IntaSendErrorRes>()
+            log.warn("createSendMoneyRequest idNumber=$idNumber — IntaSend error: ${error.message()}")
+            Resource.Error(error.message())
+        }
+    } catch (e: Exception) {
+        log.error("createSendMoneyRequest failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to create send money request")
+    }
+
+    override suspend fun approveSendMoneyRequest(body: ApproveSendMoneyRequestReq): Resource<ApproveSendMoneyRequestRes> = try {
+        val response = http.post("${config.baseUrl}/send-money/approve/") {
+            auth()
+            jsonBody(body)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<ApproveSendMoneyRequestRes>(), "Send money request approved successfully")
+        } else {
+            val error = response.body<IntaSendErrorRes>()
+            log.warn("approveSendMoneyRequest trackingId=${body.trackingId} — IntaSend error: ${error.message()}")
+            Resource.Error(error.message())
+        }
+    } catch (e: Exception) {
+        log.error("approveSendMoneyRequest failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to approve send money request")
+    }
+
+    override suspend fun checkSendMoneyStatus(
+        body: CheckSendMoneyStatusReq,
+    ): Resource<CheckSendMoneyStatusRes> = try {
+        val response = http.post("${config.baseUrl}/send-money/status") {
+            auth()
+            jsonBody(body)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<CheckSendMoneyStatusRes>(), "Send money status fetched successfully")
+        } else {
+            val error = response.body<IntaSendErrorRes>()
+            log.warn("checkSendMoneyStatus trackingId=${body.trackingId} — IntaSend error: ${error.message()}")
+            Resource.Error(error.message())
+        }
+    } catch (e: Exception) {
+        log.error("checkSendMoneyStatus(${body.trackingId}) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to check send money status")
     }
 }

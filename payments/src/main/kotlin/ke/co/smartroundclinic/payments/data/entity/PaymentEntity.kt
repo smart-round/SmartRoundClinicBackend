@@ -20,6 +20,7 @@ data class PaymentEntity(
     val netAmount: String? = null,
     val account: String? = null,
     val notes: String? = null,
+    val commissionRate: Double = 0.0,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
@@ -41,6 +42,7 @@ data class PaymentEntity(
         netAmount = netAmount,
         account = account,
         notes = notes,
+        commissionRate = commissionRate,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

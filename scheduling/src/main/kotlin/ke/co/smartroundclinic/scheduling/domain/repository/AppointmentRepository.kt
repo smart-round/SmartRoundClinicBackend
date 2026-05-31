@@ -8,6 +8,7 @@ interface AppointmentRepository {
     suspend fun book(entity: AppointmentEntity): Resource<AppointmentEntity?>
     suspend fun getById(id: String): Resource<AppointmentEntity?>
     suspend fun getAll(): Resource<List<AppointmentEntity>>
+    suspend fun getAllForAdmin(status: String? = null, page: Int = 1, size: Int = 20): Resource<Pair<List<AppointmentEntity>, Long>>
     suspend fun getByPatient(patientId: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctor(doctorId: String): Resource<List<AppointmentEntity>>
     suspend fun getByDoctorFiltered(doctorId: String, filter: String?, today: String): Resource<List<AppointmentEntity>>

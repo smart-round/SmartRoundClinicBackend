@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.scheduling.koin
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
+import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
 import ke.co.smartroundclinic.scheduling.data.repository.AppointmentRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.DoctorScheduleRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
@@ -8,6 +9,7 @@ import ke.co.smartroundclinic.scheduling.data.repository.SlotOverrideRepositoryI
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.SlotOverrideRepository
+import ke.co.smartroundclinic.scheduling.domain.service.AdminAppointmentService
 import ke.co.smartroundclinic.scheduling.domain.service.AppointmentService
 import ke.co.smartroundclinic.scheduling.domain.service.CalendarService
 import ke.co.smartroundclinic.scheduling.domain.service.ScheduleService
@@ -18,6 +20,8 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.ConfirmAppoi
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.UserProfilePictureResolver
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAdminAllAppointmentsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAdminAppointmentStatsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAllAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentDetailsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAppointmentByIdUseCase
@@ -39,6 +43,7 @@ val schedulingKoinModule = module {
     single<DoctorScheduleRepository> { DoctorScheduleRepositoryImpl(get(named("schedulingDb"))) }
     single<SlotOverrideRepository> { SlotOverrideRepositoryImpl(get(named("schedulingDb"))) }
     single { ServiceTierLookup(get(named("adminDb")), get(named("doctorDb"))) }
+    single { AppointmentAdminLookup(get(named("authDb")), get(named("paymentsDb"))) }
 
     // Appointment use cases
     single { BookAppointmentUseCase(get(), get(), get(), get(), getOrNull()) }
@@ -60,6 +65,11 @@ val schedulingKoinModule = module {
     single { DeactivateDayUseCase(get()) }
     single { GetAvailableSlotsUseCase(get(), get(), get(), get()) }
     single { GetCalendarRangeUseCase(get(), get(), get()) }
+
+    // Admin use cases + service
+    single { GetAdminAppointmentStatsUseCase(get(), get()) }
+    single { GetAdminAllAppointmentsUseCase(get(), get()) }
+    single { AdminAppointmentService(get(), get()) }
 
     // Services
     single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

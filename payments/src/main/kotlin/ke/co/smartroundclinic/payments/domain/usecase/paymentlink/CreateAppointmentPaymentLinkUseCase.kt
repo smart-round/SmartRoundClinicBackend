@@ -47,13 +47,22 @@ class CreateAppointmentPaymentLinkUseCase(
         }
 
         val existingPayment = (paymentRepository.getByAppointmentId(body.appointmentId) as? Resource.Success)?.data
-        if (existingPayment?.status == PaymentEntity.PaymentStatus.COMPLETED) {
-            return DefaultResponse(
+        when (existingPayment?.status) {
+            PaymentEntity.PaymentStatus.COMPLETED -> return DefaultResponse(
                 httpStatusCode = HttpStatusCode.Conflict.value,
                 status = false,
                 message = "This appointment has already been paid for",
                 data = null,
             )
+            PaymentEntity.PaymentStatus.PENDING -> {
+                val ref = existingPayment.transactionRef
+                if (ref != null) {
+                    return repository.getPaymentLink(ref).toDefaultResponse(
+                        failedStatusCode = HttpStatusCode.BadGateway.value,
+                    ) { it }
+                }
+            }
+            else -> Unit
         }
 
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm"))
@@ -71,7 +80,7 @@ class CreateAppointmentPaymentLinkUseCase(
                 apiRef = body.appointmentId,
                 title = title,
                 isActive = true,
-                redirectUrl = config.callbackUrl,
+                redirectUrl = config.callbackPaymentsUrl,
                 amount = amount,
                 usageLimit = 5,
                 currency = "KES",
@@ -93,6 +102,7 @@ class CreateAppointmentPaymentLinkUseCase(
                         status = PaymentEntity.PaymentStatus.PENDING,
                         paymentMethod = "M-PESA",
                         transactionRef = result.data?.id,
+                        commissionRate = participants.commissionRate,
                         createdAt = Clock.System.now().toString(),
                     )
                 )

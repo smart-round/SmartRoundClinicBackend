@@ -70,9 +70,8 @@ data class IntaSendConfig(
     val cardTarrif: String = EnvLoader.get("INTASEND_CARD_TARRIF") ?: "CUSTOMER-PAYS",
     val webhookChallenge: String = require("INTASEND_WEBHOOK_CHALLENGE"),
 ) {
-    val callbackUrl: String get() = "$callBackBaseUrl/payments/intasend/callback"
-    /** IntaSend host used to turn relative payment page paths into full URLs. */
-    val intaSendHost: String get() = baseUrl.removeSuffix("/api/v1")
+    val callbackPaymentsUrl: String get() = "$callBackBaseUrl/payments/intasend/callback"
+    val callBackWithdrawalUrl: String get() = "$callBackBaseUrl/payments/instasend/withdrawal/callback"
 }
 
 object AppConfig {

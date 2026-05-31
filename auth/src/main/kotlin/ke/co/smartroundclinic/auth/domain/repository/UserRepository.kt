@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.auth.domain.repository
 
 import ke.co.smartroundclinic.auth.data.entity.UserEntity
+import ke.co.smartroundclinic.auth.domain.model.AuthUserStats
 import ke.co.smartroundclinic.common.Resource
 
 interface UserRepository {
@@ -40,4 +41,6 @@ interface UserRepository {
         createdTo: String?,
     ): Resource<Pair<List<UserEntity>, Long>>
     suspend fun upgradeToSuperAdmin(userId: String): Resource<UserEntity?>
+    suspend fun getAdminStats(): Resource<AuthUserStats>
+    suspend fun getRecentUsers(limit: Int): Resource<List<UserEntity>>
 }

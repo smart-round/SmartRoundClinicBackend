@@ -1,17 +1,34 @@
 package ke.co.smartroundclinic.payments.data.remote.instasend.request
 
 
+import ke.co.smartroundclinic.infra.AppConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateSendMoneyRequestReq(
     @SerialName("callback_url")
-    val callbackUrl: String,
+    val callbackUrl: String = AppConfig.intaSend.callBackWithdrawalUrl,
     @SerialName("currency")
-    val currency: String,
+    val currency: String = "KES",
     @SerialName("provider")
-    val provider: String,
+    val provider: String = "PESALINK",
     @SerialName("transactions")
-    val transactions: List<Transaction>
+    val transactions: List<CreateSendMoneyTransaction>
 )
+
+@Serializable
+data class CreateSendMoneyTransaction(
+    @SerialName("account")
+    val account: String,
+    @SerialName("amount")
+    val amount: String,
+    @SerialName("bank_code")
+    val bankCode: String,
+    @SerialName("id_number")
+    val idNumber: String,
+    @SerialName("name")
+    val name: String
+){
+    fun addIdNumber(idNumber: String): CreateSendMoneyTransaction  = this.copy(idNumber = idNumber)
+}

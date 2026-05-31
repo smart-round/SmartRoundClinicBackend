@@ -85,6 +85,16 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
         Resource.Error(e.message ?: "Failed to fetch payments")
     }
 
+    override suspend fun getAllForAdmin(status: String?): Resource<List<PaymentEntity>> = try {
+        val items = if (status != null)
+            col.find(Filters.eq(PaymentEntity::status.name, status.uppercase())).toList()
+        else
+            col.find().toList()
+        Resource.Success(items)
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch payments")
+    }
+
     override suspend fun getByTransactionRef(transactionRef: String): Resource<PaymentEntity?> = try {
         Resource.Success(col.find(Filters.eq(PaymentEntity::transactionRef.name, transactionRef)).firstOrNull())
     } catch (e: Exception) {

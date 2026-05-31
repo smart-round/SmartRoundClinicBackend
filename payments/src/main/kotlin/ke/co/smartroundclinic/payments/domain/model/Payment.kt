@@ -22,11 +22,12 @@ data class Payment(
     val netAmount: String?,
     val account: String?,
     val notes: String?,
+    val commissionRate: Double,
     val createdAt: String,
     val updatedAt: String?,
 )
 
-fun InitiatePaymentReq.toModel(patientId: String) = Payment(
+fun InitiatePaymentReq.toModel(patientId: String, commissionRate: Double) = Payment(
     id = ObjectId().toString(),
     appointmentId = appointmentId,
     patientId = patientId,
@@ -42,6 +43,7 @@ fun InitiatePaymentReq.toModel(patientId: String) = Payment(
     netAmount = null,
     account = null,
     notes = notes,
+    commissionRate = commissionRate,
     createdAt = Clock.System.now().toString(),
     updatedAt = null,
 )
@@ -62,26 +64,33 @@ fun Payment.toEntity() = PaymentEntity(
     netAmount = netAmount,
     account = account,
     notes = notes,
+    commissionRate = commissionRate,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
 
-fun Payment.toRes() = PaymentRes(
-    id = id,
-    appointmentId = appointmentId,
-    patientId = patientId,
-    doctorId = doctorId,
-    amount = amount,
-    currency = currency,
-    status = status,
-    paymentMethod = paymentMethod,
-    transactionRef = transactionRef,
-    invoiceId = invoiceId,
-    mpesaReference = mpesaReference,
-    charges = charges,
-    netAmount = netAmount,
-    account = account,
-    notes = notes,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-)
+fun Payment.toRes(): PaymentRes {
+    val platformFee = amount * (commissionRate / 100.0)
+    return PaymentRes(
+        id = id,
+        appointmentId = appointmentId,
+        patientId = patientId,
+        doctorId = doctorId,
+        amount = amount,
+        currency = currency,
+        status = status,
+        paymentMethod = paymentMethod,
+        transactionRef = transactionRef,
+        invoiceId = invoiceId,
+        mpesaReference = mpesaReference,
+        charges = charges,
+        netAmount = netAmount,
+        account = account,
+        notes = notes,
+        commissionRate = commissionRate,
+        platformFee = platformFee,
+        netEarnings = amount - platformFee,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+}

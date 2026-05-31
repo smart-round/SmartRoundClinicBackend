@@ -28,6 +28,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.VerifyAccountOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.GetUserStatsUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UpgradeToSuperAdminUseCase
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.PatientProfileResolver
@@ -73,6 +74,7 @@ val authModule = module {
     single { AdminUpdateUserUseCase(get()) }
     single { FilterUsersByRoleUseCase(get(), get(), getOrNull<PatientProfileResolver>()) }
     single { UpgradeToSuperAdminUseCase(get()) }
+    single { GetUserStatsUseCase(get()) }
     single {
         SignUpUseCase(
             get(),

@@ -167,6 +167,25 @@ class AppointmentRepositoryImpl(
         }
     }
 
+    override suspend fun getAllForAdmin(status: String?, page: Int, size: Int): Resource<Pair<List<AppointmentEntity>, Long>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val safePage = maxOf(1, page)
+                val safeSize = minOf(maxOf(1, size), 100)
+                val filter = status?.let { Filters.eq(AppointmentEntity::status.name, it.uppercase()) }
+                val total = if (filter != null) col.countDocuments(filter) else col.countDocuments()
+                val items = (if (filter != null) col.find(filter) else col.find())
+                    .sort(com.mongodb.client.model.Sorts.descending(AppointmentEntity::bookedAt.name))
+                    .skip((safePage - 1) * safeSize)
+                    .limit(safeSize)
+                    .toList()
+                Resource.Success(data = items to total)
+            } catch (e: Exception) {
+                log.error("Failed to fetch admin appointments — ${e.message}", e)
+                Resource.Error(e.localizedMessage ?: "Failed to fetch appointments")
+            }
+        }
+
     override fun watchByDoctorId(doctorId: String): Flow<AppointmentEntity> =
         col.watch(
             listOf(

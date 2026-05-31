@@ -6,6 +6,7 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import io.ktor.util.logging.KtorSimpleLogger
 import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.data.entity.UserEntity.Role
+import ke.co.smartroundclinic.auth.domain.model.AuthUserStats
 import ke.co.smartroundclinic.auth.domain.repository.AuthToken
 import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.TokenProvider
@@ -424,6 +425,103 @@ class UserRepositoryImpl(
             } catch (e: Exception) {
                 logger.error("Error during admin initialization: ${e.message}")
             }
+        }
+    }
+
+    override suspend fun getAdminStats(): Resource<AuthUserStats> = withContext(Dispatchers.IO) {
+        try {
+            val now = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+            val todayStr = now.toString()
+            val weekStr = now.minusDays(7).toString()
+            val monthStr = now.withDayOfMonth(1).toString()
+            val yearStr = now.withDayOfYear(1).toString()
+
+            // Role counts (run concurrently)
+            val totalUsers = collection.countDocuments()
+            val totalDoctors = collection.countDocuments(Filters.eq(UserEntity::role.name, UserEntity.Role.DOCTOR.name))
+            val totalPatients = collection.countDocuments(Filters.eq(UserEntity::role.name, UserEntity.Role.PATIENT.name))
+            val totalAdmins = collection.countDocuments(Filters.eq(UserEntity::role.name, UserEntity.Role.ADMIN.name))
+            val totalSuperAdmins = collection.countDocuments(Filters.eq(UserEntity::role.name, UserEntity.Role.SUPER_ADMIN.name))
+
+            // Account status
+            val activeUsers = collection.countDocuments(Filters.eq(UserEntity::accountStatus.name, UserEntity.AccountStatus.ACTIVE.name))
+            val inactiveUsers = collection.countDocuments(Filters.eq(UserEntity::accountStatus.name, UserEntity.AccountStatus.INACTIVE.name))
+            val suspendedUsers = collection.countDocuments(Filters.eq(UserEntity::accountStatus.name, UserEntity.AccountStatus.SUSPENDED.name))
+
+            // Verification status
+            val verifiedUsers = collection.countDocuments(Filters.eq(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.VERIFIED.name))
+            val unverifiedUsers = collection.countDocuments(Filters.eq(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.UNVERIFIED.name))
+            val pendingApprovalUsers = collection.countDocuments(Filters.eq(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.PENDING_APPROVAL.name))
+            val rejectedUsers = collection.countDocuments(Filters.eq(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.REJECTED.name))
+
+            // Doctor-specific
+            val pendingDoctorApprovals = collection.countDocuments(
+                Filters.and(
+                    Filters.eq(UserEntity::role.name, UserEntity.Role.DOCTOR.name),
+                    Filters.eq(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.PENDING_APPROVAL.name),
+                )
+            )
+            val verifiedDoctors = collection.countDocuments(
+                Filters.and(
+                    Filters.eq(UserEntity::role.name, UserEntity.Role.DOCTOR.name),
+                    Filters.eq(UserEntity::verificationStatus.name, UserEntity.VerificationStatus.VERIFIED.name),
+                )
+            )
+
+            // Growth — ISO date string prefix comparison works because createdAt is ISO 8601
+            val newToday = collection.countDocuments(Filters.gte(UserEntity::createdAt.name, todayStr))
+            val newThisWeek = collection.countDocuments(Filters.gte(UserEntity::createdAt.name, weekStr))
+            val newThisMonth = collection.countDocuments(Filters.gte(UserEntity::createdAt.name, monthStr))
+            val newThisYear = collection.countDocuments(Filters.gte(UserEntity::createdAt.name, yearStr))
+
+            // Gender
+            val maleUsers = collection.countDocuments(Filters.eq(UserEntity::gender.name, UserEntity.Gender.MALE.name))
+            val femaleUsers = collection.countDocuments(Filters.eq(UserEntity::gender.name, UserEntity.Gender.FEMALE.name))
+            val nonBinaryUsers = collection.countDocuments(Filters.eq(UserEntity::gender.name, UserEntity.Gender.NON_BINARY.name))
+            val otherGenderUsers = collection.countDocuments(Filters.eq(UserEntity::gender.name, UserEntity.Gender.OTHER.name))
+
+            Resource.Success(
+                AuthUserStats(
+                    totalUsers = totalUsers,
+                    totalDoctors = totalDoctors,
+                    totalPatients = totalPatients,
+                    totalAdmins = totalAdmins,
+                    totalSuperAdmins = totalSuperAdmins,
+                    activeUsers = activeUsers,
+                    inactiveUsers = inactiveUsers,
+                    suspendedUsers = suspendedUsers,
+                    verifiedUsers = verifiedUsers,
+                    unverifiedUsers = unverifiedUsers,
+                    pendingApprovalUsers = pendingApprovalUsers,
+                    rejectedUsers = rejectedUsers,
+                    pendingDoctorApprovals = pendingDoctorApprovals,
+                    verifiedDoctors = verifiedDoctors,
+                    newToday = newToday,
+                    newThisWeek = newThisWeek,
+                    newThisMonth = newThisMonth,
+                    newThisYear = newThisYear,
+                    maleUsers = maleUsers,
+                    femaleUsers = femaleUsers,
+                    nonBinaryUsers = nonBinaryUsers,
+                    otherGenderUsers = otherGenderUsers,
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to fetch admin stats — ${e.message}")
+            Resource.Error(e.message ?: "Failed to fetch stats")
+        }
+    }
+
+    override suspend fun getRecentUsers(limit: Int): Resource<List<UserEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val items = collection
+                .find()
+                .sort(com.mongodb.client.model.Sorts.descending(UserEntity::createdAt.name))
+                .limit(limit)
+                .toList()
+            Resource.Success(items)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Failed to fetch recent users")
         }
     }
 

@@ -18,7 +18,7 @@ class UpdatePaymentLinkUseCase(
             UpdatePaymentLinkReq(
                 title = body.title,
                 isActive = body.isActive,
-                redirectUrl = config.callbackUrl,
+                redirectUrl = config.callbackPaymentsUrl,
                 amount = body.amount?.toInt(),
                 usageLimit = body.usageLimit,
                 currency = body.currency,
