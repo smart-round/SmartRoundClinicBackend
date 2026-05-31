@@ -40,6 +40,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetDoctorPaymentBrea
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.CheckWithdrawalStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBalanceUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalHistoryUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.HandleWithdrawalWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.WithdrawalUseCase
 import org.koin.core.qualifier.named
@@ -79,10 +80,11 @@ val paymentsKoinModule = module {
     // Withdrawal use cases
     single { WithdrawalUseCase(get(), get(), get(), get(), get(), AppConfig.intaSend) }
     single { GetWithdrawalBalanceUseCase(get(), get()) }
+    single { GetWithdrawalHistoryUseCase(get()) }
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
 
-    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
     single { GetPlatformOverviewUseCase(get(), get(), get()) }

@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.ListPaymentLin
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.UpdatePaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.CheckWithdrawalStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBalanceUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalHistoryUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.HandleWithdrawalWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.WithdrawalUseCase
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreateAppointmentPaymentLinkBody
@@ -30,6 +31,7 @@ class IntaSendService(
     private val getWithdrawalBalanceUseCase: GetWithdrawalBalanceUseCase,
     private val checkWithdrawalStatusUseCase: CheckWithdrawalStatusUseCase,
     private val handleWithdrawalWebhookUseCase: HandleWithdrawalWebhookUseCase,
+    private val getWithdrawalHistoryUseCase: GetWithdrawalHistoryUseCase,
 ) {
     suspend fun create(body: CreatePaymentLinkBody) = createUseCase(body)
     suspend fun list(page: Int) = listUseCase(page)
@@ -48,4 +50,6 @@ class IntaSendService(
     suspend fun getWithdrawalBalance(doctorId: String) = getWithdrawalBalanceUseCase(doctorId)
     suspend fun checkWithdrawalStatus(trackingId: String) = checkWithdrawalStatusUseCase(trackingId)
     suspend fun handleWithdrawalWebhook(payload: WithdrawalWebhookPayload) = handleWithdrawalWebhookUseCase(payload)
+    suspend fun getWithdrawalHistory(doctorId: String, page: Int, size: Int) =
+        getWithdrawalHistoryUseCase(doctorId, page, size)
 }

@@ -128,6 +128,18 @@ fun Route.doctorPaymentsController(
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
+
+                // GET /doctor/payments/withdraw/history?page=1&size=20
+                // Paginated withdrawal history for the authenticated doctor, newest first.
+                get("history") {
+                    call.requireRole(DOCTOR) {
+                        val doctorId = call.getUserId() ?: return@requireRole
+                        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                        val result = intaSendService.getWithdrawalHistory(doctorId, page, size)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
             }
         }
     }

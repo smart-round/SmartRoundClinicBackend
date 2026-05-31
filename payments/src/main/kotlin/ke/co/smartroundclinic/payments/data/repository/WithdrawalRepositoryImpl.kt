@@ -33,6 +33,20 @@ class WithdrawalRepositoryImpl(database: MongoDatabase) : WithdrawalRepository {
         Resource.Error(e.message ?: "Failed to fetch withdrawals")
     }
 
+    override suspend fun getByDoctorIdPaginated(doctorId: String, page: Int, size: Int): Resource<Pair<List<WithdrawalEntity>, Long>> = try {
+        val safePage = maxOf(1, page)
+        val safeSize = minOf(maxOf(1, size), 100)
+        val filter = Filters.eq(WithdrawalEntity::doctorId.name, doctorId)
+        val total = col.countDocuments(filter)
+        val items = col.find(filter)
+            .sort(com.mongodb.client.model.Sorts.descending(WithdrawalEntity::createdAt.name))
+            .skip((safePage - 1) * safeSize).limit(safeSize).toList()
+        Resource.Success(items to total)
+    } catch (e: Exception) {
+        log.error("Failed to fetch paginated withdrawals for doctorId=$doctorId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch withdrawal history")
+    }
+
     override suspend fun getAllForAdmin(status: String?): Resource<List<WithdrawalEntity>> = try {
         val items = if (status != null)
             col.find(Filters.eq(WithdrawalEntity::status.name, status.uppercase())).toList()
