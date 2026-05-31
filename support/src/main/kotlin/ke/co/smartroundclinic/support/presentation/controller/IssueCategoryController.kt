@@ -17,6 +17,8 @@ import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
+private const val DOCTOR = "DOCTOR"
+private const val PATIENT = "PATIENT"
 
 fun Route.issueCategoryController(service: IssueCategoryService) {
     authenticate("auth-jwt") {
@@ -29,10 +31,11 @@ fun Route.issueCategoryController(service: IssueCategoryService) {
                 }
             }
 
+            // Doctors and patients need this to select a category when creating a ticket
             get("all") {
-                call.requireRole(ADMIN) {
+                call.requireRole(ADMIN, DOCTOR, PATIENT) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 50
                     val result = service.getAll(page, size)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }

@@ -20,6 +20,7 @@ import ke.co.smartroundclinic.support.domain.usecase.ticket.AssignTicketUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.CreateTicketUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.DeleteTicketUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.GetAllTicketsUseCase
+import ke.co.smartroundclinic.support.domain.usecase.ticket.GetMyTicketsUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.GetTicketByIdUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.UpdateTicketStatusUseCase
 import org.koin.core.qualifier.named
@@ -41,8 +42,9 @@ val supportModule = module {
     single { CreateTicketUseCase(get()) }
     single { GetTicketByIdUseCase(get()) }
     single { GetAllTicketsUseCase(get()) }
+    single { GetMyTicketsUseCase(get()) }
     single { UpdateTicketStatusUseCase(get()) }
     single { AssignTicketUseCase(get()) }
     single { DeleteTicketUseCase(get()) }
-    single { TicketService(get(), get(), get(), get(), get(), get()) }
+    single { TicketService(get(), get(), get(), get(), get(), get(), get()) }
 }

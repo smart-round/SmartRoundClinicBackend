@@ -120,6 +120,25 @@ class TicketRepositoryImpl(supportDb: MongoDatabase, authDb: MongoDatabase) : Ti
             }
         }
 
+    override suspend fun getByComplainantId(complainantId: String, page: Int, size: Int): Resource<Pair<List<Triple<TicketEntity, String, String?>>, Long>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val safePage = maxOf(1, page)
+                val safeSize = minOf(maxOf(1, size), 100)
+                val filter = Filters.eq(TicketEntity::complainantId.name, complainantId)
+                val total = tickets.countDocuments(filter)
+                val items = tickets.find(filter)
+                    .sort(Document("createdAt", -1))
+                    .skip((safePage - 1) * safeSize)
+                    .limit(safeSize)
+                    .toList()
+                    .map { Triple(it, categoryName(it.issueCategoryId), assigneeName(it.assignedToId)) }
+                Resource.Success(data = items to total, message = "Tickets retrieved successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to retrieve tickets")
+            }
+        }
+
     override suspend fun delete(id: String): Resource<TicketEntity?> =
         withContext(Dispatchers.IO) {
             try {

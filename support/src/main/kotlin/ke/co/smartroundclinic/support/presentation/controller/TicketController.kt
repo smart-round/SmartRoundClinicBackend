@@ -15,24 +15,39 @@ import ke.co.smartroundclinic.support.presentation.dto.request.AssignTicketReq
 import ke.co.smartroundclinic.support.presentation.dto.request.CreateTicketReq
 import ke.co.smartroundclinic.support.presentation.dto.request.UpdateTicketStatusReq
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
+import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
 private const val DOCTOR = "DOCTOR"
 private const val PATIENT = "PATIENT"
 
-
 fun Route.ticketController(service: TicketService) {
     authenticate("auth-jwt") {
         route("/support/tickets") {
+
+            // POST /support/tickets — create ticket (any authenticated user)
             post {
                 call.requireRole(ADMIN, DOCTOR, PATIENT) {
                     val body = call.receive<CreateTicketReq>()
-                    val result = service.create(body)
+                    val userId = call.getUserId() ?: return@requireRole
+                    val result = service.create(body, userId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
 
+            // GET /support/tickets/mine — my tickets (doctor/patient)
+            get("mine") {
+                call.requireRole(DOCTOR, PATIENT) {
+                    val userId = call.getUserId() ?: return@requireRole
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val result = service.getMine(userId, page, size)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // GET /support/tickets/all — all tickets (admin)
             get("all") {
                 call.requireRole(ADMIN) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
@@ -42,6 +57,7 @@ fun Route.ticketController(service: TicketService) {
                 }
             }
 
+            // GET /support/tickets?id=xxx — get by ID (admin only)
             get {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"]

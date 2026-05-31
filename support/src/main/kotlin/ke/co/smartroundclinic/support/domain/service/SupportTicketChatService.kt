@@ -5,13 +5,15 @@ import ke.co.smartroundclinic.support.data.entity.MessageType
 import ke.co.smartroundclinic.support.data.entity.SupportTicketChatEntity
 import ke.co.smartroundclinic.support.domain.repository.SupportTicketChatRepository
 import ke.co.smartroundclinic.support.presentation.dto.request.WsChatMessage
+import ke.co.smartroundclinic.support.presentation.dto.response.SupportTicketChatRes
+import ke.co.smartroundclinic.support.presentation.dto.response.toRes
+import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
-import java.util.Base64
 import kotlin.time.Duration.Companion.days
 
 class SupportTicketChatService(
@@ -38,47 +40,51 @@ class SupportTicketChatService(
         rawJson: String,
     ) {
         val msg = json.decodeFromString<WsChatMessage>(rawJson)
-        when (msg.type) {
-            MessageType.TEXT -> {
-                val text = msg.message?.takeIf { it.isNotBlank() } ?: return
-                repository.save(
-                    SupportTicketChatEntity(
-                        ticketId = ticketId,
-                        senderId = senderId,
-                        senderName = senderName,
-                        messageType = MessageType.TEXT,
-                        message = text,
-                    )
-                )
-            }
-            MessageType.FILE -> {
-                val rawData = msg.data ?: return
-                val fileName = msg.fileName?.takeIf { it.isNotBlank() } ?: "file"
-                val contentType = msg.contentType?.takeIf { it.isNotBlank() } ?: "application/octet-stream"
-                val bytes = Base64.getDecoder().decode(rawData)
-                val entityId = ObjectId().toString()
-                val ext = fileName.substringAfterLast(".", "bin")
-                val key = "support-chat-files/$ticketId/$entityId.$ext"
+        val text = msg.message.takeIf { it.isNotBlank() } ?: return
+        repository.save(
+            SupportTicketChatEntity(
+                ticketId = ticketId,
+                senderId = senderId,
+                senderName = senderName,
+                messageType = MessageType.TEXT,
+                message = text,
+            )
+        )
+    }
 
-                val uploadResult = storageRepository.upload(AppConfig.r2.bucket, key, bytes, contentType)
-                if (uploadResult is Resource.Error) return
+    suspend fun uploadFile(
+        ticketId: String,
+        senderId: String,
+        senderName: String,
+        fileName: String,
+        contentType: String,
+        bytes: ByteArray,
+    ): DefaultResponse<SupportTicketChatRes?> {
+        val entityId = ObjectId().toString()
+        val ext = fileName.substringAfterLast(".", "bin")
+        val key = "support-chat-files/$ticketId/$entityId.$ext"
 
-                val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
-                    is Resource.Success -> urlResult.data ?: key
-                    is Resource.Error -> key
-                }
+        val uploadResult = storageRepository.upload(AppConfig.r2.bucket, key, bytes, contentType)
+        if (uploadResult is Resource.Error) {
+            return DefaultResponse(500, false, "Failed to upload file")
+        }
 
-                repository.save(
-                    SupportTicketChatEntity(
-                        id = entityId,
-                        ticketId = ticketId,
-                        senderId = senderId,
-                        senderName = senderName,
-                        messageType = MessageType.FILE,
-                        files = listOf(ChatFile(fileName = fileName, url = fileUrl, contentType = contentType)),
-                    )
-                )
-            }
+        val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
+            is Resource.Success -> urlResult.data ?: key
+            is Resource.Error -> key
+        }
+
+        val entity = SupportTicketChatEntity(
+            id = entityId,
+            ticketId = ticketId,
+            senderId = senderId,
+            senderName = senderName,
+            messageType = MessageType.FILE,
+            files = listOf(ChatFile(fileName = fileName, url = fileUrl, contentType = contentType)),
+        )
+        return when (repository.save(entity)) {
+            is Resource.Success -> DefaultResponse(200, true, "File uploaded", entity.toModel().toRes())
+            is Resource.Error -> DefaultResponse(500, false, "Failed to save file message")
         }
     }
 }

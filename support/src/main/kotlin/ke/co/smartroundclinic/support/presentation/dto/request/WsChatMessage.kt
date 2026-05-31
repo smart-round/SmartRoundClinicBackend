@@ -5,9 +5,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class WsChatMessage(
-    val type: MessageType,
-    val message: String? = null,
-    val fileName: String? = null,
-    val contentType: String? = null,
-    val data: String? = null,
+    val message: String,
 )
