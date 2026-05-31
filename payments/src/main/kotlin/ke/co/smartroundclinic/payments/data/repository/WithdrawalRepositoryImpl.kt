@@ -8,6 +8,7 @@ import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.payments.data.entity.WithdrawalEntity
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
 
@@ -23,6 +24,13 @@ class WithdrawalRepositoryImpl(database: MongoDatabase) : WithdrawalRepository {
     } catch (e: Exception) {
         log.error("Failed to save withdrawal — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to record withdrawal")
+    }
+
+    override suspend fun getById(id: String): Resource<WithdrawalEntity?> = try {
+        Resource.Success(col.find(Filters.eq(WithdrawalEntity::id.name, id)).firstOrNull())
+    } catch (e: Exception) {
+        log.error("Failed to fetch withdrawal id=$id — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch withdrawal")
     }
 
     override suspend fun getByDoctorId(doctorId: String): Resource<List<WithdrawalEntity>> = try {

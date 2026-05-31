@@ -140,6 +140,18 @@ fun Route.doctorPaymentsController(
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
+
+                // GET /doctor/payments/withdraw/history/{id}
+                // Fetch a single withdrawal record by ID. Returns 403 if it belongs to a different doctor.
+                get("history/{id}") {
+                    call.requireRole(DOCTOR) {
+                        val doctorId = call.getUserId() ?: return@requireRole
+                        val id = call.parameters["id"]
+                            ?: throw MissingParametersException("id is required")
+                        val result = intaSendService.getWithdrawalById(id, doctorId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
             }
         }
     }
