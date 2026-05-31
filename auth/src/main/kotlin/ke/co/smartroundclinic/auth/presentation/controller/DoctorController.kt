@@ -2,8 +2,8 @@ package ke.co.smartroundclinic.auth.presentation.controller
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
+import io.ktor.utils.io.toByteArray
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
@@ -95,11 +95,11 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
                     }
                     is PartData.FileItem -> when (part.name) {
                         "profilePicture" -> {
-                            profilePictureBytes = part.streamProvider().readBytes()
+                            profilePictureBytes = part.provider().toByteArray()
                             profilePictureContentType = part.contentType?.toString()
                         }
                         "licenceFile" -> {
-                            licenceBytes = part.streamProvider().readBytes()
+                            licenceBytes = part.provider().toByteArray()
                             licenceContentType = part.contentType?.toString()
                         }
                     }

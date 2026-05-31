@@ -2,8 +2,8 @@ package ke.co.smartroundclinic.admin.presentation.controller
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
+import io.ktor.utils.io.toByteArray
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
@@ -37,7 +37,7 @@ fun Route.specialityController(specialityService: SpecialityService) {
                         when (part) {
                             is PartData.FormItem -> parts[part.name ?: ""] = part.value
                             is PartData.FileItem -> {
-                                imageBytes = part.streamProvider().readBytes()
+                                imageBytes = part.provider().toByteArray()
                                 contentType = part.contentType?.toString() ?: ""
                             }
 
@@ -94,7 +94,7 @@ fun Route.specialityController(specialityService: SpecialityService) {
                         when (part) {
                             is PartData.FormItem -> parts[part.name ?: ""] = part.value
                             is PartData.FileItem -> {
-                                imageBytes = part.streamProvider().readBytes()
+                                imageBytes = part.provider().toByteArray()
                                 contentType = part.contentType?.toString() ?: ""
                             }
 
@@ -189,7 +189,7 @@ fun Route.specialityController(specialityService: SpecialityService) {
                             when (part) {
                                 is PartData.FormItem -> parts[part.name ?: ""] = part.value
                                 is PartData.FileItem -> {
-                                    imageBytes = part.streamProvider().readBytes()
+                                    imageBytes = part.provider().toByteArray()
                                     contentType = part.contentType?.toString() ?: ""
                                 }
 
@@ -243,7 +243,7 @@ fun Route.specialityController(specialityService: SpecialityService) {
                             when (part) {
                                 is PartData.FormItem -> parts[part.name ?: ""] = part.value
                                 is PartData.FileItem -> {
-                                    imageBytes = part.streamProvider().readBytes()
+                                    imageBytes = part.provider().toByteArray()
                                     contentType = part.contentType?.toString() ?: ""
                                 }
 

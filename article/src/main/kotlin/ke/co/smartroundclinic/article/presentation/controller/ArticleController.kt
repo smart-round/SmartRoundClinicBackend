@@ -3,7 +3,6 @@ package ke.co.smartroundclinic.article.presentation.controller
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
@@ -124,7 +123,7 @@ fun Route.articleController(service: ArticleService) {
                         when (part) {
                             is PartData.FormItem -> parts[part.name ?: ""] = part.value
                             is PartData.FileItem -> {
-                                imageBytes = part.streamProvider().readBytes()
+                                imageBytes = part.provider().toByteArray()
                                 imageContentType = part.contentType?.toString() ?: ""
                             }
 

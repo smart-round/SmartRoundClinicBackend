@@ -6,8 +6,8 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.http.content.PartData
+import io.ktor.utils.io.toByteArray
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -219,7 +219,7 @@ fun Route.userController(userService: UserService) {
 
                     call.receiveMultipart().forEachPart { part ->
                         if (part is PartData.FileItem) {
-                            imageBytes = part.streamProvider().readBytes()
+                            imageBytes = part.provider().toByteArray()
                             contentType = part.contentType?.toString() ?: ""
                         }
                         part.dispose()

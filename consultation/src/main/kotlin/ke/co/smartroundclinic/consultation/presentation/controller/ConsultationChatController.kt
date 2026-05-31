@@ -2,8 +2,8 @@ package ke.co.smartroundclinic.consultation.presentation.controller
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
+import io.ktor.utils.io.toByteArray
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -124,7 +124,7 @@ fun Route.consultationChatController(
                     is PartData.FileItem -> {
                         fileName = part.originalFileName?.ifBlank { null } ?: fileName
                         contentType = part.contentType?.toString()?.ifBlank { null } ?: contentType
-                        fileBytes = part.streamProvider().readBytes()
+                        fileBytes = part.provider().toByteArray()
                     }
                     is PartData.FormItem -> {
                         // Accept optional overrides if the client sends them

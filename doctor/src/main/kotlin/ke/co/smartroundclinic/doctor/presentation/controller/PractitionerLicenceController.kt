@@ -2,8 +2,8 @@ package ke.co.smartroundclinic.doctor.presentation.controller
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
+import io.ktor.utils.io.toByteArray
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
@@ -54,7 +54,7 @@ fun Route.practitionerLicenceController(service: PractitionerLicenceService) {
 
                     call.receiveMultipart().forEachPart { part ->
                         if (part is PartData.FileItem) {
-                            imageBytes = part.streamProvider().readBytes()
+                            imageBytes = part.provider().toByteArray()
                             contentType = part.contentType?.toString() ?: ""
                         }
                         part.dispose()
