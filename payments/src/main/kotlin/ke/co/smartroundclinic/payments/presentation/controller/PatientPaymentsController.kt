@@ -29,7 +29,7 @@ fun Route.patientPaymentsController(service: PaymentService) {
 
             // GET /patient/payments/{id}
             // Patient views a specific payment record.
-            get("{id}") {
+            get("specific") {
                 call.requireRole("PATIENT") {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
                     val result = service.getById(id)
