@@ -97,15 +97,23 @@ fun Route.intaSendController(service: IntaSendService, webhookChallenge: String)
             }
         }
 
-        // POST /payments/intasend/pre-booking
+        // POST /payments/intasend/pre-booking?rebooking=true|false
         // Patient creates a payment link BEFORE booking an appointment.
-        // Amount is resolved from the doctor's service tier. The returned transactionRef
-        // must be supplied when calling POST /scheduling/appointments.
+        // Amount is resolved from the doctor's service tier.
+        // For rebooking (?rebooking=true), also supply previousAppointmentId in the body to
+        // load the follow-up fee; the previous appointment must be COMPLETED and in the same month.
+        // The returned transactionRef must be supplied when calling POST /scheduling/appointments.
         post("/payments/intasend/pre-booking") {
             call.requireRole(PATIENT) {
                 val patientId = call.getUserId() ?: return@requireRole
+                val isRebooking = call.request.queryParameters["rebooking"]?.lowercase() == "true"
                 val body = call.receive<CreatePreBookingPaymentLinkBody>()
-                val result = service.createPreBookingLink(body.doctorId, patientId)
+                val result = service.createPreBookingLink(
+                    doctorId = body.doctorId,
+                    patientId = patientId,
+                    isRebooking = isRebooking,
+                    previousAppointmentId = body.previousAppointmentId,
+                )
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
         }

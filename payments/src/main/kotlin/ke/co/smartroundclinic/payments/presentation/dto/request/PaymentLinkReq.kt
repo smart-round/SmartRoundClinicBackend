@@ -27,8 +27,10 @@ data class CreateAppointmentPaymentLinkBody(
 )
 
 /** Patient-facing: create a payment link before an appointment is booked.
- *  Amount is resolved from the doctor's service tier; no appointmentId required at this stage. */
+ *  Amount is resolved from the doctor's service tier; no appointmentId required at this stage.
+ *  For rebooking (?rebooking=true), supply previousAppointmentId to load the follow-up fee. */
 @Serializable
 data class CreatePreBookingPaymentLinkBody(
     val doctorId: String,
+    val previousAppointmentId: String? = null,
 )

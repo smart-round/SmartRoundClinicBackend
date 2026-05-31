@@ -37,8 +37,12 @@ class IntaSendService(
     suspend fun update(id: String, body: UpdatePaymentLinkBody) = updateUseCase(id, body)
     suspend fun createForAppointment(body: CreateAppointmentPaymentLinkBody, patientId: String) =
         createForAppointmentUseCase(body, patientId)
-    suspend fun createPreBookingLink(doctorId: String, patientId: String) =
-        createPreBookingUseCase(doctorId, patientId)
+    suspend fun createPreBookingLink(
+        doctorId: String,
+        patientId: String,
+        isRebooking: Boolean,
+        previousAppointmentId: String?,
+    ) = createPreBookingUseCase(doctorId, patientId, isRebooking, previousAppointmentId)
     suspend fun handleWebhook(payload: IntaSendCallbackPayload) = handleWebhookUseCase(payload)
     suspend fun withdraw(doctorId: String, req: WithdrawInitiateReq) = withdrawalUseCase(doctorId, req)
     suspend fun getWithdrawalBalance(doctorId: String) = getWithdrawalBalanceUseCase(doctorId)

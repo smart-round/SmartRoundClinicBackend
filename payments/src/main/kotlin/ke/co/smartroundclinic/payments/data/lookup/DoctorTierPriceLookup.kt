@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 
 data class DoctorTierInfo(
     val tierPrice: Double,
+    val followUpFee: Double,
     val commissionRate: Double,
 )
 
@@ -69,6 +70,8 @@ class DoctorTierPriceLookup(
             return null
         }
 
+        val followUpFee = tierDoc.getDouble("followUpFee") ?: 0.0
+
         val commissionRate = try {
             commissionRatesCol.find().firstOrNull()?.getDouble("commissionRate") ?: 0.0
         } catch (e: Exception) {
@@ -76,6 +79,6 @@ class DoctorTierPriceLookup(
             0.0
         }
 
-        return DoctorTierInfo(tierPrice = tierPrice, commissionRate = commissionRate)
+        return DoctorTierInfo(tierPrice = tierPrice, followUpFee = followUpFee, commissionRate = commissionRate)
     }
 }

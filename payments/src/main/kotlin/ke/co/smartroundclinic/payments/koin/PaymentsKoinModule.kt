@@ -73,7 +73,7 @@ val paymentsKoinModule = module {
     single { GetPaymentLinkUseCase(get()) }
     single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
     single { CreateAppointmentPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
-    single { CreatePreBookingPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
+    single { CreatePreBookingPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get(), get()) }
     single { HandleIntaSendWebhookUseCase(get(), get()) }
 
     // Withdrawal use cases

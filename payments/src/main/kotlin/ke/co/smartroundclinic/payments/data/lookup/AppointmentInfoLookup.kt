@@ -15,6 +15,8 @@ private data class AppointmentDoc(
     val doctorId: String,
     val patientId: String,
     val serviceTierId: String? = null,
+    val status: String = "",
+    val date: String = "",
 )
 
 @Serializable
@@ -36,7 +38,16 @@ private data class CommissionRateDoc(
     val commissionRate: Double = 0.0,
 )
 
-// ── Public result type ─────────────────────────────────────────────────────────
+// ── Public result types ────────────────────────────────────────────────────────
+
+data class RebookingAppointmentInfo(
+    val doctorId: String,
+    val patientId: String,
+    val status: String,
+    val date: String,
+    val serviceTierId: String?,
+    val followUpFee: Double,
+)
 
 data class AppointmentParticipants(
     val doctorId: String,
@@ -91,6 +102,25 @@ class AppointmentInfoLookup(
             followUpFee = followUpFee?.followUpFee ?: 0.0,
             tierPrice = followUpFee?.tierPrice ?: 0.0,
             commissionRate = commissionRate,
+        )
+    }
+
+    suspend fun getForRebooking(appointmentId: String): RebookingAppointmentInfo? {
+        val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull()
+        if (appointment == null) {
+            log.warn("AppointmentInfoLookup.getForRebooking: appointment not found id=$appointmentId")
+            return null
+        }
+        val followUpFee = appointment.serviceTierId?.let { tierId ->
+            serviceTiers.find(Filters.eq("id", tierId)).firstOrNull()?.followUpFee
+        } ?: 0.0
+        return RebookingAppointmentInfo(
+            doctorId = appointment.doctorId,
+            patientId = appointment.patientId,
+            status = appointment.status,
+            date = appointment.date,
+            serviceTierId = appointment.serviceTierId,
+            followUpFee = followUpFee,
         )
     }
 }
