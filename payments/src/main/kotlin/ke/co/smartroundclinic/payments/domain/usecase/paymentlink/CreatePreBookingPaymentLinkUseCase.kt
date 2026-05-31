@@ -132,7 +132,7 @@ class CreatePreBookingPaymentLinkUseCase(
                 isActive = true,
                 redirectUrl = config.callbackPaymentsUrl,
                 amount = amount,
-                usageLimit = 1,
+                usageLimit = 10,
                 currency = "KES",
                 mobileTarrif = config.mobileTarrif,
                 cardTarrif = config.cardTarrif,
