@@ -28,9 +28,13 @@ import org.slf4j.LoggerFactory
 private val log = LoggerFactory.getLogger("IntaSendController")
 
 // ── HTML page builders ────────────────────────────────────────────────────────
+// Brand palette (Smart Round Clinic):
+//   Primary   #E84E1C  · Primary70 #FF8A65  · Primary80 #FFB59B
+//   Primary90 #FFDBCE  · Primary95 #FFEDE8  · Primary99 #FFF8F6
 
-/** Shared CSS + Google Fonts loaded once via a base template. */
-private fun htmlPage(title: String, accentBg: String, content: String) = """
+private const val LOGO_URL = "https://admin.smartroundclinic.co.ke/logo-md.png"
+
+private fun htmlPage(title: String, content: String) = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,224 +48,230 @@ private fun htmlPage(title: String, accentBg: String, content: String) = """
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --brand:        #2563EB;
-      --brand-dark:   #1D4ED8;
-      --brand-light:  #EFF6FF;
-      --brand-mid:    #BFDBFE;
+      --brand:        #E84E1C;
+      --brand-dark:   #C73D12;
+      --brand-70:     #FF8A65;
+      --brand-80:     #FFB59B;
+      --brand-90:     #FFDBCE;
+      --brand-95:     #FFEDE8;
+      --brand-99:     #FFF8F6;
       --success:      #059669;
       --success-bg:   #ECFDF5;
       --success-ring: #6EE7B7;
       --error:        #DC2626;
       --error-bg:     #FEF2F2;
       --error-ring:   #FCA5A5;
-      --warn:         #D97706;
-      --warn-bg:      #FFFBEB;
-      --warn-ring:    #FDE68A;
-      --text:         #0F172A;
-      --muted:        #64748B;
-      --subtle:       #94A3B8;
+      --text:         #1A0A06;
+      --muted:        #6B4C42;
+      --subtle:       #A07060;
+      --border:       #F0D5CC;
       --surface:      #FFFFFF;
       --radius:       20px;
     }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: $accentBg;
+      background: var(--brand-99);
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px 20px;
+      padding: 28px 20px;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Header bar ── */
+    /* ── Header ── */
     .header {
       width: 100%;
       max-width: 460px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 20px;
+      padding: 0 4px;
     }
-    .logo-mark {
-      width: 36px; height: 36px;
-      background: var(--brand);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+    .logo { height: 36px; width: auto; display: block; }
+    .secure-badge {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 500; color: var(--subtle);
+      background: var(--brand-95); border: 1px solid var(--brand-90);
+      border-radius: 20px; padding: 4px 10px;
     }
-    .logo-mark svg { width: 20px; height: 20px; }
-    .brand-name {
-      font-size: 15px; font-weight: 700; color: var(--brand-dark);
-      letter-spacing: -0.2px;
-    }
-    .brand-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+    .secure-badge svg { width: 11px; height: 11px; }
 
     /* ── Card ── */
     .card {
       background: var(--surface);
       border-radius: var(--radius);
-      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 32px rgba(37,99,235,.08);
+      box-shadow: 0 2px 4px rgba(232,78,28,.06), 0 12px 40px rgba(232,78,28,.10);
+      border: 1px solid var(--brand-95);
       max-width: 460px;
       width: 100%;
-      padding: 40px 36px 36px;
-      text-align: center;
+      overflow: hidden;
     }
 
-    /* ── Status icon circle ── */
+    /* ── Card top stripe ── */
+    .card-stripe {
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand) 0%, var(--brand-70) 100%);
+    }
+
+    .card-body { padding: 40px 36px 36px; text-align: center; }
+
+    /* ── Icon circle ── */
     .icon-wrap {
-      width: 80px; height: 80px;
+      width: 84px; height: 84px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 28px;
-      animation: pop .4s cubic-bezier(.34,1.56,.64,1) both;
+      animation: pop .45s cubic-bezier(.34,1.56,.64,1) both;
     }
     @keyframes pop {
-      from { transform: scale(.5); opacity: 0; }
+      from { transform: scale(.4); opacity: 0; }
       to   { transform: scale(1);  opacity: 1; }
     }
-    .icon-wrap svg { width: 40px; height: 40px; }
+    .icon-wrap svg { width: 42px; height: 42px; }
 
     /* ── Typography ── */
     .status-title {
-      font-size: 22px; font-weight: 800;
+      font-size: 23px; font-weight: 800;
       color: var(--text);
       letter-spacing: -0.5px;
       margin-bottom: 10px;
     }
     .status-msg {
-      font-size: 14px; line-height: 1.7;
+      font-size: 14px; line-height: 1.75;
       color: var(--muted);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
 
     /* ── Amount pill ── */
     .amount-pill {
-      display: inline-flex; align-items: baseline; gap: 4px;
-      background: var(--brand-light);
-      border: 1px solid var(--brand-mid);
-      border-radius: 12px;
-      padding: 10px 20px;
+      display: inline-flex; align-items: baseline; gap: 5px;
+      background: var(--brand-95);
+      border: 1.5px solid var(--brand-90);
+      border-radius: 14px;
+      padding: 12px 24px;
       margin-bottom: 20px;
     }
-    .amount-currency { font-size: 15px; font-weight: 600; color: var(--brand); }
-    .amount-value    { font-size: 32px; font-weight: 800; color: var(--brand-dark); letter-spacing: -1px; }
+    .amount-currency { font-size: 16px; font-weight: 700; color: var(--brand); }
+    .amount-value    { font-size: 36px; font-weight: 800; color: var(--brand-dark); letter-spacing: -1.5px; }
 
     /* ── Invoice badge ── */
     .ref-badge {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      background: var(--brand-99);
+      border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 10px 14px;
+      padding: 10px 16px;
       font-size: 12px; color: var(--muted);
       margin-bottom: 28px;
       word-break: break-all;
     }
-    .ref-badge svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--subtle); }
+    .ref-badge svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--brand-70); }
 
-    /* ── Reason box (error) ── */
+    /* ── Reason box ── */
     .reason-box {
       background: var(--error-bg);
       border: 1px solid var(--error-ring);
       border-radius: 10px;
       padding: 12px 16px;
       font-size: 13px; color: var(--error);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
       text-align: left;
+      line-height: 1.6;
     }
 
     /* ── Divider ── */
-    .divider { border: none; border-top: 1px solid #F1F5F9; margin: 0 0 24px; }
+    .divider { border: none; border-top: 1px solid var(--brand-95); margin: 0 0 24px; }
 
-    /* ── Close-tab instruction ── */
+    /* ── Close-tab block ── */
     .close-section {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--brand-99);
+      border: 1px solid var(--brand-90);
       border-radius: 14px;
-      padding: 18px 20px;
+      padding: 20px;
       margin-bottom: 24px;
     }
     .close-section p {
-      font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px;
+      font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 16px;
     }
     .close-section p strong { color: var(--text); }
     .close-btn {
-      display: inline-flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
       background: var(--brand);
       color: #fff;
-      border: none; border-radius: 10px;
-      padding: 11px 22px;
-      font-size: 14px; font-weight: 600;
+      border: none; border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 15px; font-weight: 700;
       cursor: pointer;
       font-family: inherit;
-      transition: background .15s;
       width: 100%;
-      justify-content: center;
+      transition: background .15s, transform .1s;
+      letter-spacing: -0.1px;
     }
-    .close-btn:hover { background: var(--brand-dark); }
-    .close-btn svg { width: 16px; height: 16px; }
+    .close-btn:hover  { background: var(--brand-dark); }
+    .close-btn:active { transform: scale(.98); }
+    .close-btn svg { width: 17px; height: 17px; }
 
     /* ── Footer ── */
     .footer {
       font-size: 11px; color: var(--subtle);
       display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding-top: 4px;
     }
-    .footer svg { width: 12px; height: 12px; }
-
-    /* ── Spinner (pending) ── */
-    .spinner {
-      width: 44px; height: 44px;
-      border: 3px solid var(--warn-ring);
-      border-top-color: var(--warn);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer svg { width: 12px; height: 12px; color: var(--brand-70); }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="logo-mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-      </svg>
+    <img src="$LOGO_URL" alt="Smart Round Clinic" class="logo"
+         onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='flex'"/>
+    <div id="brand-fallback" style="display:none;align-items:center;gap:8px">
+      <div style="width:34px;height:34px;background:var(--brand);border-radius:9px;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </div>
+      <span style="font-size:15px;font-weight:700;color:var(--brand-dark)">Smart Round Clinic</span>
     </div>
-    <div>
-      <div class="brand-name">Smart Round Clinic</div>
-      <div class="brand-sub">Secure Payment</div>
+    <div class="secure-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Secure Payment
     </div>
   </div>
 
   <div class="card">
-    $content
+    <div class="card-stripe"></div>
+    <div class="card-body">
+      $content
+    </div>
   </div>
 
   <script>
     function closeTab() {
       window.close();
-      // Fallback: show manual instruction if window.close() is blocked
       setTimeout(function() {
         var btn = document.getElementById('close-btn');
-        if (btn) btn.textContent = 'Please close this tab manually';
-      }, 300);
+        if (btn) { btn.textContent = 'Please close this tab manually and return to the app'; }
+      }, 400);
     }
   </script>
 </body>
 </html>
 """.trimIndent()
 
-private fun closeTabSection(msg: String) = """
+private fun closeTabBlock(msg: String) = """
     <hr class="divider"/>
     <div class="close-section">
       <p>$msg</p>
       <button class="close-btn" id="close-btn" onclick="closeTab()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <path d="M18 6L6 18M6 6l12 12"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="9 18 3 12 9 6"/><line x1="3" y1="12" x2="21" y2="12"/>
         </svg>
-        Close Tab &amp; Return to App
+        Close Tab &amp; Go Back to App
       </button>
     </div>
 """.trimIndent()
@@ -275,17 +285,18 @@ private fun paymentSuccessHtml(invoiceId: String?, amount: String?, currency: St
 
     val refBlock = if (invoiceId != null) """
     <div class="ref-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/>
+      </svg>
       Invoice&nbsp;<strong>$invoiceId</strong>
     </div>""" else ""
 
-    val close = closeTabSection("<strong>Your payment was successful.</strong> Close this tab and return to the Smart Round Clinic app to complete your appointment booking.")
+    val close = closeTabBlock("Your payment was confirmed. <strong>Close this tab and go back to the Smart Round Clinic app</strong> to complete your appointment booking.")
 
-    return htmlPage("Payment Successful", "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)", """
+    return htmlPage("Payment Successful", """
     <div class="icon-wrap" style="background:#DCFCE7">
       <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M8 12l3 3 5-5"/>
+        <circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/>
       </svg>
     </div>
     <div class="status-title">Payment Successful</div>
@@ -294,52 +305,31 @@ private fun paymentSuccessHtml(invoiceId: String?, amount: String?, currency: St
     $refBlock
     $close
     <div class="footer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
       Secured by IntaSend &bull; Smart Round Clinic
     </div>
 """.trimIndent())
 }
 
 private fun paymentFailedHtml(reason: String): String {
-    val close = closeTabSection("<strong>Something went wrong.</strong> Close this tab and return to the Smart Round Clinic app to try again.")
+    val close = closeTabBlock("Something went wrong with your payment. <strong>Close this tab and go back to the Smart Round Clinic app</strong> to try again.")
 
-    return htmlPage("Payment Failed", "linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)", """
+    return htmlPage("Payment Failed", """
     <div class="icon-wrap" style="background:#FEE2E2">
       <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M15 9l-6 6M9 9l6 6"/>
+        <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
       </svg>
     </div>
     <div class="status-title">Payment Failed</div>
-    <div class="status-msg">We couldn't process your payment. Please review the details below.</div>
+    <div class="status-msg">We couldn't complete your payment. Please review the error below.</div>
     <div class="reason-box">$reason</div>
     $close
     <div class="footer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-      Secured by IntaSend &bull; Smart Round Clinic
-    </div>
-""".trimIndent())
-}
-
-private fun paymentPendingHtml(invoiceId: String?): String {
-    val refBlock = if (invoiceId != null) """
-    <div class="ref-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
-      Invoice&nbsp;<strong>$invoiceId</strong>
-    </div>""" else ""
-
-    val close = closeTabSection("<strong>Your payment is being processed.</strong> Close this tab and return to the Smart Round Clinic app. We'll notify you once it's confirmed.")
-
-    return htmlPage("Payment Processing", "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)", """
-    <div class="icon-wrap" style="background:#FEF3C7; animation: none;">
-      <div class="spinner"></div>
-    </div>
-    <div class="status-title">Processing Payment</div>
-    <div class="status-msg">Your payment is on its way. This usually takes less than a minute.</div>
-    $refBlock
-    $close
-    <div class="footer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
       Secured by IntaSend &bull; Smart Round Clinic
     </div>
 """.trimIndent())
@@ -347,8 +337,8 @@ private fun paymentPendingHtml(invoiceId: String?): String {
 
 private fun webhookSuccessHtml(state: String?, invoiceId: String?, value: String?, currency: String?) = """
 <!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Webhook OK</title>
-<style>body{font-family:monospace;background:#f0fdf4;padding:32px;color:#166534}
-.box{background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:20px;max-width:500px}
+<style>body{font-family:monospace;background:#FFF8F6;padding:32px;color:#C73D12}
+.box{background:#fff;border:1px solid #FFB59B;border-radius:8px;padding:20px;max-width:500px}
 h2{margin-bottom:12px}p{color:#374151;font-size:13px;line-height:1.8}</style></head>
 <body><div class="box">
   <h2>&#10003; Webhook processed</h2>
@@ -432,9 +422,8 @@ fun Route.intaSendController(service: IntaSendService, webhookChallenge: String)
             log.info("IntaSend redirect callback — state=$state invoiceId=$invoiceId value=$value failed=$failed")
 
             val html = when (state) {
-                "COMPLETE" -> paymentSuccessHtml(invoiceId, value, currency)
-                "FAILED"   -> paymentFailedHtml(failed ?: "Your payment could not be processed. Please try again.")
-                else       -> paymentPendingHtml(invoiceId)
+                "FAILED" -> paymentFailedHtml(failed ?: "Your payment could not be processed. Please try again.")
+                else     -> paymentSuccessHtml(invoiceId, value, currency)
             }
             call.respondText(html, ContentType.Text.Html, HttpStatusCode.OK)
         }
