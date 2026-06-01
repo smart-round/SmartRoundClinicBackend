@@ -7,17 +7,17 @@ import io.ktor.server.auth.principal
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.websocket.webSocket
-import io.ktor.utils.io.readRemaining
+import io.ktor.utils.io.toByteArray
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
@@ -39,6 +39,15 @@ fun Route.supportTicketChatController(service: SupportTicketChatService) {
     authenticate("auth-jwt") {
         // ── REST: file upload ─────────────────────────────────────────────────
         route("/support/tickets/{ticketId}/chat") {
+            get {
+                call.requireRole(ADMIN, DOCTOR, PATIENT) {
+                    val ticketId = call.parameters["ticketId"]
+                        ?: throw MissingParametersException("ticketId is required")
+                    val result = service.getChatHistory(ticketId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
             post("files") {
                 call.requireRole(ADMIN, DOCTOR, PATIENT) {
                     val ticketId = call.parameters["ticketId"]
@@ -53,7 +62,7 @@ fun Route.supportTicketChatController(service: SupportTicketChatService) {
                         if (part is PartData.FileItem) {
                             val fileName = part.originalFileName ?: "file"
                             val contentType = part.contentType?.toString() ?: "application/octet-stream"
-                            val bytes = part.streamProvider().readBytes()
+                            val bytes = part.provider().toByteArray()
                             response = service.uploadFile(ticketId, userId, senderName, fileName, contentType, bytes)
                             part.dispose()
                         }

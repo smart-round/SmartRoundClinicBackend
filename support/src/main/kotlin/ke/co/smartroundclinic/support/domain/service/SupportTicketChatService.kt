@@ -30,6 +30,12 @@ class SupportTicketChatService(
             is Resource.Error -> emptyList()
         }
 
+    suspend fun getChatHistory(ticketId: String): DefaultResponse<List<SupportTicketChatRes?>?> =
+        repository.getByTicketId(ticketId)
+            .toDefaultResponse(failedStatusCode = 404) { entities ->
+                entities?.map { it.toModel().toRes() }
+            }
+
     fun watchMessages(ticketId: String): Flow<SupportTicketChatEntity> =
         repository.watchMessages(ticketId)
 
