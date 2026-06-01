@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -86,7 +87,6 @@ class CreatePreBookingPaymentLinkUseCase(
                 )
             }
 
-            // Must rebook within the same calendar month as the previous appointment
             val prevDate = runCatching { LocalDate.parse(prevAppt.date) }.getOrNull()
                 ?: return DefaultResponse(
                     httpStatusCode = HttpStatusCode.UnprocessableEntity.value,
@@ -96,11 +96,12 @@ class CreatePreBookingPaymentLinkUseCase(
                 )
 
             val today = LocalDate.now()
-            if (prevDate.year != today.year || prevDate.month != today.month) {
+            val daysSince = ChronoUnit.DAYS.between(prevDate, today)
+            if (daysSince > 30) {
                 return DefaultResponse(
                     httpStatusCode = HttpStatusCode.UnprocessableEntity.value,
                     status = false,
-                    message = "Rebooking is only allowed within the same month as the previous appointment (${prevDate.month} ${prevDate.year})",
+                    message = "Rebooking is only allowed within 30 days of the previous appointment",
                     data = null,
                 )
             }
