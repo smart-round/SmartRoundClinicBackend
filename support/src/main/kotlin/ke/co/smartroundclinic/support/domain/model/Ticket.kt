@@ -11,6 +11,7 @@ data class Ticket(
     val description: String,
     val complainantName: String,
     val complainantEmail: String,
+    val complainantId: String? = null,
     val status: TicketStatus,
     val assignedToId: String? = null,
     val assigneeName: String? = null,
