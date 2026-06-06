@@ -194,7 +194,7 @@ class IntaSendRepositoryImpl(
     }
 
     override suspend fun stkPush(body: STKPushReq): Resource<STKPushRes> = try {
-        val response = http.post("${config.baseUrl}payment/mpesa-stk-push") {
+        val response = http.post("${config.baseUrl}/payment/mpesa-stk-push") {
             auth()
             jsonBody(body)
         }
@@ -211,7 +211,7 @@ class IntaSendRepositoryImpl(
     }
 
     override suspend fun getPaymentStatus(body: GetPaymentStatusReq): Resource<GetPaymentStatusRes>  = try {
-        val response = http.post("${config.baseUrl}payment/status/") {
+        val response = http.post("${config.baseUrl}/payment/status/") {
             auth()
             jsonBody(body)
         }
