@@ -55,7 +55,7 @@ data class GetPaymentStatusInvoice(
     @SerialName("updated_at")
     val updatedAt: String,
     @SerialName("value")
-    val value: Int
+    val value: Double
 )
 
 @Serializable
