@@ -33,7 +33,7 @@ data class STKPushInvoice(
     @SerialName("card_info")
     val cardInfo: STKPushCardInfo,
     @SerialName("charges")
-    val charges: Int,
+    val charges: Double,
     @SerialName("created_at")
     val createdAt: String,
     @SerialName("currency")
@@ -63,7 +63,7 @@ data class STKPushInvoice(
     @SerialName("updated_at")
     val updatedAt: String,
     @SerialName("value")
-    val value: Int
+    val value: Double
 )
 
 @Serializable
