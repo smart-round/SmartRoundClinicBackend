@@ -11,7 +11,7 @@ data class STKPushReq(
     @SerialName("api_ref")
     val apiRef: String,
     @SerialName("mobile_tarrif")
-    val mobileTarrif: STKPushMobileTarrif = STKPushMobileTarrif.CUSTOMER_PAYS,
+    val mobileTarrif: String = STKPushMobileTarrif.CUSTOMER_PAYS.str,
     @SerialName("phone_number")
     val phoneNumber: String,
     @SerialName("signature")
