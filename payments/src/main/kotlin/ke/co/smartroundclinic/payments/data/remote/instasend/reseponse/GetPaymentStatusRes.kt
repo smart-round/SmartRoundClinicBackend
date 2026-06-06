@@ -23,7 +23,7 @@ data class GetPaymentStatusInvoice(
     @SerialName("charges")
     val charges: Double,
     @SerialName("clearing_status")
-    val clearingStatus: String,
+    val clearingStatus: String?,
     @SerialName("created_at")
     val createdAt: String,
     @SerialName("currency")
@@ -41,13 +41,13 @@ data class GetPaymentStatusInvoice(
     @SerialName("invoice_id")
     val invoiceId: String,
     @SerialName("mpesa_reference")
-    val mpesaReference: String,
+    val mpesaReference: String?,
     @SerialName("net_amount")
     val netAmount: String,
     @SerialName("provider")
     val provider: String,
     @SerialName("provider_ref")
-    val providerRef: String,
+    val providerRef: String?,
     @SerialName("retry_count")
     val retryCount: Int,
     @SerialName("state")
