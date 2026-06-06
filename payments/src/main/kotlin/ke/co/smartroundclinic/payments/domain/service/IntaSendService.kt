@@ -9,6 +9,9 @@ import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePreBooki
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.ListPaymentLinksUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.UpdatePaymentLinkUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.stkpush.GetStkPushPaymentStatusUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushAppointmentUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushPreBookingUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.CheckWithdrawalStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBalanceUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalByIdUseCase
@@ -34,6 +37,9 @@ class IntaSendService(
     private val handleWithdrawalWebhookUseCase: HandleWithdrawalWebhookUseCase,
     private val getWithdrawalHistoryUseCase: GetWithdrawalHistoryUseCase,
     private val getWithdrawalByIdUseCase: GetWithdrawalByIdUseCase,
+    private val stkPushAppointmentUseCase: InitiateStkPushAppointmentUseCase,
+    private val stkPushPreBookingUseCase: InitiateStkPushPreBookingUseCase,
+    private val getStkPushStatusUseCase: GetStkPushPaymentStatusUseCase,
 ) {
     suspend fun create(body: CreatePaymentLinkBody) = createUseCase(body)
     suspend fun list(page: Int) = listUseCase(page)
@@ -56,4 +62,17 @@ class IntaSendService(
         getWithdrawalHistoryUseCase(doctorId, page, size)
     suspend fun getWithdrawalById(id: String, doctorId: String) =
         getWithdrawalByIdUseCase(id, doctorId)
+
+    suspend fun stkPushForAppointment(appointmentId: String, phoneNumber: String, patientId: String) =
+        stkPushAppointmentUseCase(appointmentId, phoneNumber, patientId)
+
+    suspend fun stkPushPreBooking(
+        doctorId: String,
+        patientId: String,
+        phoneNumber: String,
+        isRebooking: Boolean,
+        previousAppointmentId: String?,
+    ) = stkPushPreBookingUseCase(doctorId, patientId, phoneNumber, isRebooking, previousAppointmentId)
+
+    suspend fun getStkPushStatus(invoiceId: String) = getStkPushStatusUseCase(invoiceId)
 }

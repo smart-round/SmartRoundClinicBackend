@@ -38,6 +38,9 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSum
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetEarningsChartUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetDoctorPaymentBreakdownUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.stkpush.GetStkPushPaymentStatusUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushAppointmentUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushPreBookingUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.CheckWithdrawalStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBalanceUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalByIdUseCase
@@ -78,6 +81,11 @@ val paymentsKoinModule = module {
     single { CreatePreBookingPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get(), get()) }
     single { HandleIntaSendWebhookUseCase(get(), get()) }
 
+    // STK push use cases
+    single { InitiateStkPushAppointmentUseCase(get(), get(), AppConfig.intaSend, get()) }
+    single { InitiateStkPushPreBookingUseCase(get(), get(), AppConfig.intaSend, get(), get()) }
+    single { GetStkPushPaymentStatusUseCase(get()) }
+
     // Withdrawal use cases
     single { WithdrawalUseCase(get(), get(), get(), get(), get(), AppConfig.intaSend) }
     single { GetWithdrawalBalanceUseCase(get(), get()) }
@@ -86,7 +94,7 @@ val paymentsKoinModule = module {
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
 
-    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
     single { GetPlatformOverviewUseCase(get(), get(), get()) }

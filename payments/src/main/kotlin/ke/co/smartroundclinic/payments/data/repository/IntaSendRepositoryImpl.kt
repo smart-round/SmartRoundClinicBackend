@@ -26,9 +26,13 @@ import ke.co.smartroundclinic.payments.data.remote.dto.response.PaymentLinkRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.ApproveSendMoneyRequestReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CheckSendMoneyStatusReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyRequestReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.GetPaymentStatusReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.STKPushReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.ApproveSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CheckSendMoneyStatusRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.GetPaymentStatusRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.STKPushRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import org.slf4j.LoggerFactory
 
@@ -186,6 +190,40 @@ class IntaSendRepositoryImpl(
         }
     } catch (e: Exception) {
         log.error("checkSendMoneyStatus(${body.trackingId}) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to check send money status")
+    }
+
+    override suspend fun stkPush(body: STKPushReq): Resource<STKPushRes> = try {
+        val response = http.post("${config.baseUrl}payment/mpesa-stk-push") {
+            auth()
+            jsonBody(body)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<STKPushRes>(), "Send money status fetched successfully")
+        } else {
+            val error = response.body<IntaSendErrorRes>()
+            log.warn("checkSendMoneyStatus trackingId=${body.apiRef} — IntaSend error: ${error.message()}")
+            Resource.Error(error.message())
+        }
+    } catch (e: Exception) {
+        log.error("checkSendMoneyStatus(${body.apiRef}) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to check send money status")
+    }
+
+    override suspend fun getPaymentStatus(body: GetPaymentStatusReq): Resource<GetPaymentStatusRes>  = try {
+        val response = http.post("${config.baseUrl}payment/status/") {
+            auth()
+            jsonBody(body)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<GetPaymentStatusRes>(), "Send money status fetched successfully")
+        } else {
+            val error = response.body<IntaSendErrorRes>()
+            log.warn("checkSendMoneyStatus trackingId=${body.invoiceId} — IntaSend error: ${error.message()}")
+            Resource.Error(error.message())
+        }
+    } catch (e: Exception) {
+        log.error("checkSendMoneyStatus(${body.invoiceId}) failed — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to check send money status")
     }
 }

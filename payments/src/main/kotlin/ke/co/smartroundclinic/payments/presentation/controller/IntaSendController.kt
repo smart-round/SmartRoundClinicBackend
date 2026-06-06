@@ -22,6 +22,8 @@ import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreateAppointmentPaymentLinkBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreatePaymentLinkBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.CreatePreBookingPaymentLinkBody
+import ke.co.smartroundclinic.payments.presentation.dto.request.StkPushAppointmentBody
+import ke.co.smartroundclinic.payments.presentation.dto.request.StkPushPreBookingBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.UpdatePaymentLinkBody
 import org.slf4j.LoggerFactory
 
@@ -467,6 +469,46 @@ fun Route.intaSendController(service: IntaSendService, webhookChallenge: String)
                 )
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
+        }
+
+        // POST /payments/intasend/appointments/stk-push
+        // Patient triggers an M-Pesa STK push for an existing appointment.
+        // Returns invoice_id (for polling) and transaction_ref (for booking) in the response.
+        post("/payments/intasend/appointments/stk-push") {
+            call.requireRole(PATIENT) {
+                val patientId = call.getUserId() ?: return@requireRole
+                val body = call.receive<StkPushAppointmentBody>()
+                val result = service.stkPushForAppointment(body.appointmentId, body.phoneNumber, patientId)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        // POST /payments/intasend/pre-booking/stk-push?rebooking=true|false
+        // Patient triggers an M-Pesa STK push BEFORE booking an appointment.
+        // Returns invoice_id (for polling) and transaction_ref (for booking) in the response.
+        post("/payments/intasend/pre-booking/stk-push") {
+            call.requireRole(PATIENT) {
+                val patientId = call.getUserId() ?: return@requireRole
+                val isRebooking = call.request.queryParameters["rebooking"]?.lowercase() == "true"
+                val body = call.receive<StkPushPreBookingBody>()
+                val result = service.stkPushPreBooking(
+                    doctorId = body.doctorId,
+                    patientId = patientId,
+                    phoneNumber = body.phoneNumber,
+                    isRebooking = isRebooking,
+                    previousAppointmentId = body.previousAppointmentId,
+                )
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+        }
+
+        // GET /payments/intasend/stk-push/status?invoiceId=X
+        // Poll the status of an STK push payment by invoice ID.
+        get("/payments/intasend/stk-push/status") {
+            val invoiceId = call.request.queryParameters["invoiceId"]
+                ?: throw MissingParametersException("invoiceId is required")
+            val result = service.getStkPushStatus(invoiceId)
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 
         route("/payments/intasend/links") {

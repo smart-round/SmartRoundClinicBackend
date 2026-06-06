@@ -3,6 +3,8 @@ package ke.co.smartroundclinic.payments.presentation.validation
 import io.ktor.server.plugins.requestvalidation.RequestValidationConfig
 import io.ktor.server.plugins.requestvalidation.ValidationResult
 import ke.co.smartroundclinic.payments.presentation.dto.request.InitiatePaymentReq
+import ke.co.smartroundclinic.payments.presentation.dto.request.StkPushAppointmentBody
+import ke.co.smartroundclinic.payments.presentation.dto.request.StkPushPreBookingBody
 import ke.co.smartroundclinic.payments.presentation.dto.request.UpdatePaymentStatusReq
 import ke.co.smartroundclinic.payments.presentation.dto.request.WithdrawInitiateReq
 
@@ -26,6 +28,20 @@ fun RequestValidationConfig.registerPaymentValidators() {
             req.idNumber.isNullOrBlank() -> ValidationResult.Invalid("idNumber is required")
             req.amount <= 0 -> ValidationResult.Invalid("amount must be greater than 0")
             req.amount < 100 -> ValidationResult.Invalid("minimum withdrawal amount is KES 100")
+            else -> ValidationResult.Valid
+        }
+    }
+    validate<StkPushAppointmentBody> { req ->
+        when {
+            req.appointmentId.isNullOrBlank() -> ValidationResult.Invalid("appointment_id is required")
+            req.phoneNumber.isNullOrBlank() -> ValidationResult.Invalid("phone_number is required")
+            else -> ValidationResult.Valid
+        }
+    }
+    validate<StkPushPreBookingBody> { req ->
+        when {
+            req.doctorId.isNullOrBlank() -> ValidationResult.Invalid("doctor_id is required")
+            req.phoneNumber.isNullOrBlank() -> ValidationResult.Invalid("phone_number is required")
             else -> ValidationResult.Valid
         }
     }

@@ -34,3 +34,19 @@ data class CreatePreBookingPaymentLinkBody(
     val doctorId: String,
     val previousAppointmentId: String? = null,
 )
+
+/** Patient-facing: initiate an STK push for an existing confirmed appointment. */
+@Serializable
+data class StkPushAppointmentBody(
+    @SerialName("appointment_id") val appointmentId: String,
+    @SerialName("phone_number") val phoneNumber: String,
+)
+
+/** Patient-facing: initiate an STK push before an appointment is booked.
+ *  For rebooking (?rebooking=true), also supply previousAppointmentId. */
+@Serializable
+data class StkPushPreBookingBody(
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("phone_number") val phoneNumber: String,
+    @SerialName("previous_appointment_id") val previousAppointmentId: String? = null,
+)
