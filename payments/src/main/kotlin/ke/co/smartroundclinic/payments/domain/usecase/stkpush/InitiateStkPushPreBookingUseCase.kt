@@ -93,7 +93,7 @@ class InitiateStkPushPreBookingUseCase(
             )
 
             amount = prevAppt.followUpFee
-            apiRef = "rebooking_${patientId}_${doctorId}"
+            apiRef = "rebooking_${patientId}_${doctorId}_${UUID.randomUUID().toString().take(8)}"
         } else {
             val tierInfo = doctorTierPriceLookup.getTierInfo(doctorId)
                 ?: return DefaultResponse(
@@ -103,7 +103,7 @@ class InitiateStkPushPreBookingUseCase(
                     data = null,
                 )
             amount = tierInfo.tierPrice
-            apiRef = "prebooking_${patientId}_${doctorId}"
+            apiRef = "prebooking_${patientId}_${doctorId}_${UUID.randomUUID().toString().take(8)}"
         }
 
         val commissionRate = doctorTierPriceLookup.getTierInfo(doctorId)?.commissionRate ?: 0.0
