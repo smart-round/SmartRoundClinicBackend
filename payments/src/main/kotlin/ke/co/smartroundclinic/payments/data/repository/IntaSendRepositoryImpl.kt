@@ -194,20 +194,21 @@ class IntaSendRepositoryImpl(
     }
 
     override suspend fun stkPush(body: STKPushReq): Resource<STKPushRes> = try {
-        val response = http.post("${config.baseUrl}/payment/mpesa-stk-push") {
+        val response = http.post("${config.baseUrl}/payment/mpesa-stk-push/") {
             auth()
             jsonBody(body)
         }
         if (response.status.isSuccess()) {
-            Resource.Success(response.body<STKPushRes>(), "Send money status fetched successfully")
+            Resource.Success(response.body<STKPushRes>(), "STK push initiated successfully")
         } else {
-            val error = response.body<IntaSendErrorRes>()
-            log.warn("checkSendMoneyStatus trackingId=${body.apiRef} — IntaSend error: ${error.message()}")
-            Resource.Error(error.message())
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "STK push failed — HTTP ${response.status.value}" }
+            log.warn("stkPush apiRef=${body.apiRef} — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
         }
     } catch (e: Exception) {
-        log.error("checkSendMoneyStatus(${body.apiRef}) failed — ${e.message}", e)
-        Resource.Error(e.message ?: "Failed to check send money status")
+        log.error("stkPush(${body.apiRef}) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to initiate STK push")
     }
 
     override suspend fun getPaymentStatus(body: GetPaymentStatusReq): Resource<GetPaymentStatusRes>  = try {
