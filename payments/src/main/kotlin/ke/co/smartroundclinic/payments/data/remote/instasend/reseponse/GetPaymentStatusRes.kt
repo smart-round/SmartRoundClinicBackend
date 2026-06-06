@@ -23,7 +23,7 @@ data class GetPaymentStatusInvoice(
     @SerialName("charges")
     val charges: Double,
     @SerialName("clearing_status")
-    val clearingStatus: String?,
+    val clearingStatus: String? = null,
     @SerialName("created_at")
     val createdAt: String,
     @SerialName("currency")
