@@ -18,6 +18,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.ResendPasswordResetOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.ResetPasswordUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RevokeTokenUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SignUpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.SignUpWithPictureUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UpdateUserUseCase
 import ke.co.smartroundclinic.auth.presentation.dto.request.AdminUpdateUserReq
 import ke.co.smartroundclinic.auth.presentation.dto.request.CreateAdminReq
@@ -43,11 +44,18 @@ class UserService(
     private val adminUpdateUserUseCase: AdminUpdateUserUseCase,
     private val filterUsersByRoleUseCase: FilterUsersByRoleUseCase,
     private val upgradeToSuperAdminUseCase: UpgradeToSuperAdminUseCase,
+    private val signUpWithPictureUseCase: SignUpWithPictureUseCase,
 ) {
     suspend fun signIn(email: String, password: String) = signInUseCase(email, password)
     suspend fun createAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toModel())
     suspend fun createSuperAdmin(createAdminReq: CreateAdminReq) = createAdminUseCase(user = createAdminReq.toSuperAdminModel())
     suspend fun signUp(role: String, body: SignUpReq) = signUpUseCase(body.toModel(UserEntity.Role.valueOf(role)))
+    suspend fun signUpWithPicture(
+        role: String,
+        body: SignUpReq,
+        imageBytes: ByteArray?,
+        contentType: String?,
+    ) = signUpWithPictureUseCase(body.toModel(UserEntity.Role.valueOf(role)), imageBytes, contentType)
     suspend fun accountVerification(email: String, otpCode: String) = accountVerificationUseCase(email, otpCode)
     suspend fun resendAccountVerificationOtp(email: String) = resendAccountVerificationOtpUseCase(email)
     suspend fun updateUser(userId:String, body: UpdateUserReq) = updateUserUseCase(

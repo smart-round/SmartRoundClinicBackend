@@ -23,6 +23,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.ResetPasswordUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.RevokeTokenUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SendAccountVerificationOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SignUpUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.SignUpWithPictureUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.VerifyAccountOtpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
@@ -82,6 +83,7 @@ val authModule = module {
             get()
         )
     }
+    single { SignUpWithPictureUseCase(get(), get(), get(), get()) }
 
     single {
         UserService(
@@ -103,6 +105,7 @@ val authModule = module {
             get(),
             get(),
             get(),
+            get(), // SignUpWithPictureUseCase
         )
     }
 

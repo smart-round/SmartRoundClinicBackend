@@ -103,6 +103,60 @@ fun Route.userController(userService: UserService) {
             )
         }
 
+        post("sign-up-with-picture") {
+            val role = call.parameters["role"]
+                ?: throw MissingParametersException("Role parameter is missing example: (/?role = DOCTOR/PATIENT)")
+
+            var fullName: String? = null
+            var email: String? = null
+            var password: String? = null
+            var gender: String? = null
+            var phoneNumber: String? = null
+            var dateOfBirth: String? = null
+            var imageBytes: ByteArray? = null
+            var contentType: String? = null
+
+            call.receiveMultipart().forEachPart { part ->
+                when {
+                    part is PartData.FormItem -> when (part.name) {
+                        "fullName" -> fullName = part.value
+                        "email" -> email = part.value
+                        "password" -> password = part.value
+                        "gender" -> gender = part.value
+                        "phoneNumber" -> phoneNumber = part.value
+                        "dateOfBirth" -> dateOfBirth = part.value
+                    }
+                    part is PartData.FileItem && part.name == "file" -> {
+                        imageBytes = part.provider().toByteArray()
+                        contentType = part.contentType?.toString() ?: ""
+                    }
+                }
+                part.dispose()
+            }
+
+            val signUpReq = SignUpReq(
+                fullName = fullName ?: throw MissingParametersException("fullName is required"),
+                email = email ?: throw MissingParametersException("email is required"),
+                password = password ?: throw MissingParametersException("password is required"),
+                phoneNumber = phoneNumber?.takeIf { it.isNotBlank() },
+                dateOfBirth = dateOfBirth?.takeIf { it.isNotBlank() },
+            ).let { req ->
+                gender?.takeIf { it.isNotBlank() }
+                    ?.let { g -> req.copy(gender = runCatching { ke.co.smartroundclinic.auth.data.entity.UserEntity.Gender.valueOf(g) }.getOrElse { req.gender }) }
+                    ?: req
+            }
+
+            if (imageBytes != null) requireImageContentType(contentType ?: "")
+
+            val result = userService.signUpWithPicture(
+                role = role,
+                body = signUpReq,
+                imageBytes = imageBytes,
+                contentType = contentType,
+            )
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+        }
+
         route("account-verification") {
             get {
                 val email =
