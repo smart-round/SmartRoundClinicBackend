@@ -61,6 +61,10 @@ data class RealtimeKitConfig(
     val patientPreset: String = EnvLoader.get("CLOUDFLARE_RTK_PRESET_PATIENT") ?: "group_call_participant",
 )
 
+data class RedisConfig(
+    val url: String = require("REDIS_URL")
+)
+
 data class IntaSendConfig(
     val secretKey: String = require("INTASEND_SECRET_KEY"),
     val baseUrl: String = EnvLoader.get("INTASEND_BASE_URL") ?: "https://api.intasend.com/api/v1",
@@ -82,4 +86,5 @@ object AppConfig {
     val staticAssets = StaticAssetsConfig()
     val realtimeKit = RealtimeKitConfig()
     val intaSend = IntaSendConfig()
+    val redis = RedisConfig()
 }

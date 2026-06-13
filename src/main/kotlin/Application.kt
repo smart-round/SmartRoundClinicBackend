@@ -22,6 +22,7 @@ import ke.co.smartroundclinic.infra.koin.appConfigModule
 import ke.co.smartroundclinic.infra.koin.databaseModule
 import ke.co.smartroundclinic.infra.koin.httpModule
 import ke.co.smartroundclinic.infra.koin.storageModule
+import ke.co.smartroundclinic.infra.koin.redisModule
 import ke.co.smartroundclinic.notification.notificationModule
 import ke.co.smartroundclinic.notification.koin.notificationModule as notificationKoinModule
 import ke.co.smartroundclinic.scheduling.schedulingModule
@@ -49,7 +50,7 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(
-        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule, paymentsKoinModule),
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, redisModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule, paymentsKoinModule),
         validators = {
             registerDoctorValidators()
             registerAdminValidators()

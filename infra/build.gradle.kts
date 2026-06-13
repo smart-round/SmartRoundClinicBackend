@@ -35,4 +35,5 @@ dependencies {
     api(libs.kotlin.mongodb.driver.coroutine)
     api(libs.kotlin.mongodb.bson.kotlinx)
     implementation(libs.kotlin.aws.s3)
+    api(libs.lettuce.core)
 }

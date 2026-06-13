@@ -11,6 +11,7 @@ aws-s3 = "1.4.113"
 jsoup = "1.22.1"
 kotlinx-datetime = "0.6.1"
 firebase-admin = "9.4.3"
+lettuce = "6.4.2.RELEASE"
 
 [libraries]
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
@@ -47,6 +48,7 @@ kotlin-aws-s3 = { module = "aws.sdk.kotlin:s3", version.ref  = "aws-s3"}
 kotlin-jsoup  = { module = "org.jsoup:jsoup", version.ref = "jsoup"}
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
+lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
