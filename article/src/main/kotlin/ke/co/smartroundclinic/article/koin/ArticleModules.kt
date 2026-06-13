@@ -24,6 +24,7 @@ import ke.co.smartroundclinic.article.domain.usecase.articleCategory.GetAllArtic
 import ke.co.smartroundclinic.article.domain.usecase.articleCategory.GetArticleCategoryByIdUseCase
 import ke.co.smartroundclinic.article.domain.usecase.articleCategory.ToggleArticleCategoryUseCase
 import ke.co.smartroundclinic.article.domain.usecase.articleCategory.UpdateArticleCategoryUseCase
+import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -48,9 +49,9 @@ val articleModule = module {
     single { UpdateArticleUseCase(get(), get<StorageRepository>()) }
     single { PublishArticleUseCase(get()) }
     single { PublishArticleByDoctorUseCase(get()) }
-    single { SuspendArticleUseCase(get()) }
+    single { SuspendArticleUseCase(get(), getOrNull<NotificationSender>()) }
     single { SuspendArticleByDoctorUseCase(get()) }
-    single { DeleteArticleUseCase(get()) }
+    single { DeleteArticleUseCase(get(), getOrNull<NotificationSender>()) }
     single { DeleteArticleByDoctorUseCase(get()) }
     single { ArticleService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get<StorageRepository>()) }
 }

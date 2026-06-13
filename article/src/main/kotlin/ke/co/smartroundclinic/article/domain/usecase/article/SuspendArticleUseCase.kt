@@ -4,8 +4,30 @@ import ke.co.smartroundclinic.article.domain.repository.ArticleRepository
 import ke.co.smartroundclinic.article.presentation.dto.response.ArticleRes
 import ke.co.smartroundclinic.article.presentation.dto.response.toRes
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.Resource
 
-class SuspendArticleUseCase(private val repository: ArticleRepository) {
-    suspend operator fun invoke(id: String): DefaultResponse<ArticleRes?> =
-        repository.suspendArticle(id).toDefaultResponse { it?.toModel()?.toRes() }
+class SuspendArticleUseCase(
+    private val repository: ArticleRepository,
+    private val notificationSender: NotificationSender? = null,
+) {
+    suspend operator fun invoke(id: String): DefaultResponse<ArticleRes?> {
+        val result = repository.suspendArticle(id)
+        if (result is Resource.Success) {
+            result.data?.let { entity ->
+                runCatching {
+                    notificationSender?.send(
+                        title = "Article Suspended",
+                        message = "Your article \"${entity.title}\" has been suspended by an administrator.",
+                        channel = NotificationChannel.PUSH_NOTIFICATION,
+                        destination = NotificationDestination.DOCTOR,
+                        recipientId = entity.doctorId,
+                    )
+                }
+            }
+        }
+        return result.toDefaultResponse { it?.toModel()?.toRes() }
+    }
 }
