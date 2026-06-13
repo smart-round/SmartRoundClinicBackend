@@ -9,4 +9,5 @@ interface SupportTicketChatRepository {
     suspend fun getByTicketId(ticketId: String): Resource<List<SupportTicketChatEntity>>
     fun watchMessages(ticketId: String): Flow<SupportTicketChatEntity>
     suspend fun getUserName(userId: String): String?
+    suspend fun getComplainantId(ticketId: String): String?
 }

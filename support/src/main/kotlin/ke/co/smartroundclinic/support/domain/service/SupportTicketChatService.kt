@@ -4,6 +4,7 @@ import ke.co.smartroundclinic.support.data.entity.ChatFile
 import ke.co.smartroundclinic.support.data.entity.MessageType
 import ke.co.smartroundclinic.support.data.entity.SupportTicketChatEntity
 import ke.co.smartroundclinic.support.domain.repository.SupportTicketChatRepository
+import ke.co.smartroundclinic.support.domain.usecase.chat.NotifyOfflineSupportParticipantUseCase
 import ke.co.smartroundclinic.support.presentation.dto.request.WsChatMessage
 import ke.co.smartroundclinic.support.presentation.dto.response.SupportTicketChatRes
 import ke.co.smartroundclinic.support.presentation.dto.response.toRes
@@ -19,10 +20,13 @@ import kotlin.time.Duration.Companion.days
 class SupportTicketChatService(
     private val repository: SupportTicketChatRepository,
     private val storageRepository: StorageRepository,
+    private val notifyOfflineParticipant: NotifyOfflineSupportParticipantUseCase,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun getUserName(userId: String): String? = repository.getUserName(userId)
+
+    suspend fun getComplainantId(ticketId: String): String? = repository.getComplainantId(ticketId)
 
     suspend fun getHistory(ticketId: String): List<SupportTicketChatEntity> =
         when (val result = repository.getByTicketId(ticketId)) {
@@ -44,6 +48,7 @@ class SupportTicketChatService(
         senderId: String,
         senderName: String,
         rawJson: String,
+        recipientId: String? = null,
     ) {
         val msg = json.decodeFromString<WsChatMessage>(rawJson)
         val text = msg.message.takeIf { it.isNotBlank() } ?: return
@@ -56,6 +61,15 @@ class SupportTicketChatService(
                 message = text,
             )
         )
+        if (recipientId != null) {
+            runCatching {
+                notifyOfflineParticipant(
+                    recipientId = recipientId,
+                    senderName = senderName,
+                    messagePreview = text,
+                )
+            }
+        }
     }
 
     suspend fun uploadFile(

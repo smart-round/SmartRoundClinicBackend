@@ -89,8 +89,14 @@ fun Route.supportTicketChatController(service: SupportTicketChatService) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid token"))
                 return@webSocket
             }
+            val role = principal.payload.getClaim("role")?.asString() ?: ""
 
             val senderName = service.getUserName(userId) ?: "Unknown"
+
+            // Resolve recipient once on connect — only admins trigger offline push notifications
+            val recipientId: String? = if (role == ADMIN || role == "SUPER_ADMIN") {
+                service.getComplainantId(ticketId)
+            } else null
 
             // Push history to newly connected client
             service.getHistory(ticketId).forEach { msg ->
@@ -110,7 +116,7 @@ fun Route.supportTicketChatController(service: SupportTicketChatService) {
             for (frame in incoming) {
                 if (frame is Frame.Text) {
                     try {
-                        service.handleIncomingMessage(ticketId, userId, senderName, frame.readText())
+                        service.handleIncomingMessage(ticketId, userId, senderName, frame.readText(), recipientId)
                     } catch (_: Exception) {
                         send(Frame.Text("""{"error":"Failed to process message"}"""))
                     }

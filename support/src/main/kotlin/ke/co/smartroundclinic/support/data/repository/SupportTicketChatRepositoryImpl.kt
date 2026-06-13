@@ -21,6 +21,7 @@ class SupportTicketChatRepositoryImpl(
 ) : SupportTicketChatRepository {
 
     private val chats = supportDb.getCollection<SupportTicketChatEntity>(MongoDBConstants.SUPPORT_TICKET_CHATS)
+    private val tickets = supportDb.getCollection<Document>(MongoDBConstants.SUPPORT_TICKETS)
     private val users = authDb.getCollection<Document>(MongoDBConstants.AUTH_USER)
 
     override suspend fun save(entity: SupportTicketChatEntity): Resource<SupportTicketChatEntity?> =
@@ -60,6 +61,15 @@ class SupportTicketChatRepositoryImpl(
         withContext(Dispatchers.IO) {
             try {
                 users.find(Filters.eq("id", userId)).firstOrNull()?.getString("fullName")
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+    override suspend fun getComplainantId(ticketId: String): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                tickets.find(Filters.eq("id", ticketId)).firstOrNull()?.getString("complainantId")
             } catch (_: Exception) {
                 null
             }

@@ -10,7 +10,10 @@ import ke.co.smartroundclinic.support.domain.repository.TicketRepository
 import ke.co.smartroundclinic.support.domain.service.IssueCategoryService
 import ke.co.smartroundclinic.support.domain.service.SupportTicketChatService
 import ke.co.smartroundclinic.support.domain.service.TicketService
+import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.infra.storage.StorageRepository
+import ke.co.smartroundclinic.support.domain.usecase.chat.NotifyOfflineSupportParticipantUseCase
 import ke.co.smartroundclinic.support.domain.usecase.issueCategory.CreateIssueCategoryUseCase
 import ke.co.smartroundclinic.support.domain.usecase.issueCategory.DeleteIssueCategoryUseCase
 import ke.co.smartroundclinic.support.domain.usecase.issueCategory.GetAllIssueCategoriesUseCase
@@ -30,7 +33,8 @@ val supportModule = module {
     single<IssueCategoryRepository> { IssueCategoryRepositoryImpl(get(named("supportDb"))) }
     single<TicketRepository> { TicketRepositoryImpl(get(named("supportDb")), get(named("authDb"))) }
     single<SupportTicketChatRepository> { SupportTicketChatRepositoryImpl(get(named("supportDb")), get(named("authDb"))) }
-    single { SupportTicketChatService(get<SupportTicketChatRepository>(), get<StorageRepository>()) }
+    single { NotifyOfflineSupportParticipantUseCase(get<RedisRepository>(), getOrNull<NotificationSender>()) }
+    single { SupportTicketChatService(get<SupportTicketChatRepository>(), get<StorageRepository>(), get()) }
 
     single { CreateIssueCategoryUseCase(get()) }
     single { GetIssueCategoryByIdUseCase(get()) }
