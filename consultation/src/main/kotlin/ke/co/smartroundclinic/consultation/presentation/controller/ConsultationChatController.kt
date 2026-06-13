@@ -19,6 +19,7 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
@@ -216,6 +217,10 @@ fun Route.consultationChatController(
                 return@webSocket
             }
 
+            val isDoctor = userId == session.doctorId
+            val recipientId = if (isDoctor) session.patientId else session.doctorId
+            val recipientDestination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR
+
             val senderName = chatService.getUserName(userId) ?: "Unknown"
 
             // Push recent history to the newly connected client
@@ -244,6 +249,8 @@ fun Route.consultationChatController(
                             senderRole = role,
                             senderName = senderName,
                             rawJson = frame.readText(),
+                            recipientId = recipientId,
+                            recipientDestination = recipientDestination,
                         )
                     } catch (_: Exception) {
                         send(Frame.Text("""{"error":"Failed to process message"}"""))

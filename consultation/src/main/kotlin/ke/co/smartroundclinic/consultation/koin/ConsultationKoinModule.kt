@@ -10,9 +10,12 @@ import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.EndConsultationUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.GetConsultationUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.StartConsultationUseCase
+import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import org.koin.core.qualifier.named
@@ -41,6 +44,7 @@ val consultationKoinModule = module {
      * Chat use cases
      */
     single { GetConsultationHistoryUseCase(get()) }
+    single { NotifyOfflineConsultationParticipantUseCase(get<RedisRepository>(), getOrNull<NotificationSender>()) }
 
     /**
      * Call (Cloudflare RealtimeKit) use cases
@@ -53,5 +57,5 @@ val consultationKoinModule = module {
      * Services
      */
     single { ConsultationSessionService(get(), get(), get(), get()) }
-    single { ConsultationChatService(get(), get<StorageRepository>(), get()) }
+    single { ConsultationChatService(get(), get<StorageRepository>(), get(), get()) }
 }

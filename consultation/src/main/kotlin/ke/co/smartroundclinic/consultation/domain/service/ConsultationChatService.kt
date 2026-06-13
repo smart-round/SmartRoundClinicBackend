@@ -1,11 +1,13 @@
 package ke.co.smartroundclinic.consultation.domain.service
 
+import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationFile
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.request.ConsultationWsMessage
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
@@ -18,6 +20,7 @@ class ConsultationChatService(
     private val repository: ConsultationMessageRepository,
     private val storageRepository: StorageRepository,
     private val historyUseCase: GetConsultationHistoryUseCase,
+    private val notifyOfflineParticipant: NotifyOfflineConsultationParticipantUseCase,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -47,6 +50,8 @@ class ConsultationChatService(
         senderRole: String,
         senderName: String,
         rawJson: String,
+        recipientId: String,
+        recipientDestination: NotificationDestination,
     ) {
         val msg = json.decodeFromString<ConsultationWsMessage>(rawJson)
         if (msg.type != MessageType.TEXT) return
@@ -61,6 +66,14 @@ class ConsultationChatService(
                 message = text,
             )
         )
+        runCatching {
+            notifyOfflineParticipant(
+                recipientId = recipientId,
+                senderName = senderName,
+                messagePreview = text,
+                recipientDestination = recipientDestination,
+            )
+        }
     }
 
     /**
