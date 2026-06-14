@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.consultation.domain.usecase.session
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -20,11 +21,12 @@ class EndConsultationUseCase(
             val session = result.data!!
             runCatching {
                 notificationSender?.send(
-                    title = "Consultation Ended",
+                    title = PushNotificationEvents.CONSULTATION_ENDED,
                     message = "Your doctor has ended the consultation",
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.PATIENT,
                     recipientId = session.patientId,
+                    metadata = mapOf("event" to PushNotificationEvents.CONSULTATION_ENDED),
                 )
             }
         }

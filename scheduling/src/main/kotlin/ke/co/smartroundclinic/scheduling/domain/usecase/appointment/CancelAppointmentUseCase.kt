@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -34,19 +35,21 @@ class CancelAppointmentUseCase(
             runCatching {
                 if (role == "DOCTOR") {
                     notificationSender?.send(
-                        title = "Appointment Cancelled",
+                        title = PushNotificationEvents.APPOINTMENT_CANCELLED,
                         message = "Your appointment on ${entity.date} at ${entity.slotStart} has been cancelled by your doctor",
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.PATIENT,
                         recipientId = entity.patientId,
+                        metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED),
                     )
                 } else {
                     notificationSender?.send(
-                        title = "Appointment Cancelled",
+                        title = PushNotificationEvents.APPOINTMENT_CANCELLED,
                         message = "A patient has cancelled their appointment on ${entity.date} at ${entity.slotStart}",
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.DOCTOR,
                         recipientId = entity.doctorId,
+                        metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED),
                     )
                 }
             }

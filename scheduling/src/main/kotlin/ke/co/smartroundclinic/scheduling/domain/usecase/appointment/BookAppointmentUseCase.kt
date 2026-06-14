@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -113,18 +114,20 @@ class BookAppointmentUseCase(
             runCatching { paymentVerificationLookup.linkToAppointment(payment.id, appt.id) }
             runCatching {
                 notificationSender?.send(
-                    title = "New Appointment Request",
+                    title = PushNotificationEvents.APPOINTMENT_REQUEST,
                     message = "You have a new appointment request for ${appt.date} at ${appt.slotStart}",
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.DOCTOR,
                     recipientId = appt.doctorId,
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_REQUEST),
                 )
                 notificationSender?.send(
-                    title = "Appointment Booked",
+                    title = PushNotificationEvents.APPOINTMENT_BOOKED,
                     message = "Your appointment on ${appt.date} at ${appt.slotStart} has been booked successfully",
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.PATIENT,
                     recipientId = appt.patientId,
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_BOOKED),
                 )
             }
         }

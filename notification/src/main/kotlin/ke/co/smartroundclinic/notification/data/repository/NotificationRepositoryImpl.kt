@@ -152,6 +152,7 @@ class NotificationRepositoryImpl(
         channel: NotificationChannel,
         destination: NotificationDestination,
         recipientId: String?,
+        metadata: Map<String, String>,
     ) {
         create(
             NotificationEntity(
@@ -177,7 +178,7 @@ class NotificationRepositoryImpl(
             }
             val tokens = (tokensResource as? Resource.Success)?.data ?: emptyList()
             if (tokens.isNotEmpty()) {
-                runCatching { pushRepo.send(tokens, title, message) }
+                runCatching { pushRepo.send(tokens, title, message, metadata) }
             }
         }
     }

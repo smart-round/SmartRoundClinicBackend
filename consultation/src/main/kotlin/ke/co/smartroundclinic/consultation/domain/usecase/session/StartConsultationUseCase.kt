@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.consultation.domain.usecase.session
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -21,12 +22,13 @@ class StartConsultationUseCase(
             val isDoctor = userId == session.doctorId
             runCatching {
                 notificationSender?.send(
-                    title = if (isDoctor) "Doctor is Ready" else "Patient is Ready",
+                    title = if (isDoctor) PushNotificationEvents.CONSULTATION_DOCTOR_READY else PushNotificationEvents.CONSULTATION_PATIENT_READY,
                     message = if (isDoctor) "Your doctor has started the consultation"
                               else "Your patient has opened the consultation",
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR,
                     recipientId = if (isDoctor) session.patientId else session.doctorId,
+                    metadata = mapOf("event" to if (isDoctor) PushNotificationEvents.CONSULTATION_DOCTOR_READY else PushNotificationEvents.CONSULTATION_PATIENT_READY),
                 )
             }
         }

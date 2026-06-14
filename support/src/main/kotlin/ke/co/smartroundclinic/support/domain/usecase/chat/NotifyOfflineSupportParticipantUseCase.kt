@@ -26,6 +26,7 @@ class NotifyOfflineSupportParticipantUseCase(
             channel = NotificationChannel.PUSH_NOTIFICATION,
             destination = NotificationDestination.ALL,
             recipientId = recipientId,
+            metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE),
         )
     }
 }

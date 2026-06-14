@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.consultation.domain.usecase.call
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -125,12 +126,13 @@ class JoinConsultationCallUseCase(
                 val p = resolvedParticipant.data!!
                 runCatching {
                     notificationSender?.send(
-                        title = if (isDoctor) "Doctor Joined the Call" else "Patient Joined the Call",
+                        title = if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED,
                         message = if (isDoctor) "Your doctor has joined the video call"
                                   else "Your patient has joined the video call",
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR,
                         recipientId = if (isDoctor) session.patientId else session.doctorId,
+                        metadata = mapOf("event" to if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED),
                     )
                 }
                 DefaultResponse(

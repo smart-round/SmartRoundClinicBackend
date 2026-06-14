@@ -9,6 +9,7 @@ import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.presentation.dto.response.ComplianceRes
 import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.notification.config.EmailConfig
@@ -38,11 +39,12 @@ class ApproveComplianceUseCase(
             sendApplicationApprovedEmail(user.data?.fullName ?: "", user.data?.email ?: "")
             runCatching {
                 notificationSender?.send(
-                    title = "Application Approved",
+                    title = PushNotificationEvents.DOCTOR_APPLICATION_APPROVED,
                     message = "Congratulations! Your doctor application has been approved. You can now receive appointments.",
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.DOCTOR,
                     recipientId = doctorId,
+                    metadata = mapOf("event" to PushNotificationEvents.DOCTOR_APPLICATION_APPROVED),
                 )
             }
             approve.toDefaultResponse() { approve.data?.toModel()?.toRes() }

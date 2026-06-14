@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -25,11 +26,12 @@ class CompleteAppointmentUseCase(
         if (result is Resource.Success && result.data != null) {
             runCatching {
                 notificationSender?.send(
-                    title = "Appointment Completed",
+                    title = PushNotificationEvents.APPOINTMENT_COMPLETED,
                     message = "Your appointment on ${entity.date} at ${entity.slotStart} has been completed",
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.PATIENT,
                     recipientId = entity.patientId,
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_COMPLETED),
                 )
             }
         }

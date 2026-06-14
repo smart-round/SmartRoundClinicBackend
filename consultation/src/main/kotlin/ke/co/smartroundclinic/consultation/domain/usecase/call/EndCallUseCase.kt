@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.consultation.domain.usecase.call
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -59,11 +60,12 @@ class EndCallUseCase(
 
         runCatching {
             notificationSender?.send(
-                title = "Call Ended",
+                title = PushNotificationEvents.CALL_ENDED,
                 message = "The video call has been ended by your doctor",
                 channel = NotificationChannel.PUSH_NOTIFICATION,
                 destination = NotificationDestination.PATIENT,
                 recipientId = session.patientId,
+                metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED),
             )
         }
 

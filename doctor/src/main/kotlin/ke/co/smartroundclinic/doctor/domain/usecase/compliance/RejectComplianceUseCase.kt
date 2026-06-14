@@ -9,6 +9,7 @@ import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.presentation.dto.response.ComplianceRes
 import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.notification.config.EmailConfig
@@ -35,11 +36,12 @@ class RejectComplianceUseCase(
         sendApplicationRejectEmail(user.data?.fullName ?: "", user.data?.email ?: "", reason)
         runCatching {
             notificationSender?.send(
-                title = "Application Unsuccessful",
+                title = PushNotificationEvents.DOCTOR_APPLICATION_REJECTED,
                 message = "Your doctor application was not approved. Please review the feedback and resubmit.",
                 channel = NotificationChannel.PUSH_NOTIFICATION,
                 destination = NotificationDestination.DOCTOR,
                 recipientId = doctorId,
+                metadata = mapOf("event" to PushNotificationEvents.DOCTOR_APPLICATION_REJECTED),
             )
         }
         rejected.toDefaultResponse(

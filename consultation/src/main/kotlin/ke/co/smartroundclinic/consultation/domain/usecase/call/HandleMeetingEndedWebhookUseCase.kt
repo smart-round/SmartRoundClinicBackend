@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.consultation.domain.usecase.call
 
 import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
@@ -45,18 +46,20 @@ class HandleMeetingEndedWebhookUseCase(
                     log.info("Webhook: cleared videoRoomId on consultation=${session.id}")
                     runCatching {
                         notificationSender?.send(
-                            title = "Call Ended",
+                            title = PushNotificationEvents.CALL_ENDED,
                             message = "The video call has ended",
                             channel = NotificationChannel.PUSH_NOTIFICATION,
                             destination = NotificationDestination.DOCTOR,
                             recipientId = session.doctorId,
+                            metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED),
                         )
                         notificationSender?.send(
-                            title = "Call Ended",
+                            title = PushNotificationEvents.CALL_ENDED,
                             message = "The video call has ended",
                             channel = NotificationChannel.PUSH_NOTIFICATION,
                             destination = NotificationDestination.PATIENT,
                             recipientId = session.patientId,
+                            metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED),
                         )
                     }
                 } else {

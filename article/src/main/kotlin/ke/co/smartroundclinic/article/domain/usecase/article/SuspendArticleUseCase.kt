@@ -25,6 +25,7 @@ class SuspendArticleUseCase(
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.DOCTOR,
                         recipientId = entity.doctorId,
+                        metadata = mapOf("event" to PushNotificationEvents.ARTICLE_SUSPENDED),
                     )
                 }
             }

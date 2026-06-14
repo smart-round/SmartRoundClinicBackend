@@ -7,5 +7,6 @@ interface NotificationSender {
         channel: NotificationChannel,
         destination: NotificationDestination,
         recipientId: String? = null,
+        metadata: Map<String, String> = emptyMap(),
     )
 }
