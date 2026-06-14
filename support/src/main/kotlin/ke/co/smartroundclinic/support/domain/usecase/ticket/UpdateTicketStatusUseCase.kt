@@ -4,6 +4,7 @@ import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.support.data.entity.TicketStatus
 import ke.co.smartroundclinic.support.domain.repository.TicketRepository
@@ -21,7 +22,7 @@ class UpdateTicketStatusUseCase(
             if (ticket?.complainantId != null) {
                 runCatching {
                     notificationSender?.send(
-                        title = "Support ticket status updated",
+                        title = PushNotificationEvents.TICKET_STATUS_UPDATED,
                         message = "Your ticket \"${ticket.title}\" is now ${status.label()}",
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.ALL,

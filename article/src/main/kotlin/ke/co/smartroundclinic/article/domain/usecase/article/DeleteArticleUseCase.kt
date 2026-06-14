@@ -7,6 +7,7 @@ import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.Resource
 
 class DeleteArticleUseCase(
@@ -19,7 +20,7 @@ class DeleteArticleUseCase(
             result.data?.let { entity ->
                 runCatching {
                     notificationSender?.send(
-                        title = "Article Deleted",
+                        title = PushNotificationEvents.ARTICLE_DELETED,
                         message = "Your article \"${entity.title}\" has been removed by an administrator.",
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.DOCTOR,

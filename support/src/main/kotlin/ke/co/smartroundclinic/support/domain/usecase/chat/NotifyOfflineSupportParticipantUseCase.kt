@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.support.domain.usecase.chat
 import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.infra.redis.RedisKeys
 
@@ -20,7 +21,7 @@ class NotifyOfflineSupportParticipantUseCase(
         if (isOnline) return
 
         notificationSender?.send(
-            title = "New message from $senderName",
+            title = PushNotificationEvents.newChatMessage(senderName),
             message = messagePreview.take(100),
             channel = NotificationChannel.PUSH_NOTIFICATION,
             destination = NotificationDestination.ALL,
