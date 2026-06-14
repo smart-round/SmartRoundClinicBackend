@@ -14,7 +14,8 @@ import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
-import kotlin.time.Duration.Companion.days
+
+private const val FILE_URL_TTL = 86400L  // 24 hours
 
 class ConsultationChatService(
     private val repository: ConsultationMessageRepository,
@@ -34,9 +35,21 @@ class ConsultationChatService(
 
     suspend fun getRecentHistory(consultationId: String): List<ConsultationMessageEntity> =
         when (val result = repository.getByConsultationId(consultationId, 1, 50)) {
-            is Resource.Success -> result.data?.first ?: emptyList()
+            is Resource.Success -> result.data?.first?.map { resolveEntityFiles(it) } ?: emptyList()
             is Resource.Error -> emptyList()
         }
+
+    suspend fun resolveEntityFiles(entity: ConsultationMessageEntity): ConsultationMessageEntity {
+        if (entity.files.isEmpty()) return entity
+        val resolved = entity.files.map { file ->
+            if (file.url.startsWith("https://")) file
+            else {
+                val url = (storageRepository.presignedGetUrl(AppConfig.r2.bucket, file.url, FILE_URL_TTL) as? Resource.Success)?.data
+                if (url != null) file.copy(url = url) else file
+            }
+        }
+        return entity.copy(files = resolved)
+    }
 
     /**
      * WebSocket-only handler for incoming text messages from a connected client.
@@ -105,11 +118,6 @@ class ConsultationChatService(
             return Resource.Error(uploadResult.message ?: "Failed to upload file")
         }
 
-        val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
-            is Resource.Success -> urlResult.data ?: key
-            is Resource.Error -> key
-        }
-
         val entity = ConsultationMessageEntity(
             id = messageId,
             consultationId = consultationId,
@@ -120,14 +128,14 @@ class ConsultationChatService(
             files = listOf(
                 ConsultationFile(
                     fileName = safeName,
-                    url = fileUrl,
+                    url = key,  // store R2 key, not presigned URL
                     contentType = safeContentType,
                     sizeBytes = bytes.size.toLong(),
                 )
             ),
         )
         return when (val saveResult = repository.save(entity)) {
-            is Resource.Success -> Resource.Success(saveResult.data ?: entity)
+            is Resource.Success -> Resource.Success(resolveEntityFiles(saveResult.data ?: entity))
             is Resource.Error -> Resource.Error(saveResult.message ?: "Failed to save file message")
         }
     }

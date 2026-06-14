@@ -107,7 +107,8 @@ fun Route.supportTicketChatController(service: SupportTicketChatService) {
             val watchJob = launch {
                 try {
                     service.watchMessages(ticketId).collect { msg ->
-                        send(Frame.Text(json.encodeToString<SupportTicketChatRes>(msg.toModel().toRes())))
+                        val resolved = service.resolveEntityFiles(msg)
+                        send(Frame.Text(json.encodeToString<SupportTicketChatRes>(resolved.toModel().toRes())))
                     }
                 } catch (_: Exception) { }
             }

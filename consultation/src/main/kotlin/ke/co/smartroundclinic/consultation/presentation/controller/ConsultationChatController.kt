@@ -232,7 +232,8 @@ fun Route.consultationChatController(
             val watchJob = launch {
                 try {
                     chatService.watchMessages(consultationId).collect { msg ->
-                        send(Frame.Text(json.encodeToString<ConsultationMessageRes>(msg.toModel().toRes())))
+                        val resolved = chatService.resolveEntityFiles(msg)
+                        send(Frame.Text(json.encodeToString<ConsultationMessageRes>(resolved.toModel().toRes())))
                     }
                 } catch (_: Exception) {
                     // change stream interrupted — client reconnects

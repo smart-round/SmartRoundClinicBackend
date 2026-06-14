@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.admin.domain.usecase.subSpeciality
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
+import ke.co.smartroundclinic.admin.domain.usecase.resolveIconUrl
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateSubSpecialityReq
 import ke.co.smartroundclinic.admin.presentation.dto.response.SubSpecialityRes
 import ke.co.smartroundclinic.admin.presentation.dto.response.toRes
@@ -23,7 +24,7 @@ class UpdateSubSpecialityUseCase(
         imageBytes: ByteArray?,
         contentType: String?,
     ): DefaultResponse<SubSpecialityRes?> = withContext(Dispatchers.IO) {
-        val iconUrl = if (imageBytes != null && contentType != null) {
+        val iconKey = if (imageBytes != null && contentType != null) {
             val extension = imageExtensionOrNull(contentType) ?: "jpeg"
             val key = "subspeciality-icons/$id.$extension"
 
@@ -33,17 +34,13 @@ class UpdateSubSpecialityUseCase(
                 errorMessage = "Failed to upload icon"
             ) { null }
 
-            val presign = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, ICON_URL_TTL)
-            presign.data ?: return@withContext Resource.Error<SubSpecialityRes?>(
-                message = "Failed to generate icon URL"
-            ).toDefaultResponse(failedStatusCode = HttpStatusCode.InternalServerError.value) { null }
+            key  // store R2 key, not presigned URL
         } else null
 
-        specialityRepository.updateSubSpeciality(id, req.title, req.description, req.color, iconUrl)
-            .toDefaultResponse { it?.toModel()?.toRes() }
-    }
-
-    companion object {
-        private const val ICON_URL_TTL = 604800L
+        val updateResult = specialityRepository.updateSubSpeciality(id, req.title, req.description, req.color, iconKey)
+        val responseEntity = (updateResult as? Resource.Success)?.data?.let { entity ->
+            entity.copy(iconUrl = resolveIconUrl(entity.iconUrl, storageRepository)).toModel().toRes()
+        }
+        updateResult.toDefaultResponse { responseEntity }
     }
 }

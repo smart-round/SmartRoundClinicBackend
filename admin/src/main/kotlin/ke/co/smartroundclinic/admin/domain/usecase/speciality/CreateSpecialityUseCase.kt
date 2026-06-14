@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.admin.domain.usecase.speciality
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.admin.data.entity.toEntity
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
+import ke.co.smartroundclinic.admin.domain.usecase.resolveIconUrl
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateSpecialityReq
 import ke.co.smartroundclinic.admin.presentation.dto.response.SpecialityRes
 import ke.co.smartroundclinic.admin.presentation.dto.response.toRes
@@ -23,7 +24,7 @@ class CreateSpecialityUseCase(
         imageBytes: ByteArray?,
         contentType: String?,
     ): DefaultResponse<SpecialityRes?> = withContext(Dispatchers.IO) {
-        val iconUrl = if (imageBytes != null && contentType != null) {
+        val iconKey = if (imageBytes != null && contentType != null) {
             val model = req.toModel()
             val extension = imageExtensionOrNull(contentType) ?: "jpeg"
             val key = "speciality-icons/${model.id}.$extension"
@@ -34,18 +35,12 @@ class CreateSpecialityUseCase(
                 errorMessage = "Failed to upload icon"
             ) { null }
 
-            val presign = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, ICON_URL_TTL)
-            presign.data ?: return@withContext Resource.Error<SpecialityRes?>(
-                message = "Failed to generate icon URL"
-            ).toDefaultResponse(failedStatusCode = HttpStatusCode.InternalServerError.value) { null }
+            key  // store R2 key, not presigned URL
         } else null
 
-        val model = req.toModel(iconUrl)
+        val model = req.toModel(iconKey)
+        val responseIconUrl = resolveIconUrl(iconKey, storageRepository)
         specialityRepository.createSpeciality(listOf(model.toEntity()))
-            .toDefaultResponse(successStatusCode = 201, failedStatusCode = 400) { model.toRes() }
-    }
-
-    companion object {
-        private const val ICON_URL_TTL = 604800L
+            .toDefaultResponse(successStatusCode = 201, failedStatusCode = 400) { model.copy(iconUrl = responseIconUrl).toRes() }
     }
 }

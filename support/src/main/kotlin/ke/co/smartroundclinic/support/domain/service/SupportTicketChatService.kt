@@ -15,7 +15,8 @@ import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
-import kotlin.time.Duration.Companion.days
+
+private const val FILE_URL_TTL = 86400L  // 24 hours
 
 class SupportTicketChatService(
     private val repository: SupportTicketChatRepository,
@@ -30,15 +31,27 @@ class SupportTicketChatService(
 
     suspend fun getHistory(ticketId: String): List<SupportTicketChatEntity> =
         when (val result = repository.getByTicketId(ticketId)) {
-            is Resource.Success -> result.data ?: emptyList()
+            is Resource.Success -> result.data?.map { resolveEntityFiles(it) } ?: emptyList()
             is Resource.Error -> emptyList()
         }
 
-    suspend fun getChatHistory(ticketId: String): DefaultResponse<List<SupportTicketChatRes?>?> =
-        repository.getByTicketId(ticketId)
-            .toDefaultResponse(failedStatusCode = 404) { entities ->
-                entities?.map { it.toModel().toRes() }
+    suspend fun getChatHistory(ticketId: String): DefaultResponse<List<SupportTicketChatRes?>?> {
+        val result = repository.getByTicketId(ticketId)
+        val mapped = (result as? Resource.Success)?.data?.map { resolveEntityFiles(it).toModel().toRes() }
+        return result.toDefaultResponse(failedStatusCode = 404) { mapped }
+    }
+
+    suspend fun resolveEntityFiles(entity: SupportTicketChatEntity): SupportTicketChatEntity {
+        if (entity.files.isEmpty()) return entity
+        val resolved = entity.files.map { file ->
+            if (file.url.startsWith("https://")) file
+            else {
+                val url = (storageRepository.presignedGetUrl(AppConfig.r2.bucket, file.url, FILE_URL_TTL) as? Resource.Success)?.data
+                if (url != null) file.copy(url = url) else file
             }
+        }
+        return entity.copy(files = resolved)
+    }
 
     fun watchMessages(ticketId: String): Flow<SupportTicketChatEntity> =
         repository.watchMessages(ticketId)
@@ -90,21 +103,16 @@ class SupportTicketChatService(
             return DefaultResponse(500, false, "Failed to upload file")
         }
 
-        val fileUrl = when (val urlResult = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, 6.days.inWholeSeconds)) {
-            is Resource.Success -> urlResult.data ?: key
-            is Resource.Error -> key
-        }
-
         val entity = SupportTicketChatEntity(
             id = entityId,
             ticketId = ticketId,
             senderId = senderId,
             senderName = senderName,
             messageType = MessageType.FILE,
-            files = listOf(ChatFile(fileName = fileName, url = fileUrl, contentType = contentType)),
+            files = listOf(ChatFile(fileName = fileName, url = key, contentType = contentType)),
         )
         return when (repository.save(entity)) {
-            is Resource.Success -> DefaultResponse(200, true, "File uploaded", entity.toModel().toRes())
+            is Resource.Success -> DefaultResponse(200, true, "File uploaded", resolveEntityFiles(entity).toModel().toRes())
             is Resource.Error -> DefaultResponse(500, false, "Failed to save file message")
         }
     }

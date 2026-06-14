@@ -43,7 +43,7 @@ val consultationKoinModule = module {
     /**
      * Chat use cases
      */
-    single { GetConsultationHistoryUseCase(get()) }
+    single { GetConsultationHistoryUseCase(get(), get<StorageRepository>()) }
     single { NotifyOfflineConsultationParticipantUseCase(get<RedisRepository>(), getOrNull<NotificationSender>()) }
 
     /**

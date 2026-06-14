@@ -21,7 +21,7 @@ class UpdateSpecialityUseCase(
         imageBytes: ByteArray?,
         contentType: String?,
     ): DefaultResponse<Nothing?> = withContext(Dispatchers.IO) {
-        val iconUrl = if (imageBytes != null && contentType != null) {
+        val iconKey = if (imageBytes != null && contentType != null) {
             val extension = imageExtensionOrNull(contentType) ?: "jpeg"
             val key = "speciality-icons/$id.$extension"
 
@@ -31,10 +31,7 @@ class UpdateSpecialityUseCase(
                 errorMessage = "Failed to upload icon"
             ) { null }
 
-            val presign = storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, ICON_URL_TTL)
-            presign.data ?: return@withContext Resource.Error<Nothing?>(
-                message = "Failed to generate icon URL"
-            ).toDefaultResponse(failedStatusCode = HttpStatusCode.InternalServerError.value) { null }
+            key  // store R2 key, not presigned URL
         } else null
 
         specialityRepository.updateSpeciality(
@@ -43,11 +40,7 @@ class UpdateSpecialityUseCase(
             serviceTierId = req.serviceTierId,
             description = req.description,
             color = req.color,
-            iconUrl = iconUrl,
+            iconUrl = iconKey,
         ).toDefaultResponse { it }
-    }
-
-    companion object {
-        private const val ICON_URL_TTL = 604800L
     }
 }

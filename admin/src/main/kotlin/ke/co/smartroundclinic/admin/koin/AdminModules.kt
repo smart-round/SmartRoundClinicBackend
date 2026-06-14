@@ -92,11 +92,11 @@ val adminModule = module {
 
     single { CreateSpecialityUseCase(get(), get()) }
     single { UpdateSpecialityUseCase(get(), get()) }
-    single { GetSpecialitiesUseCase(get()) }
-    single { GetSpecialityByIdUseCase(get()) }
+    single { GetSpecialitiesUseCase(get(), get()) }
+    single { GetSpecialityByIdUseCase(get(), get()) }
     single { CreateSubSpecialityUseCase(get(), get()) }
     single { UpdateSubSpecialityUseCase(get(), get()) }
-    single { GetSubSpecialitiesUseCase(get()) }
+    single { GetSubSpecialitiesUseCase(get(), get()) }
     single { DeleteSpecialityUseCase(get()) }
     single { DeleteSubSpecialityUseCase(get()) }
     single { AssignSpecialityToServiceTierUseCase(get()) }
