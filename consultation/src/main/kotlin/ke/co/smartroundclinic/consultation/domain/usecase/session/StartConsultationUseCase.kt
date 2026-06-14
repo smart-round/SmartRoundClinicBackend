@@ -28,7 +28,11 @@ class StartConsultationUseCase(
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR,
                     recipientId = if (isDoctor) session.patientId else session.doctorId,
-                    metadata = mapOf("event" to if (isDoctor) PushNotificationEvents.CONSULTATION_DOCTOR_READY else PushNotificationEvents.CONSULTATION_PATIENT_READY, "consultationId" to session.id),
+                    metadata = mapOf(
+                        "event" to if (isDoctor) PushNotificationEvents.CONSULTATION_DOCTOR_READY else PushNotificationEvents.CONSULTATION_PATIENT_READY,
+                        "consultationId" to session.id,
+                        "appointmentId" to session.appointmentId,
+                    ),
                 )
             }
         }

@@ -245,6 +245,7 @@ fun Route.consultationChatController(
                     try {
                         chatService.handleIncomingMessage(
                             consultationId = consultationId,
+                            appointmentId = session.appointmentId,
                             senderId = userId,
                             senderRole = role,
                             senderName = senderName,

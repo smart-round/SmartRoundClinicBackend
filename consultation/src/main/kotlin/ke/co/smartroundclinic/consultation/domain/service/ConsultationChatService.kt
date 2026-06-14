@@ -46,6 +46,7 @@ class ConsultationChatService(
      */
     suspend fun handleIncomingMessage(
         consultationId: String,
+        appointmentId: String,
         senderId: String,
         senderRole: String,
         senderName: String,
@@ -73,6 +74,7 @@ class ConsultationChatService(
                 messagePreview = text,
                 recipientDestination = recipientDestination,
                 consultationId = consultationId,
+                appointmentId = appointmentId,
             )
         }
     }

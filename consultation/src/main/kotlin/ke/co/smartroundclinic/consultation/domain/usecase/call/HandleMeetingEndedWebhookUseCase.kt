@@ -51,7 +51,11 @@ class HandleMeetingEndedWebhookUseCase(
                             channel = NotificationChannel.PUSH_NOTIFICATION,
                             destination = NotificationDestination.DOCTOR,
                             recipientId = session.doctorId,
-                            metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED, "consultationId" to session.id),
+                            metadata = mapOf(
+                            "event" to PushNotificationEvents.CALL_ENDED,
+                            "consultationId" to session.id,
+                            "appointmentId" to session.appointmentId,
+                        ),
                         )
                         notificationSender?.send(
                             title = PushNotificationEvents.CALL_ENDED,
@@ -59,7 +63,11 @@ class HandleMeetingEndedWebhookUseCase(
                             channel = NotificationChannel.PUSH_NOTIFICATION,
                             destination = NotificationDestination.PATIENT,
                             recipientId = session.patientId,
-                            metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED, "consultationId" to session.id),
+                            metadata = mapOf(
+                            "event" to PushNotificationEvents.CALL_ENDED,
+                            "consultationId" to session.id,
+                            "appointmentId" to session.appointmentId,
+                        ),
                         )
                     }
                 } else {

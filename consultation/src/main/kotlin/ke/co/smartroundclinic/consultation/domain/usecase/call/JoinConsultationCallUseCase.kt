@@ -132,7 +132,11 @@ class JoinConsultationCallUseCase(
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR,
                         recipientId = if (isDoctor) session.patientId else session.doctorId,
-                        metadata = mapOf("event" to if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED, "consultationId" to consultationId),
+                        metadata = mapOf(
+                            "event" to if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED,
+                            "consultationId" to consultationId,
+                            "appointmentId" to session.appointmentId,
+                        ),
                     )
                 }
                 DefaultResponse(
