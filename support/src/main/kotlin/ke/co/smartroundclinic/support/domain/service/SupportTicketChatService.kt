@@ -67,6 +67,7 @@ class SupportTicketChatService(
                     recipientId = recipientId,
                     senderName = senderName,
                     messagePreview = text,
+                    ticketId = ticketId,
                 )
             }
         }

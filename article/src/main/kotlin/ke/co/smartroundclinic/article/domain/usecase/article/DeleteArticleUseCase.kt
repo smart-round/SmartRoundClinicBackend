@@ -25,7 +25,7 @@ class DeleteArticleUseCase(
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.DOCTOR,
                         recipientId = entity.doctorId,
-                        metadata = mapOf("event" to PushNotificationEvents.ARTICLE_DELETED),
+                        metadata = mapOf("event" to PushNotificationEvents.ARTICLE_DELETED, "articleId" to id),
                     )
                 }
             }

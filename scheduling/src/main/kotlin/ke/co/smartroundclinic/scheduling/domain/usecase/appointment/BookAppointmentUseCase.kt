@@ -119,7 +119,7 @@ class BookAppointmentUseCase(
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.DOCTOR,
                     recipientId = appt.doctorId,
-                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_REQUEST),
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_REQUEST, "appointmentId" to appt.id),
                 )
                 notificationSender?.send(
                     title = PushNotificationEvents.APPOINTMENT_BOOKED,
@@ -127,7 +127,7 @@ class BookAppointmentUseCase(
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.PATIENT,
                     recipientId = appt.patientId,
-                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_BOOKED),
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_BOOKED, "appointmentId" to appt.id),
                 )
             }
         }

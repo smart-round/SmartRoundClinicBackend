@@ -72,6 +72,7 @@ class ConsultationChatService(
                 senderName = senderName,
                 messagePreview = text,
                 recipientDestination = recipientDestination,
+                consultationId = consultationId,
             )
         }
     }

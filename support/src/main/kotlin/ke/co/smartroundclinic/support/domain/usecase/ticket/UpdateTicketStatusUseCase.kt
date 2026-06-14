@@ -27,7 +27,7 @@ class UpdateTicketStatusUseCase(
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.ALL,
                         recipientId = ticket.complainantId,
-                        metadata = mapOf("event" to PushNotificationEvents.TICKET_STATUS_UPDATED),
+                        metadata = mapOf("event" to PushNotificationEvents.TICKET_STATUS_UPDATED, "ticketId" to id),
                     )
                 }
             }

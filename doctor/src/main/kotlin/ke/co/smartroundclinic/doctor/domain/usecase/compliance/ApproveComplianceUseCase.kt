@@ -44,7 +44,7 @@ class ApproveComplianceUseCase(
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.DOCTOR,
                     recipientId = doctorId,
-                    metadata = mapOf("event" to PushNotificationEvents.DOCTOR_APPLICATION_APPROVED),
+                    metadata = mapOf("event" to PushNotificationEvents.DOCTOR_APPLICATION_APPROVED, "complianceId" to id),
                 )
             }
             approve.toDefaultResponse() { approve.data?.toModel()?.toRes() }

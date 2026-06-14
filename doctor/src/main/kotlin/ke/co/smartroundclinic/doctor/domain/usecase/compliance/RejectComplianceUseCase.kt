@@ -41,7 +41,7 @@ class RejectComplianceUseCase(
                 channel = NotificationChannel.PUSH_NOTIFICATION,
                 destination = NotificationDestination.DOCTOR,
                 recipientId = doctorId,
-                metadata = mapOf("event" to PushNotificationEvents.DOCTOR_APPLICATION_REJECTED),
+                metadata = mapOf("event" to PushNotificationEvents.DOCTOR_APPLICATION_REJECTED, "complianceId" to id),
             )
         }
         rejected.toDefaultResponse(

@@ -40,7 +40,7 @@ class CancelAppointmentUseCase(
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.PATIENT,
                         recipientId = entity.patientId,
-                        metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED),
+                        metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED, "appointmentId" to id),
                     )
                 } else {
                     notificationSender?.send(
@@ -49,7 +49,7 @@ class CancelAppointmentUseCase(
                         channel = NotificationChannel.PUSH_NOTIFICATION,
                         destination = NotificationDestination.DOCTOR,
                         recipientId = entity.doctorId,
-                        metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED),
+                        metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED, "appointmentId" to id),
                     )
                 }
             }

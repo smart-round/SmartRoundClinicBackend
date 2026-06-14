@@ -15,6 +15,7 @@ class NotifyOfflineSupportParticipantUseCase(
         recipientId: String,
         senderName: String,
         messagePreview: String,
+        ticketId: String,
     ) {
         val presence = redis.get(RedisKeys.presence(recipientId))
         val isOnline = presence == "true"
@@ -26,7 +27,7 @@ class NotifyOfflineSupportParticipantUseCase(
             channel = NotificationChannel.PUSH_NOTIFICATION,
             destination = NotificationDestination.ALL,
             recipientId = recipientId,
-            metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE),
+            metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE, "ticketId" to ticketId),
         )
     }
 }

@@ -31,7 +31,7 @@ class MarkNoShowUseCase(
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.PATIENT,
                     recipientId = entity.patientId,
-                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_NO_SHOW),
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_NO_SHOW, "appointmentId" to id),
                 )
             }
         }

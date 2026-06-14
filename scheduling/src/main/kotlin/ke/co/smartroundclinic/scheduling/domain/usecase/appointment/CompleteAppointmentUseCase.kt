@@ -31,7 +31,7 @@ class CompleteAppointmentUseCase(
                     channel = NotificationChannel.PUSH_NOTIFICATION,
                     destination = NotificationDestination.PATIENT,
                     recipientId = entity.patientId,
-                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_COMPLETED),
+                    metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_COMPLETED, "appointmentId" to id),
                 )
             }
         }

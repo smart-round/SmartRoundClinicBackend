@@ -65,7 +65,7 @@ class EndCallUseCase(
                 channel = NotificationChannel.PUSH_NOTIFICATION,
                 destination = NotificationDestination.PATIENT,
                 recipientId = session.patientId,
-                metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED),
+                metadata = mapOf("event" to PushNotificationEvents.CALL_ENDED, "consultationId" to consultationId),
             )
         }
 
