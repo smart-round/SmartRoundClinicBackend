@@ -47,7 +47,7 @@ val supportModule = module {
     single { GetTicketByIdUseCase(get()) }
     single { GetAllTicketsUseCase(get()) }
     single { GetMyTicketsUseCase(get()) }
-    single { UpdateTicketStatusUseCase(get()) }
+    single { UpdateTicketStatusUseCase(get(), getOrNull<NotificationSender>()) }
     single { AssignTicketUseCase(get()) }
     single { DeleteTicketUseCase(get()) }
     single { TicketService(get(), get(), get(), get(), get(), get(), get()) }
