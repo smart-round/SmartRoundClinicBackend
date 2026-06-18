@@ -15,7 +15,9 @@ import kotlinx.serialization.SerializationException
 
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
-        gson()
+        gson {
+            disableHtmlEscaping()
+        }
     }
 
     install(StatusPages) {
