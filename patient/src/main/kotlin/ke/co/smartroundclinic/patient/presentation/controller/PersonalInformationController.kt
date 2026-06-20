@@ -39,7 +39,7 @@ fun Route.personalInformationController(service: PersonalInformationService) {
             }
 
             get {
-                call.requireRole(PATIENT, ADMIN) {
+                call.requireRole(PATIENT, ADMIN, "DOCTOR") {
                     val id = call.parameters["id"]
                     val patientId = (id ?: call.getUserId()) ?: return@requireRole
                     val result = service.get(patientId)
