@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.medicalrecords.koin
 
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
+import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
 import ke.co.smartroundclinic.medicalrecords.data.repository.MedicalRecordRepositoryImpl
 import ke.co.smartroundclinic.medicalrecords.domain.repository.MedicalRecordRepository
 import ke.co.smartroundclinic.medicalrecords.domain.service.MedicalRecordService
@@ -12,7 +13,7 @@ import org.koin.dsl.module
 
 val medicalRecordsKoinModule = module {
     single<MedicalRecordRepository> { MedicalRecordRepositoryImpl(get(named("medicalRecordsDb"))) }
-    single { SaveMedicalRecordUseCase(get(), get<ConsultationMessageRepository>()) }
+    single { SaveMedicalRecordUseCase(get(), get<ConsultationMessageRepository>(), get<ConsultationSessionRepository>()) }
     single { GetMedicalRecordByAppointmentUseCase(get()) }
     single { GetPatientMedicalHistoryUseCase(get()) }
     single { MedicalRecordService(get(), get(), get()) }
