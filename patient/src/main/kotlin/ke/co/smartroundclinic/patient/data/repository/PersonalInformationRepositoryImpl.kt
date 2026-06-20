@@ -84,6 +84,9 @@ class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInfor
                             height = entity.height,
                             heightIn = entity.heightIn?.name,
                             maritalStatus = entity.maritalStatus?.name,
+                            allergies = entity.allergies,
+                            chronicConditions = entity.chronicConditions,
+                            currentMedications = entity.currentMedications,
                             createdAt = entity.createdAt,
                             updatedAt = entity.updatedAt,
                         )
@@ -104,6 +107,9 @@ class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInfor
         height: Double?,
         heightIn: String?,
         maritalStatus: String?,
+        allergies: List<String>?,
+        chronicConditions: List<String>?,
+        currentMedications: List<String>?,
     ): Resource<PersonalInformationEntity?> = withContext(Dispatchers.IO) {
         try {
             collection.find(Filters.eq(PersonalInformationEntity::patientId.name, patientId)).firstOrNull()
@@ -126,6 +132,9 @@ class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInfor
                 ?.let { updates.add(Updates.set(PersonalInformationEntity::heightIn.name, it.name)) }
             maritalStatus?.let { runCatching { MaritalStatus.valueOf(it) }.getOrNull() }
                 ?.let { updates.add(Updates.set(PersonalInformationEntity::maritalStatus.name, it.name)) }
+            allergies?.let { updates.add(Updates.set(PersonalInformationEntity::allergies.name, it)) }
+            chronicConditions?.let { updates.add(Updates.set(PersonalInformationEntity::chronicConditions.name, it)) }
+            currentMedications?.let { updates.add(Updates.set(PersonalInformationEntity::currentMedications.name, it)) }
 
             if (updates.isEmpty()) {
                 val current = collection

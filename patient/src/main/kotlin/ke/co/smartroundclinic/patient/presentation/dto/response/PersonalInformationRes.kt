@@ -21,6 +21,9 @@ data class PersonalInformationRes(
     val height: Double?,
     val heightIn: HeightIn?,
     val maritalStatus: MaritalStatus?,
+    val allergies: List<String> = emptyList(),
+    val chronicConditions: List<String> = emptyList(),
+    val currentMedications: List<String> = emptyList(),
     val createdAt: String,
     val updatedAt: String?,
 )
@@ -38,6 +41,9 @@ fun PersonalInformation.toRes() = PersonalInformationRes(
     height = height,
     heightIn = heightIn,
     maritalStatus = maritalStatus,
+    allergies = allergies,
+    chronicConditions = chronicConditions,
+    currentMedications = currentMedications,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

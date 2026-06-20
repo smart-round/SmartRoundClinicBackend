@@ -18,5 +18,8 @@ interface PersonalInformationRepository {
         height: Double?,
         heightIn: String?,
         maritalStatus: String?,
+        allergies: List<String>?,
+        chronicConditions: List<String>?,
+        currentMedications: List<String>?,
     ): Resource<PersonalInformationEntity?>
 }

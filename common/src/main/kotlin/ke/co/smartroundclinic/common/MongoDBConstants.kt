@@ -80,6 +80,12 @@ object MongoDBConstants {
     const val APPOINTMENTS = "appointments"
 
     /**
+     * MongoDB Database and Entities for MEDICAL RECORDS
+     */
+    const val MEDICAL_RECORDS_DB = "src_medical_records"
+    const val MEDICAL_RECORDS = "medical_records"
+
+    /**
      * MongoDB Database and Entities for PAYMENTS
      */
     const val PAYMENTS_DB = "src_payments"

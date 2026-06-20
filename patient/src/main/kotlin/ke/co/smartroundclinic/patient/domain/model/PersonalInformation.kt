@@ -18,6 +18,9 @@ data class PersonalInformation(
     val height: Double? = null,
     val heightIn: HeightIn? = null,
     val maritalStatus: MaritalStatus? = null,
+    val allergies: List<String> = emptyList(),
+    val chronicConditions: List<String> = emptyList(),
+    val currentMedications: List<String> = emptyList(),
     val createdAt: String,
     val updatedAt: String? = null,
 )

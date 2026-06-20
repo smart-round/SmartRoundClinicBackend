@@ -17,6 +17,9 @@ data class PersonalInformationEntity(
     val height: Double? = null,
     val heightIn: HeightIn? = null,
     val maritalStatus: MaritalStatus? = null,
+    val allergies: List<String> = emptyList(),
+    val chronicConditions: List<String> = emptyList(),
+    val currentMedications: List<String> = emptyList(),
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
@@ -33,6 +36,9 @@ data class PersonalInformationEntity(
         height = height,
         heightIn = heightIn,
         maritalStatus = maritalStatus,
+        allergies = allergies,
+        chronicConditions = chronicConditions,
+        currentMedications = currentMedications,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -56,6 +62,9 @@ fun PersonalInformation.toEntity() = PersonalInformationEntity(
     height = height,
     heightIn = heightIn,
     maritalStatus = maritalStatus,
+    allergies = allergies,
+    chronicConditions = chronicConditions,
+    currentMedications = currentMedications,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

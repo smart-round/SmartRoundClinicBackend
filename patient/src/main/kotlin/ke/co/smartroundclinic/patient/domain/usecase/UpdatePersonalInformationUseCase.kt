@@ -19,5 +19,8 @@ class UpdatePersonalInformationUseCase(private val repository: PersonalInformati
             height = req.height,
             heightIn = req.heightIn?.name,
             maritalStatus = req.maritalStatus?.name,
+            allergies = req.allergies,
+            chronicConditions = req.chronicConditions,
+            currentMedications = req.currentMedications,
         ).toDefaultResponse(failedStatusCode = 404) { it?.toModel()?.toRes() }
 }

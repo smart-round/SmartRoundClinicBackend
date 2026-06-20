@@ -12,6 +12,7 @@ include(":support")
 include(":article")
 include(":consultation")
 include(":payments")
+include(":medical-records")
 
 dependencyResolutionManagement {
     repositories {

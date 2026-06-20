@@ -13,6 +13,9 @@ data class PatientProfile(
     val height: Double?,
     val heightIn: String?,
     val maritalStatus: String?,
+    val allergies: List<String> = emptyList(),
+    val chronicConditions: List<String> = emptyList(),
+    val currentMedications: List<String> = emptyList(),
     val createdAt: String,
     val updatedAt: String?,
 )

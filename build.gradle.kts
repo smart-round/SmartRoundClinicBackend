@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":support"))
     implementation(project(":consultation"))
     implementation(project(":payments"))
+    implementation(project(":medical-records"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

@@ -32,7 +32,7 @@ data class ConsultationMessageEntity(
 }
 
 @Serializable
-enum class MessageType { TEXT, FILE }
+enum class MessageType { TEXT, FILE, PRESCRIPTION }
 
 @Serializable
 data class ConsultationFile(
