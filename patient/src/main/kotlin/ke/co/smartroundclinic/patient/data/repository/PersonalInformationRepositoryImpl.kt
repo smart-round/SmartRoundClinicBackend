@@ -84,9 +84,9 @@ class PersonalInformationRepositoryImpl(database: MongoDatabase) : PersonalInfor
                             height = entity.height,
                             heightIn = entity.heightIn?.name,
                             maritalStatus = entity.maritalStatus?.name,
-                            allergies = entity.allergies,
-                            chronicConditions = entity.chronicConditions,
-                            currentMedications = entity.currentMedications,
+                            allergies = entity.allergies ?: emptyList(),
+                            chronicConditions = entity.chronicConditions ?: emptyList(),
+                            currentMedications = entity.currentMedications ?: emptyList(),
                             createdAt = entity.createdAt,
                             updatedAt = entity.updatedAt,
                         )
