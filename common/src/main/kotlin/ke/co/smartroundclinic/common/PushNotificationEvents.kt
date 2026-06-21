@@ -32,6 +32,9 @@ object PushNotificationEvents {
     const val ARTICLE_SUSPENDED = "Article Suspended"
     const val ARTICLE_DELETED   = "Article Deleted"
 
+    // ── Medical records ─────────────────────────────────────────────────────────
+    const val MEDICAL_RECORD_UPDATED = "Medical Record Updated"
+
     // ── Support tickets ─────────────────────────────────────────────────────────
     const val TICKET_STATUS_UPDATED = "Support ticket status updated"
 }

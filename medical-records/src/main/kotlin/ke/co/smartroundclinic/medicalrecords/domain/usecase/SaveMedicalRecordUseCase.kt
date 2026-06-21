@@ -1,6 +1,10 @@
 package ke.co.smartroundclinic.medicalrecords.domain.usecase
 
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.NotificationChannel
+import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
@@ -18,11 +22,24 @@ class SaveMedicalRecordUseCase(
     private val repository: MedicalRecordRepository,
     private val messageRepository: ConsultationMessageRepository,
     private val sessionRepository: ConsultationSessionRepository,
+    private val notificationSender: NotificationSender? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     suspend operator fun invoke(model: MedicalRecord, senderName: String): DefaultResponse<MedicalRecordRes?> {
         val result = repository.upsert(model.toEntity())
+        if (result is Resource.Success) {
+            runCatching {
+                notificationSender?.send(
+                    title = PushNotificationEvents.MEDICAL_RECORD_UPDATED,
+                    message = "Your medical record has been updated by your doctor",
+                    channel = NotificationChannel.PUSH_NOTIFICATION,
+                    destination = NotificationDestination.PATIENT,
+                    recipientId = model.patientId,
+                    metadata = mapOf("event" to PushNotificationEvents.MEDICAL_RECORD_UPDATED),
+                )
+            }
+        }
         if (result is Resource.Success && model.prescription.isNotEmpty()) {
             // Use the explicit consultationId if provided; otherwise look up the session by appointmentId.
             // This covers the case where the doctor saves from the Bookings tab (no consultationId in the request).
