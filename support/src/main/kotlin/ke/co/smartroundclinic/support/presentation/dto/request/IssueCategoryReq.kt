@@ -9,13 +9,12 @@ import kotlin.time.Clock
 data class CreateIssueCategoryReq(
     val name: String,
     val description: String? = null,
-    val status: Boolean = true,
 ) {
     fun toModel() = IssueCategory(
         id = ObjectId().toString(),
         name = name,
         description = description,
-        status = status,
+        status = true,
         createdAt = Clock.System.now().toString(),
         updatedAt = null,
     )
