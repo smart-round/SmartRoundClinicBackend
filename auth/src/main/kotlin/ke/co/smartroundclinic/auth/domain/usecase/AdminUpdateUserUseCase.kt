@@ -70,7 +70,7 @@ class AdminUpdateUserUseCase(
                         runCatching {
                             emailRepository.sendEmailWithTemplate(
                                 EmailWithTemplate(
-                                    from = emailConfig.suspendUserEmail,
+                                    from = emailConfig.reinstatedUserEmail,
                                     to = user.email,
                                     template = Template(
                                         id = emailConfig.reinstatedUserTemplateId,
