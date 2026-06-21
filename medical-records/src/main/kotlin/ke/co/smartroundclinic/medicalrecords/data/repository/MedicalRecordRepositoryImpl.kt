@@ -21,6 +21,9 @@ class MedicalRecordRepositoryImpl(database: MongoDatabase) : MedicalRecordReposi
             try {
                 val existing = col.find(Filters.eq(MedicalRecordEntity::appointmentId.name, entity.appointmentId)).firstOrNull()
                 if (existing != null) {
+                    if (existing.doctorId != entity.doctorId) {
+                        return@withContext Resource.Error("You are not authorized to edit this medical record")
+                    }
                     val updated = entity.copy(id = existing.id, createdAt = existing.createdAt, updatedAt = Instant.now().toString())
                     col.replaceOne(Filters.eq(MedicalRecordEntity::appointmentId.name, entity.appointmentId), updated)
                     Resource.Success(data = updated, message = "Medical record updated successfully")
