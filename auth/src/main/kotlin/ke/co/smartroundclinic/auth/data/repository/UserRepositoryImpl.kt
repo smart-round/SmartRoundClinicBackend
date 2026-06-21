@@ -271,6 +271,12 @@ class UserRepositoryImpl(
             val isPasswordValid = credentialsHasher.verify(hashed = user.password, text = password)
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
+            if (user.accountStatus == UserEntity.AccountStatus.SUSPENDED)
+                return@let Resource.Error(message = "Your account has been suspended. Please contact support.")
+
+            if (user.accountStatus == UserEntity.AccountStatus.INACTIVE)
+                return@let Resource.Error(message = "Your account is inactive. Please contact support.")
+
             if (user.verificationStatus == UserEntity.VerificationStatus.UNVERIFIED) {
                 return@let Resource.Error(
                     message = "Account not verified. Please check your email for the OTP code.",
