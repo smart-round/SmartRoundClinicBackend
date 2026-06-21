@@ -8,36 +8,36 @@ import kotlin.time.Clock
 
 @Serializable
 data class PrescriptionItemReq(
-    val drug: String,
-    val dosage: String,
-    val frequency: String,
-    val duration: String,
+    val drug: String? = null,
+    val dosage: String? = null,
+    val frequency: String? = null,
+    val duration: String? = null,
     val instructions: String? = null,
 )
 
 @Serializable
 data class SaveMedicalRecordReq(
-    val appointmentId: String,
+    val appointmentId: String? = null,
     val consultationId: String? = null,
-    val patientId: String,
+    val patientId: String? = null,
     val diagnosis: String? = null,
-    val prescription: List<PrescriptionItemReq> = emptyList(),
+    val prescription: List<PrescriptionItemReq>? = null,
     val summary: String? = null,
     val referralNote: String? = null,
-    val labRequests: List<String> = emptyList(),
+    val labRequests: List<String>? = null,
     val additionalNotes: String? = null,
 ) {
     fun toModel(doctorId: String) = MedicalRecord(
         id = ObjectId().toString(),
-        appointmentId = appointmentId,
+        appointmentId = appointmentId ?: "",
         consultationId = consultationId,
         doctorId = doctorId,
-        patientId = patientId,
+        patientId = patientId ?: "",
         diagnosis = diagnosis,
-        prescription = prescription.map { PrescriptionItem(it.drug, it.dosage, it.frequency, it.duration, it.instructions) },
+        prescription = prescription?.map { PrescriptionItem(it.drug ?: "", it.dosage ?: "", it.frequency ?: "", it.duration ?: "", it.instructions) } ?: emptyList(),
         summary = summary,
         referralNote = referralNote,
-        labRequests = labRequests,
+        labRequests = labRequests ?: emptyList(),
         additionalNotes = additionalNotes,
         createdAt = Clock.System.now().toString(),
         updatedAt = null,
