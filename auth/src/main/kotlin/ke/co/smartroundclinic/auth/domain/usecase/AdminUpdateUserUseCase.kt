@@ -29,31 +29,58 @@ class AdminUpdateUserUseCase(
         verificationStatus: UserEntity.VerificationStatus?,
     ): DefaultResponse<UserRes?> = supervisorScope {
         val result = repository.adminUpdateUser(userId, accountStatus, verificationStatus)
-        if (result is Resource.Success && accountStatus == UserEntity.AccountStatus.SUSPENDED) {
+        if (result is Resource.Success) {
             result.data?.let { user ->
-                launch {
-                    runCatching {
-                        notificationSender?.send(
-                            title = PushNotificationEvents.ACCOUNT_SUSPENDED,
-                            message = "Your account has been suspended. Please contact support.",
-                            channel = NotificationChannel.PUSH_NOTIFICATION,
-                            destination = user.role.toNotificationDestination(),
-                            recipientId = user.id,
-                            metadata = mapOf("event" to PushNotificationEvents.ACCOUNT_SUSPENDED),
-                        )
-                    }
-                    runCatching {
-                        emailRepository.sendEmailWithTemplate(
-                            EmailWithTemplate(
-                                from = emailConfig.suspendUserEmail,
-                                to = user.email,
-                                template = Template(
-                                    id = emailConfig.suspendUserTemplateId,
-                                    variables = mapOf("NAME" to user.fullName),
+                when (accountStatus) {
+                    UserEntity.AccountStatus.SUSPENDED -> launch {
+                        runCatching {
+                            notificationSender?.send(
+                                title = PushNotificationEvents.ACCOUNT_SUSPENDED,
+                                message = "Your account has been suspended. Please contact support.",
+                                channel = NotificationChannel.PUSH_NOTIFICATION,
+                                destination = user.role.toNotificationDestination(),
+                                recipientId = user.id,
+                                metadata = mapOf("event" to PushNotificationEvents.ACCOUNT_SUSPENDED),
+                            )
+                        }
+                        runCatching {
+                            emailRepository.sendEmailWithTemplate(
+                                EmailWithTemplate(
+                                    from = emailConfig.suspendUserEmail,
+                                    to = user.email,
+                                    template = Template(
+                                        id = emailConfig.suspendUserTemplateId,
+                                        variables = mapOf("NAME" to user.fullName),
+                                    )
                                 )
                             )
-                        )
+                        }
                     }
+                    UserEntity.AccountStatus.ACTIVE -> launch {
+                        runCatching {
+                            notificationSender?.send(
+                                title = PushNotificationEvents.ACCOUNT_REINSTATED,
+                                message = "Your account has been reinstated. You can now log in.",
+                                channel = NotificationChannel.PUSH_NOTIFICATION,
+                                destination = user.role.toNotificationDestination(),
+                                recipientId = user.id,
+                                metadata = mapOf("event" to PushNotificationEvents.ACCOUNT_REINSTATED),
+                            )
+                        }
+                        runCatching {
+                            emailRepository.sendEmailWithTemplate(
+                                EmailWithTemplate(
+                                    from = emailConfig.suspendUserEmail,
+                                    to = user.email,
+                                    template = Template(
+                                        id = emailConfig.reinstatedUserTemplateId,
+                                        variables = mapOf("NAME" to user.fullName),
+                                    )
+                                )
+                            )
+                        }
+                    }
+                    else -> Unit
                 }
             }
         }
