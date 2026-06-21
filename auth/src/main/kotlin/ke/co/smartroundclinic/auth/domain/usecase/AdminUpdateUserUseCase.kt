@@ -34,16 +34,6 @@ class AdminUpdateUserUseCase(
                 when (accountStatus) {
                     UserEntity.AccountStatus.SUSPENDED -> launch {
                         runCatching {
-                            notificationSender?.send(
-                                title = PushNotificationEvents.ACCOUNT_SUSPENDED,
-                                message = "Your account has been suspended. Please contact support.",
-                                channel = NotificationChannel.PUSH_NOTIFICATION,
-                                destination = user.role.toNotificationDestination(),
-                                recipientId = user.id,
-                                metadata = mapOf("event" to PushNotificationEvents.ACCOUNT_SUSPENDED),
-                            )
-                        }
-                        runCatching {
                             emailRepository.sendEmailWithTemplate(
                                 EmailWithTemplate(
                                     from = emailConfig.suspendUserEmail,
