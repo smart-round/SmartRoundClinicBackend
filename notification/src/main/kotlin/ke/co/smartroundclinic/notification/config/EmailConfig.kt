@@ -20,4 +20,6 @@ data class EmailConfig(
     val resendDoctorApplicationRequestTemplateId: String = require("RESEND_DOCTOR_APPLICATION_REQUEST_TEMPLATE_ID"),
     val resendDoctorApplicationRequestApprovedTemplateId: String = require("RESEND_DOCTOR_APPLICATION_REQUEST_APPROVED_TEMPLATE_ID"),
     val resendDoctorApplicationRequestRejectedTemplateId: String = require("RESEND_DOCTOR_APPLICATION_REQUEST_REJECTED_TEMPLATE_ID"),
+    val suspendUserEmail: String = require("RESEND_SUSPEND_USER_EMAIL"),
+    val suspendUserTemplateId: String = require("RESEND_SUSPEND_USER_TEMPLATE_ID"),
 )

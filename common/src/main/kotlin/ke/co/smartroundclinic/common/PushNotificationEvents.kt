@@ -37,4 +37,7 @@ object PushNotificationEvents {
 
     // ── Support tickets ─────────────────────────────────────────────────────────
     const val TICKET_STATUS_UPDATED = "Support ticket status updated"
+
+    // ── Account ──────────────────────────────────────────────────────────────────
+    const val ACCOUNT_SUSPENDED = "Account Suspended"
 }
