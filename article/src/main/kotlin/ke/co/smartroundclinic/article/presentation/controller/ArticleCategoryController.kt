@@ -19,6 +19,7 @@ import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
 private const val DOCTOR = "DOCTOR"
+private const val PATIENT = "PATIENT"
 
 fun Route.articleCategoryController(service: ArticleCategoryService) {
     authenticate("auth-jwt") {
@@ -32,7 +33,7 @@ fun Route.articleCategoryController(service: ArticleCategoryService) {
             }
 
             get("all") {
-                call.requireRole(ADMIN,DOCTOR) {
+                call.requireRole(ADMIN,DOCTOR,PATIENT) {
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                     val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                     val result = service.getAll(page, size)
