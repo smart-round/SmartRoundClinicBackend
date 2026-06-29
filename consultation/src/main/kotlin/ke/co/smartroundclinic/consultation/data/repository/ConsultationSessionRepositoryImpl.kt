@@ -13,7 +13,14 @@ import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSession
 import kotlinx.coroutines.flow.firstOrNull
 import org.bson.Document
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
+
+private val APPOINTMENT_ZONE = ZoneId.of("Africa/Nairobi")
+private val SLOT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+private const val EARLY_ACCESS_SECONDS = 5 * 60L
 
 class ConsultationSessionRepositoryImpl(
     consultationDb: MongoDatabase,
@@ -39,6 +46,27 @@ class ConsultationSessionRepositoryImpl(
         val status = appointment.getString("status") ?: ""
         if (status != "CONFIRMED" && status != "COMPLETED")
             return Resource.Error("Consultation is only available for confirmed or completed appointments")
+
+        // Enforce 5-minute early-access window for upcoming appointments
+        if (status == "CONFIRMED") {
+            val date = appointment.getString("date")
+            val slotStart = appointment.getString("slotStart")
+            if (date != null && slotStart != null) {
+                val slotStartEpoch = runCatching {
+                    LocalDateTime.parse("$date $slotStart", SLOT_FORMATTER)
+                        .atZone(APPOINTMENT_ZONE)
+                        .toEpochSecond()
+                }.getOrNull()
+                if (slotStartEpoch != null) {
+                    val nowEpoch = System.currentTimeMillis() / 1000
+                    if (nowEpoch < slotStartEpoch - EARLY_ACCESS_SECONDS) {
+                        return Resource.Error(
+                            "Consultation is not yet available. You can join up to 5 minutes before your appointment."
+                        )
+                    }
+                }
+            }
+        }
 
         // Return existing session if one already exists for this appointment
         val existing = col.find(Filters.eq(ConsultationSessionEntity::appointmentId.name, appointmentId)).firstOrNull()
