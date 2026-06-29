@@ -161,6 +161,30 @@ class RealtimeKitClient : KoinComponent {
         Resource.Error(e.message ?: "Failed to end RealtimeKit meeting")
     }
 
+    /** Lists all participant sessions for a meeting. Each entry represents a single join–leave session. */
+    suspend fun getParticipants(meetingId: String): List<MeetingParticipantRecord> = try {
+        log.info("Cloudflare RTK getParticipants -> $baseMeetingsPath/$meetingId/participants")
+        val res: HttpResponse = http.get("$baseMeetingsPath/$meetingId/participants") {
+            bearerAuth(AppConfig.realtimeKit.apiToken)
+            headers { append(HttpHeaders.Accept, "application/json") }
+            timeout {
+                requestTimeoutMillis = 10_000
+                connectTimeoutMillis = 5_000
+                socketTimeoutMillis = 10_000
+            }
+        }
+        val raw = res.bodyAsText()
+        if (!res.status.isSuccess()) {
+            log.warn("Cloudflare RTK getParticipants failed status=${res.status.value} body=$raw")
+            emptyList()
+        } else {
+            jsonLenient.decodeFromString(CloudflareParticipantsEnvelope.serializer(), raw).data
+        }
+    } catch (e: Exception) {
+        log.warn("Cloudflare RTK getParticipants threw — ${e.message}")
+        emptyList()
+    }
+
     /** Adds a participant to the given meeting and returns the join auth token. */
     suspend fun addParticipant(
         meetingId: String,
@@ -261,6 +285,20 @@ internal data class MeetingListItem(
 internal data class CloudflareMeetingListEnvelope(
     val success: Boolean = false,
     val data: List<MeetingListItem> = emptyList(),
+)
+
+@Serializable
+data class MeetingParticipantRecord(
+    val id: String = "",
+    @SerialName("custom_participant_id") val customParticipantId: String = "",
+    @SerialName("joined_at") val joinedAt: String? = null,
+    @SerialName("left_at") val leftAt: String? = null,
+)
+
+@Serializable
+internal data class CloudflareParticipantsEnvelope(
+    val success: Boolean = false,
+    val data: List<MeetingParticipantRecord> = emptyList(),
 )
 
 @Serializable
