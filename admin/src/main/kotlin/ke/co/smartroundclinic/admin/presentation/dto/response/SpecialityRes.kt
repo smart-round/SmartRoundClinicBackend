@@ -11,6 +11,8 @@ data class SpecialityRes(
     val description: String,
     val color: String,
     val iconUrl: String?,
+    val createdAt: String,
+    val updatedAt: String?,
 )
 
 data class SubSpecialityRes(
@@ -30,6 +32,8 @@ fun Speciality.toRes() = SpecialityRes(
     description = description,
     color = color,
     iconUrl = iconUrl,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
 )
 
 fun Subspecialty.toRes() = SubSpecialityRes(

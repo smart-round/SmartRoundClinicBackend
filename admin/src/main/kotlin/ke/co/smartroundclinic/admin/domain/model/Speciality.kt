@@ -8,6 +8,8 @@ data class Speciality(
     val description: String,
     val color: String = "#FFFFFF",
     val iconUrl: String? = null,
+    val createdAt: String = "",
+    val updatedAt: String? = null,
 )
 
 data class Subspecialty(

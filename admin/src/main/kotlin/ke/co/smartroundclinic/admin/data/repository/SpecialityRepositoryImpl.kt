@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.admin.data.entity.SubspecialtyEntity
 import ke.co.smartroundclinic.admin.domain.repository.SpecialityRepository
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
+import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
@@ -268,8 +269,29 @@ class SpecialityRepositoryImpl(
         val subspecialties: List<Pair<String, Pair<String, String>>>,
     )
 
+    private fun migrateTimestamps() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val now = Clock.System.now().toString()
+                val result = specialities.updateMany(
+                    Filters.exists(SpecialityEntity::createdAt.name, false),
+                    Updates.combine(
+                        Updates.set(SpecialityEntity::createdAt.name, now),
+                        Updates.set(SpecialityEntity::updatedAt.name, now),
+                    )
+                )
+                if (result.modifiedCount > 0) {
+                    println("[MIGRATE] Backfilled createdAt/updatedAt for ${result.modifiedCount} specialities")
+                }
+            } catch (e: Exception) {
+                println("[MIGRATE] Failed to backfill speciality timestamps: ${e.localizedMessage}")
+            }
+        }
+    }
+
     init {
         seed()
+        migrateTimestamps()
     }
 
     override suspend fun createSpeciality(specialities: List<SpecialityEntity>): Resource<Nothing> =
@@ -318,6 +340,7 @@ class SpecialityRepositoryImpl(
 
             if (updates.isEmpty()) return@withContext Resource.Success(data = null, message = "No changes detected")
 
+            updates.add(Updates.set(SpecialityEntity::updatedAt.name, Clock.System.now().toString()))
             specialities.updateOne(Filters.eq(SpecialityEntity::id.name, id), Updates.combine(updates))
             Resource.Success(data = null, message = "Speciality updated successfully")
         } catch (e: Exception) {
@@ -444,7 +467,10 @@ class SpecialityRepositoryImpl(
                     ?: return@withContext Resource.Error("Speciality not found")
                 specialities.updateOne(
                     Filters.eq(SpecialityEntity::id.name, id),
-                    Updates.set(SpecialityEntity::iconUrl.name, iconUrl)
+                    Updates.combine(
+                        Updates.set(SpecialityEntity::iconUrl.name, iconUrl),
+                        Updates.set(SpecialityEntity::updatedAt.name, Clock.System.now().toString()),
+                    )
                 )
                 val updated = specialities.find(Filters.eq(SpecialityEntity::id.name, id)).firstOrNull()
                 Resource.Success(data = updated, message = "Icon updated successfully")
@@ -533,7 +559,10 @@ class SpecialityRepositoryImpl(
                     ?: return@withContext Resource.Error("Service tier not found")
                 specialities.updateOne(
                     Filters.eq(SpecialityEntity::id.name, specialityId),
-                    Updates.set(SpecialityEntity::serviceTierId.name, serviceTierId)
+                    Updates.combine(
+                        Updates.set(SpecialityEntity::serviceTierId.name, serviceTierId),
+                        Updates.set(SpecialityEntity::updatedAt.name, Clock.System.now().toString()),
+                    )
                 )
                 Resource.Success(data = null, message = "Speciality assigned to service tier successfully")
             } catch (e: Exception) {
@@ -548,7 +577,10 @@ class SpecialityRepositoryImpl(
                     ?: return@withContext Resource.Error("Speciality not found")
                 specialities.updateOne(
                     Filters.eq(SpecialityEntity::id.name, specialityId),
-                    Updates.unset(SpecialityEntity::serviceTierId.name)
+                    Updates.combine(
+                        Updates.unset(SpecialityEntity::serviceTierId.name),
+                        Updates.set(SpecialityEntity::updatedAt.name, Clock.System.now().toString()),
+                    )
                 )
                 Resource.Success(data = null, message = "Speciality unassigned from service tier successfully")
             } catch (e: Exception) {
@@ -567,7 +599,10 @@ class SpecialityRepositoryImpl(
                     ?: return@withContext Resource.Error("Service category not found")
                 specialities.updateOne(
                     Filters.eq(SpecialityEntity::id.name, specialityId),
-                    Updates.set(SpecialityEntity::serviceCategoryId.name, serviceCategoryId)
+                    Updates.combine(
+                        Updates.set(SpecialityEntity::serviceCategoryId.name, serviceCategoryId),
+                        Updates.set(SpecialityEntity::updatedAt.name, Clock.System.now().toString()),
+                    )
                 )
                 Resource.Success(data = null, message = "Speciality assigned to service category successfully")
             } catch (e: Exception) {
@@ -584,7 +619,10 @@ class SpecialityRepositoryImpl(
                     return@withContext Resource.Error("Speciality is not assigned to any service category")
                 specialities.updateOne(
                     Filters.eq(SpecialityEntity::id.name, specialityId),
-                    Updates.unset(SpecialityEntity::serviceCategoryId.name)
+                    Updates.combine(
+                        Updates.unset(SpecialityEntity::serviceCategoryId.name),
+                        Updates.set(SpecialityEntity::updatedAt.name, Clock.System.now().toString()),
+                    )
                 )
                 Resource.Success(data = null, message = "Speciality unassigned from service category successfully")
             } catch (e: Exception) {
