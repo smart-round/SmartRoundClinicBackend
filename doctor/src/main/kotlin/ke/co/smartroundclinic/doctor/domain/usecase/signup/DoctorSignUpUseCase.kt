@@ -4,6 +4,7 @@ import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
+import ke.co.smartroundclinic.auth.domain.usecase.NotifyNewDoctorSignUpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.SendAccountVerificationOtpUseCase
 import ke.co.smartroundclinic.common.DoctorOnboardingHandler
 import ke.co.smartroundclinic.common.OtpCodeGenerator
@@ -39,6 +40,7 @@ class DoctorSignUpUseCase(
     private val complianceRepository: ComplianceRepository,
     private val paymentDetailsRepository: PaymentDetailsRepository,
     private val storageRepository: StorageRepository,
+    private val notifyNewDoctorSignUpUseCase: NotifyNewDoctorSignUpUseCase? = null,
 ) : DoctorOnboardingHandler {
 
     override suspend fun onboard(
@@ -170,6 +172,16 @@ class DoctorSignUpUseCase(
                     fullName = fullName,
                     toEmail = email,
                     otpCode = otpCode,
+                )
+            }
+
+            // Internal doctor signup notification (async)
+            launch {
+                notifyNewDoctorSignUpUseCase?.invoke(
+                    fullName = fullName,
+                    email = email,
+                    doctorId = userId,
+                    createdAt = now,
                 )
             }
 

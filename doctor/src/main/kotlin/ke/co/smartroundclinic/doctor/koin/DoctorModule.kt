@@ -73,6 +73,7 @@ import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBankByCodeUseC
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.FindLocalBanksByBranchCodeUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.GetAllLocalBanksUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.bank.SearchLocalBanksByNameUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.NotifyNewDoctorSignUpUseCase
 import ke.co.smartroundclinic.common.DoctorOnboardingHandler
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ComplianceCheckUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ToggleMonetizationUseCase
@@ -226,7 +227,7 @@ val doctorModule = module {
     /**
      * Doctor Sign Up
      * */
-    single { DoctorSignUpUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { DoctorSignUpUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), getOrNull<NotifyNewDoctorSignUpUseCase>()) }
     single<DoctorOnboardingHandler> { get<DoctorSignUpUseCase>() }
 
     /**
