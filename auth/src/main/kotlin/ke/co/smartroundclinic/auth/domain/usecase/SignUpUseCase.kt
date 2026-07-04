@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.auth.domain.usecase
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.auth.data.entity.UserEntity.Role
 import ke.co.smartroundclinic.auth.domain.model.User
 import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
@@ -21,7 +22,8 @@ import kotlin.time.Duration.Companion.minutes
 class SignUpUseCase(
     private val userRepository: UserRepository,
     private val credentialsHasher: CredentialsHasher,
-    private val sendAccountVerificationOtpUseCase: SendAccountVerificationOtpUseCase
+    private val sendAccountVerificationOtpUseCase: SendAccountVerificationOtpUseCase,
+    private val notifyNewDoctorSignUpUseCase: NotifyNewDoctorSignUpUseCase? = null,
 ) {
     suspend operator fun invoke(user: User): DefaultResponse<Nothing?> = withContext(Dispatchers.IO) {
         supervisorScope {
@@ -30,8 +32,19 @@ class SignUpUseCase(
             val otpExpiresAt = Clock.System.now().plus(15.minutes).toEpochMilliseconds() // always UTC
 
             val createUser = userRepository.create(user.toEntity().copy(otpCode = hashedOtpCode, otpExpiresAt = otpExpiresAt))
-            if (createUser is Resource.Success) launch {
-                sendAccountVerificationOtpUseCase(fullName = user.fullName, toEmail = user.email, otpCode = otpCode)
+            if (createUser is Resource.Success) {
+                val entity = createUser.data
+                launch {
+                    sendAccountVerificationOtpUseCase(fullName = user.fullName, toEmail = user.email, otpCode = otpCode)
+                }
+                if (user.role == Role.DOCTOR && entity != null) launch {
+                    notifyNewDoctorSignUpUseCase?.invoke(
+                        fullName = entity.fullName,
+                        email = entity.email,
+                        doctorId = entity.id,
+                        createdAt = entity.createdAt,
+                    )
+                }
             }
 
             return@supervisorScope createUser.toDefaultResponse(
@@ -41,6 +54,4 @@ class SignUpUseCase(
             ) { null }
         }
     }
-
-
 }

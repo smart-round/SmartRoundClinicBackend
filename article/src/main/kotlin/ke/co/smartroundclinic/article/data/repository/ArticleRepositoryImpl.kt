@@ -302,6 +302,23 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
             }
         }
 
+    override suspend fun getDeleted(page: Int, size: Int): Resource<Pair<List<ArticleEntity>, Long>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val safePage = maxOf(1, page)
+                val safeSize = minOf(maxOf(1, size), 100)
+                val filter = Filters.eq(ArticleEntity::state.name, ArticleState.DELETED.name)
+                val total = collection.countDocuments(filter)
+                val items = collection.find(filter)
+                    .skip((safePage - 1) * safeSize)
+                    .limit(safeSize)
+                    .toList()
+                Resource.Success(data = items to total, message = "Deleted articles retrieved successfully")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to retrieve deleted articles")
+            }
+        }
+
     override suspend fun delete(id: String): Resource<ArticleEntity?> =
         withContext(Dispatchers.IO) {
             try {

@@ -14,6 +14,7 @@ import ke.co.smartroundclinic.support.presentation.dto.response.toRes
 class UpdateTicketStatusUseCase(
     private val repository: TicketRepository,
     private val notificationSender: NotificationSender? = null,
+    private val sendTicketEmail: SendSupportTicketEmailUseCase? = null,
 ) {
     suspend operator fun invoke(id: String, status: TicketStatus): DefaultResponse<TicketRes?> {
         val result = repository.updateStatus(id, status)
@@ -30,6 +31,9 @@ class UpdateTicketStatusUseCase(
                         metadata = mapOf("event" to PushNotificationEvents.TICKET_STATUS_UPDATED, "ticketId" to id),
                     )
                 }
+            }
+            if (ticket != null) {
+                runCatching { sendTicketEmail?.onStatusChanged(ticket) }
             }
         }
         return result.toDefaultResponse(failedStatusCode = 404) { it?.toModel("")?.toRes() }

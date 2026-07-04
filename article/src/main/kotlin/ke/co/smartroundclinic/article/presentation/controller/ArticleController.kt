@@ -195,6 +195,16 @@ fun Route.articleController(service: ArticleService) {
                 }
 
 
+                // ── Admin: get deleted articles ──────────────────────────────────
+                get("deleted") {
+                    call.requireRole(ADMIN) {
+                        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                        val result = service.getDeleted(page, size)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
                 // ── Admin: publish article ───────────────────────────────────────
                 patch("publish") {
                     call.requireRole(ADMIN) {

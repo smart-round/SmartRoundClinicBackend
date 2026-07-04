@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.auth.domain.usecase
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.auth.data.entity.UserEntity.Role
 import ke.co.smartroundclinic.auth.domain.model.User
 import ke.co.smartroundclinic.auth.domain.repository.CredentialsHasher
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
@@ -22,6 +23,7 @@ class SignUpWithPictureUseCase(
     private val credentialsHasher: CredentialsHasher,
     private val sendAccountVerificationOtpUseCase: SendAccountVerificationOtpUseCase,
     private val storageRepository: StorageRepository,
+    private val notifyNewDoctorSignUpUseCase: NotifyNewDoctorSignUpUseCase? = null,
 ) {
     suspend operator fun invoke(
         user: User,
@@ -38,6 +40,7 @@ class SignUpWithPictureUseCase(
             )
 
             if (createUser is Resource.Success) {
+                val entity = createUser.data
                 launch {
                     sendAccountVerificationOtpUseCase(
                         fullName = user.fullName,
@@ -45,9 +48,17 @@ class SignUpWithPictureUseCase(
                         otpCode = otpCode,
                     )
                 }
+                if (user.role == Role.DOCTOR && entity != null) launch {
+                    notifyNewDoctorSignUpUseCase?.invoke(
+                        fullName = entity.fullName,
+                        email = entity.email,
+                        doctorId = entity.id,
+                        createdAt = entity.createdAt,
+                    )
+                }
 
                 // Upload profile picture best-effort — never fail the sign-up if this fails
-                val createdUserId = createUser.data?.id
+                val createdUserId = entity?.id
                 if (imageBytes != null && !contentType.isNullOrBlank() && createdUserId != null) {
                     launch {
                         val extension = imageExtensionOrNull(contentType) ?: "jpeg"

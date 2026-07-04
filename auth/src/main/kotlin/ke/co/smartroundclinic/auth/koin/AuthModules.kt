@@ -30,6 +30,7 @@ import ke.co.smartroundclinic.auth.domain.usecase.GetUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.AdminUpdateUserUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.FilterUsersByRoleUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.GetUserStatsUseCase
+import ke.co.smartroundclinic.auth.domain.usecase.NotifyNewDoctorSignUpUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.TrackUserPresenceUseCase
 import ke.co.smartroundclinic.auth.domain.usecase.UpgradeToSuperAdminUseCase
 import ke.co.smartroundclinic.common.NotificationSender
@@ -79,14 +80,16 @@ val authModule = module {
     single { UpgradeToSuperAdminUseCase(get()) }
     single { GetUserStatsUseCase(get()) }
     single { TrackUserPresenceUseCase(get()) }
+    single { NotifyNewDoctorSignUpUseCase(get(), get()) }
     single {
         SignUpUseCase(
             get(),
             get(),
-            get()
+            get(),
+            get(),
         )
     }
-    single { SignUpWithPictureUseCase(get(), get(), get(), get()) }
+    single { SignUpWithPictureUseCase(get(), get(), get(), get(), get()) }
 
     single {
         UserService(

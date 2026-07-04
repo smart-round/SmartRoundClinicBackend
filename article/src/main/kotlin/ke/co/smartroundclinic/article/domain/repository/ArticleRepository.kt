@@ -32,4 +32,5 @@ interface ArticleRepository {
     suspend fun suspendByDoctor(id: String, doctorId: String): Resource<ArticleEntity?>
     suspend fun delete(id: String): Resource<ArticleEntity?>
     suspend fun deleteByDoctor(id: String, doctorId: String): Resource<ArticleEntity?>
+    suspend fun getDeleted(page: Int, size: Int): Resource<Pair<List<ArticleEntity>, Long>>
 }

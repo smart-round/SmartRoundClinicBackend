@@ -14,6 +14,7 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":notification"))
     implementation(libs.jb.crypt)
+    testImplementation(libs.kotlin.test.junit)
 }
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.compilerOptions {

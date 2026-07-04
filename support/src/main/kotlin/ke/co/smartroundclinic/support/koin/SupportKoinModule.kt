@@ -19,12 +19,15 @@ import ke.co.smartroundclinic.support.domain.usecase.issueCategory.DeleteIssueCa
 import ke.co.smartroundclinic.support.domain.usecase.issueCategory.GetAllIssueCategoriesUseCase
 import ke.co.smartroundclinic.support.domain.usecase.issueCategory.GetIssueCategoryByIdUseCase
 import ke.co.smartroundclinic.support.domain.usecase.issueCategory.UpdateIssueCategoryUseCase
+import ke.co.smartroundclinic.notification.config.EmailConfig
+import ke.co.smartroundclinic.notification.domain.repository.EmailRepository
 import ke.co.smartroundclinic.support.domain.usecase.ticket.AssignTicketUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.CreateTicketUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.DeleteTicketUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.GetAllTicketsUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.GetMyTicketsUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.GetTicketByIdUseCase
+import ke.co.smartroundclinic.support.domain.usecase.ticket.SendSupportTicketEmailUseCase
 import ke.co.smartroundclinic.support.domain.usecase.ticket.UpdateTicketStatusUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -43,11 +46,12 @@ val supportModule = module {
     single { DeleteIssueCategoryUseCase(get()) }
     single { IssueCategoryService(get(), get(), get(), get(), get()) }
 
-    single { CreateTicketUseCase(get()) }
+    single { SendSupportTicketEmailUseCase(get<EmailRepository>(), get<EmailConfig>(), get()) }
+    single { CreateTicketUseCase(get(), getOrNull<SendSupportTicketEmailUseCase>()) }
     single { GetTicketByIdUseCase(get()) }
     single { GetAllTicketsUseCase(get()) }
     single { GetMyTicketsUseCase(get()) }
-    single { UpdateTicketStatusUseCase(get(), getOrNull<NotificationSender>()) }
+    single { UpdateTicketStatusUseCase(get(), getOrNull<NotificationSender>(), getOrNull<SendSupportTicketEmailUseCase>()) }
     single { AssignTicketUseCase(get()) }
     single { DeleteTicketUseCase(get()) }
     single { TicketService(get(), get(), get(), get(), get(), get(), get()) }

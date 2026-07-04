@@ -8,6 +8,7 @@ import ke.co.smartroundclinic.article.domain.service.ArticleCategoryService
 import ke.co.smartroundclinic.article.domain.service.ArticleService
 import ke.co.smartroundclinic.article.domain.usecase.article.CreateArticleUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.DeleteArticleByDoctorUseCase
+import ke.co.smartroundclinic.article.domain.usecase.article.GetDeletedArticlesUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.DeleteArticleUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.GetAllArticlesUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.GetArticleByIdUseCase
@@ -53,5 +54,6 @@ val articleModule = module {
     single { SuspendArticleByDoctorUseCase(get()) }
     single { DeleteArticleUseCase(get(), getOrNull<NotificationSender>()) }
     single { DeleteArticleByDoctorUseCase(get()) }
-    single { ArticleService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get<StorageRepository>()) }
+    single { GetDeletedArticlesUseCase(get()) }
+    single { ArticleService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get<StorageRepository>()) }
 }

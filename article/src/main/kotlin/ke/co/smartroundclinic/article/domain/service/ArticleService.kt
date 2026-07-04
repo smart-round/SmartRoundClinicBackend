@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.article.domain.service
 
 import ke.co.smartroundclinic.article.domain.usecase.article.CreateArticleUseCase
+import ke.co.smartroundclinic.article.domain.usecase.article.GetDeletedArticlesUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.DeleteArticleByDoctorUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.DeleteArticleUseCase
 import ke.co.smartroundclinic.article.domain.usecase.article.GetAllArticlesUseCase
@@ -35,6 +36,7 @@ class ArticleService(
     private val suspendByDoctorUseCase: SuspendArticleByDoctorUseCase,
     private val deleteUseCase: DeleteArticleUseCase,
     private val deleteByDoctorUseCase: DeleteArticleByDoctorUseCase,
+    private val getDeletedUseCase: GetDeletedArticlesUseCase,
     private val storageRepository: StorageRepository,
 ) {
     suspend fun create(req: CreateArticleReq, doctorId: String, imageBytes: ByteArray?, imageContentType: String?) =
@@ -61,6 +63,7 @@ class ArticleService(
 
     suspend fun delete(id: String) = deleteUseCase(id).withThumbnail()
     suspend fun deleteByDoctor(id: String, doctorId: String) = deleteByDoctorUseCase(id, doctorId).withThumbnail()
+    suspend fun getDeleted(page: Int, size: Int) = getDeletedUseCase(page, size).withThumbnails()
 
     // Generates a fresh presigned URL from an R2 key. External URLs (http/https) are passed through unchanged.
     private suspend fun resolveUrl(keyOrUrl: String?): String? {
