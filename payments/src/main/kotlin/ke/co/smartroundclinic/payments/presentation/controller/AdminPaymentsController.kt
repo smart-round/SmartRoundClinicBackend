@@ -75,6 +75,22 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
                 }
             }
 
+            route("patients") {
+
+                // GET /admin/payments/patients?patientId=xxx&page=1&size=20
+                // Admin views full payment history for a specific patient.
+                get {
+                    call.requireRole(ADMIN) {
+                        val patientId = call.parameters["patientId"]
+                            ?: throw MissingParametersException("patientId is required")
+                        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                        val result = service.getByPatient(patientId, page, size)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+            }
+
             route("commissions") {
 
                 // GET /admin/payments/commissions/chart?from=2026-01-01&to=2026-01-31

@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.payments.domain.service
 
+import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionLogsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSummaryUseCase
@@ -14,6 +15,7 @@ class AdminPaymentsService(
     private val commissionLogsUseCase: GetCommissionLogsAdminUseCase,
     private val commissionTimeSummaryUseCase: GetCommissionTimeSummaryUseCase,
     private val earningsChartUseCase: GetEarningsChartUseCase,
+    private val getByPatientUseCase: GetPaymentsByPatientUseCase,
 ) {
     suspend fun getOverview() = overviewUseCase()
     suspend fun getAllDoctorBreakdowns() = breakdownUseCase.forAll()
@@ -24,4 +26,5 @@ class AdminPaymentsService(
     suspend fun getCommissionLogsByDoctor(doctorId: String) = commissionLogsUseCase.getByDoctor(doctorId)
     suspend fun getCommissionTimeSummary() = commissionTimeSummaryUseCase()
     suspend fun getEarningsChart(from: String?, to: String?) = earningsChartUseCase(from, to)
+    suspend fun getByPatient(patientId: String, page: Int, size: Int) = getByPatientUseCase(patientId, page, size)
 }
