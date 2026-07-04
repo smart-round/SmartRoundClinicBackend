@@ -629,21 +629,4 @@ class SpecialityRepositoryImpl(
                 Resource.Error(e.localizedMessage ?: "Failed to unassign speciality from service category")
             }
         }
-
-    override suspend fun backfillAllTimestamps(): Resource<Long> =
-        withContext(Dispatchers.IO) {
-            try {
-                val now = Clock.System.now().toString()
-                val result = specialities.updateMany(
-                    Filters.empty(),
-                    Updates.combine(
-                        Updates.set(SpecialityEntity::createdAt.name, now),
-                        Updates.set(SpecialityEntity::updatedAt.name, now),
-                    )
-                )
-                Resource.Success(data = result.modifiedCount, message = "Timestamps backfilled for ${result.modifiedCount} specialities")
-            } catch (e: Exception) {
-                Resource.Error(e.localizedMessage ?: "Failed to backfill timestamps")
-            }
-        }
 }

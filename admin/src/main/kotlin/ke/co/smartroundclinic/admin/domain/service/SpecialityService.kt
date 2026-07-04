@@ -2,7 +2,6 @@ package ke.co.smartroundclinic.admin.domain.service
 
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceCategoryUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.AssignSpecialityToServiceTierUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.speciality.BackfillSpecialityTimestampsUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.CreateSpecialityUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.speciality.GetSpecialityServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.subSpeciality.CreateSubSpecialityUseCase
@@ -35,7 +34,6 @@ class SpecialityService(
     private val assignSpecialityToServiceCategoryUseCase: AssignSpecialityToServiceCategoryUseCase,
     private val unassignSpecialityFromServiceCategoryUseCase: UnassignSpecialityFromServiceCategoryUseCase,
     private val getSpecialityServiceTierUseCase: GetSpecialityServiceTierUseCase,
-    private val backfillSpecialityTimestampsUseCase: BackfillSpecialityTimestampsUseCase,
 ) {
     suspend fun createSpeciality(req: CreateSpecialityReq, imageBytes: ByteArray?, contentType: String?) =
         createSpecialityUseCase(req, imageBytes, contentType)
@@ -81,6 +79,4 @@ class SpecialityService(
 
     suspend fun getServiceTier(specialityId: String) =
         getSpecialityServiceTierUseCase(specialityId)
-
-    suspend fun backfillTimestamps() = backfillSpecialityTimestampsUseCase()
 }
