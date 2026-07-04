@@ -33,4 +33,5 @@ interface SpecialityRepository {
     suspend fun unassignFromServiceTier(specialityId: String): Resource<Nothing>
     suspend fun assignToServiceCategory(specialityId: String, serviceCategoryId: String): Resource<Nothing>
     suspend fun unassignFromServiceCategory(specialityId: String): Resource<Nothing>
+    suspend fun backfillAllTimestamps(): Resource<Long>
 }

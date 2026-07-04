@@ -23,6 +23,7 @@ import ke.co.smartroundclinic.infra.plugins.requireImageContentType
 import ke.co.smartroundclinic.infra.plugins.requireRole
 
 private const val ADMIN = "ADMIN"
+private const val SUPER_ADMIN = "SUPER_ADMIN"
 
 fun Route.specialityController(specialityService: SpecialityService) {
 
@@ -270,6 +271,13 @@ fun Route.specialityController(specialityService: SpecialityService) {
                         val result = specialityService.deleteSubSpeciality(id)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
+                }
+            }
+
+            post("backfill-timestamps") {
+                call.requireRole(SUPER_ADMIN) {
+                    val result = specialityService.backfillTimestamps()
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
 
