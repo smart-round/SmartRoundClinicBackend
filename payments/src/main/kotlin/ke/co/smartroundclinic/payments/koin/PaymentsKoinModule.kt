@@ -103,5 +103,5 @@ val paymentsKoinModule = module {
     single { GetCommissionLogsAdminUseCase(get()) }
     single { GetCommissionTimeSummaryUseCase(get()) }
     single { GetEarningsChartUseCase(get()) }
-    single { AdminPaymentsService(get(), get(), get(), get(), get(), get(), get()) }
+    single { AdminPaymentsService(get(), get(), get(), get(), get(), get(), get(), get()) }
 }

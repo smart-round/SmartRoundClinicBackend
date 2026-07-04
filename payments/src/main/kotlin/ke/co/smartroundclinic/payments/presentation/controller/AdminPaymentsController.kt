@@ -89,6 +89,16 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
+
+                // GET /admin/payments/patients/specific?id=xxx
+                // Admin views a single payment record by ID.
+                get("specific") {
+                    call.requireRole(ADMIN) {
+                        val id = call.parameters["id"] ?: throw MissingParametersException("id is required")
+                        val result = service.getById(id)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
             }
 
             route("commissions") {
