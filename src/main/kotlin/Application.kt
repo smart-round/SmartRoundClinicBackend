@@ -63,7 +63,7 @@ fun Application.module() {
             registerPatientValidators()
             registerConsultationValidators()
             registerNotificationValidators()
-            registerPaymentValidators()
+                registerPaymentValidators()
         },
         backgroundTasks = {
             val staleCallCleanup: StaleCallCleanupTask by inject()
