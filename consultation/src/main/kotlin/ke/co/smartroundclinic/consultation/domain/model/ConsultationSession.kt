@@ -9,6 +9,7 @@ data class ConsultationSession(
     val patientId: String,
     val status: ConsultationStatus,
     val videoRoomId: String?,
+    val lastVideoRoomId: String?,
     val createdAt: String,
     val updatedAt: String?,
 )

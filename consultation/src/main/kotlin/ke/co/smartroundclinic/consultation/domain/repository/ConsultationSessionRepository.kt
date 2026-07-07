@@ -13,6 +13,6 @@ interface ConsultationSessionRepository {
      *  Returns the meeting ID that is actually stored after the call —
      *  either [videoRoomId] (this call won) or the existing one (another request beat us). */
     suspend fun setVideoRoomIdIfAbsent(id: String, videoRoomId: String): Resource<String>
-    suspend fun clearVideoRoomId(id: String): Resource<Unit>
+    suspend fun clearVideoRoomId(id: String, completedRoomId: String? = null): Resource<Unit>
     suspend fun end(id: String, doctorId: String): Resource<ConsultationSessionEntity?>
 }

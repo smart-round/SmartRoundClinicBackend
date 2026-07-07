@@ -42,7 +42,7 @@ class HandleMeetingEndedWebhookUseCase(
             is Resource.Success -> {
                 val session = r.data
                 if (session != null) {
-                    sessions.clearVideoRoomId(session.id)
+                    sessions.clearVideoRoomId(session.id, completedRoomId = meetingId)
                     log.info("Webhook: cleared videoRoomId on consultation=${session.id}")
                     runCatching {
                         notificationSender?.send(

@@ -151,15 +151,19 @@ class ConsultationSessionRepositoryImpl(
         Resource.Error(e.message ?: "Failed to set videoRoomId")
     }
 
-    override suspend fun clearVideoRoomId(id: String): Resource<Unit> = try {
+    override suspend fun clearVideoRoomId(id: String, completedRoomId: String?): Resource<Unit> = try {
+        val updates = mutableListOf(
+            Updates.unset(ConsultationSessionEntity::videoRoomId.name),
+            Updates.set(ConsultationSessionEntity::updatedAt.name, Clock.System.now().toString()),
+        )
+        if (completedRoomId != null) {
+            updates.add(Updates.set(ConsultationSessionEntity::lastVideoRoomId.name, completedRoomId))
+        }
         col.updateOne(
             Filters.eq(ConsultationSessionEntity::id.name, id),
-            Updates.combine(
-                Updates.unset(ConsultationSessionEntity::videoRoomId.name),
-                Updates.set(ConsultationSessionEntity::updatedAt.name, Clock.System.now().toString()),
-            ),
+            Updates.combine(updates),
         )
-        log.info("Cleared videoRoomId on consultation id=$id")
+        log.info("Cleared videoRoomId on consultation id=$id${if (completedRoomId != null) " (lastVideoRoomId=$completedRoomId)" else ""}")
         Resource.Success(Unit)
     } catch (e: Exception) {
         log.error("Failed to clear videoRoomId on consultation id=$id — ${e.message}", e)

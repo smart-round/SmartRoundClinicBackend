@@ -55,7 +55,7 @@ class EndCallUseCase(
                 )
                 else -> Unit
             }
-            sessions.clearVideoRoomId(consultationId)
+            sessions.clearVideoRoomId(consultationId, completedRoomId = meetingId)
         }
 
         runCatching {

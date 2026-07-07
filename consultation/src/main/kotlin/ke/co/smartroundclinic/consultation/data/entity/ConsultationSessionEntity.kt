@@ -12,6 +12,7 @@ data class ConsultationSessionEntity(
     val patientId: String,
     val status: ConsultationStatus = ConsultationStatus.ACTIVE,
     val videoRoomId: String? = null,
+    val lastVideoRoomId: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
@@ -22,6 +23,7 @@ data class ConsultationSessionEntity(
         patientId = patientId,
         status = status,
         videoRoomId = videoRoomId,
+        lastVideoRoomId = lastVideoRoomId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -37,6 +39,7 @@ fun ConsultationSession.toEntity() = ConsultationSessionEntity(
     patientId = patientId,
     status = status,
     videoRoomId = videoRoomId,
+    lastVideoRoomId = lastVideoRoomId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

@@ -13,7 +13,8 @@ class ConsultationVideoRoomLookup(consultationDb: MongoDatabase) {
     private val col = consultationDb.getCollection<Document>(MongoDBConstants.CONSULTATION_SESSIONS)
 
     suspend fun getVideoRoomId(appointmentId: String): String? = try {
-        col.find(Filters.eq("appointmentId", appointmentId)).firstOrNull()?.getString("videoRoomId")
+        val doc = col.find(Filters.eq("appointmentId", appointmentId)).firstOrNull()
+        doc?.getString("videoRoomId") ?: doc?.getString("lastVideoRoomId")
     } catch (e: Exception) {
         log.warn("Could not fetch videoRoomId for appointmentId=$appointmentId — ${e.message}")
         null
