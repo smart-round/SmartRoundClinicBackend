@@ -9,6 +9,7 @@ import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionSer
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.StaleCallCleanupTask
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.EndConsultationUseCase
@@ -52,6 +53,7 @@ val consultationKoinModule = module {
     single { JoinConsultationCallUseCase(get(), get(), get<RealtimeKitClient>(), getOrNull()) }
     single { EndCallUseCase(get(), get<RealtimeKitClient>(), getOrNull()) }
     single { HandleMeetingEndedWebhookUseCase(get(), get<RealtimeKitClient>(), getOrNull()) }
+    single { StaleCallCleanupTask(get<RealtimeKitClient>(), get()) }
 
     /**
      * Services

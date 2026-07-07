@@ -73,15 +73,9 @@ class RealtimeKitClient : KoinComponent {
         Resource.Error(e.message ?: "Failed to create RealtimeKit meeting")
     }
 
-    /**
-     * Lists all meetings in this app and returns the id of the first LIVE meeting
-     * whose title exactly matches [title], or null if none is found.
-     *
-     * Used to detect whether a meeting for this consultation already exists on
-     * Cloudflare before creating a new one.
-     */
-    suspend fun findActiveMeetingByTitle(title: String): String? = try {
-        log.info("Cloudflare RTK listMeetings searching for title=\"$title\"")
+    /** Returns all meetings in this app that are not INACTIVE. */
+    suspend fun listActiveMeetings(): List<MeetingListItem> = try {
+        log.info("Cloudflare RTK listMeetings (all active)")
         val res: HttpResponse = http.get(baseMeetingsPath) {
             bearerAuth(AppConfig.realtimeKit.apiToken)
             headers { append(HttpHeaders.Accept, "application/json") }
@@ -93,17 +87,31 @@ class RealtimeKitClient : KoinComponent {
         }
         if (!res.status.isSuccess()) {
             log.warn("Cloudflare RTK listMeetings failed status=${res.status.value}")
-            null
+            emptyList()
         } else {
             val raw = res.bodyAsText()
-            val body = jsonLenient.decodeFromString(CloudflareMeetingListEnvelope.serializer(), raw)
-            body.data
-                .firstOrNull { it.title == title && it.status != null && it.status != "INACTIVE" }
-                ?.id
-                .also { if (it != null) log.info("Cloudflare RTK found ACTIVE meeting id=$it for title=\"$title\"") }
+            jsonLenient.decodeFromString(CloudflareMeetingListEnvelope.serializer(), raw).data
+                .filter { it.status != null && it.status != "INACTIVE" }
         }
     } catch (e: Exception) {
         log.warn("Cloudflare RTK listMeetings threw — ${e.message}")
+        emptyList()
+    }
+
+    /**
+     * Lists all meetings in this app and returns the id of the first LIVE meeting
+     * whose title exactly matches [title], or null if none is found.
+     *
+     * Used to detect whether a meeting for this consultation already exists on
+     * Cloudflare before creating a new one.
+     */
+    suspend fun findActiveMeetingByTitle(title: String): String? = try {
+        listActiveMeetings()
+            .firstOrNull { it.title == title }
+            ?.id
+            .also { if (it != null) log.info("Cloudflare RTK found ACTIVE meeting id=$it for title=\"$title\"") }
+    } catch (e: Exception) {
+        log.warn("Cloudflare RTK findActiveMeetingByTitle threw — ${e.message}")
         null
     }
 
@@ -275,10 +283,11 @@ internal data class MeetingData(val id: String)
 internal data class MeetingStatusData(val id: String, val status: String? = null)
 
 @Serializable
-internal data class MeetingListItem(
+data class MeetingListItem(
     val id: String,
     val title: String? = null,
     val status: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 @Serializable

@@ -16,6 +16,7 @@ import ke.co.smartroundclinic.doctor.doctorModule
 import ke.co.smartroundclinic.doctor.koin.doctorModule as doctorKoinModule
 import ke.co.smartroundclinic.doctor.validation.registerDoctorValidators
 import ke.co.smartroundclinic.infra.configureInfraModule
+import org.koin.ktor.ext.inject
 import ke.co.smartroundclinic.admin.seeder.seedDefaultPolicyGroups
 import ke.co.smartroundclinic.infra.syncPermissionCatalog
 import ke.co.smartroundclinic.infra.koin.appConfigModule
@@ -29,6 +30,7 @@ import ke.co.smartroundclinic.scheduling.schedulingModule
 import ke.co.smartroundclinic.scheduling.koin.schedulingKoinModule
 import ke.co.smartroundclinic.scheduling.presentation.validation.registerSchedulingValidators
 import ke.co.smartroundclinic.consultation.consultationModule
+import ke.co.smartroundclinic.consultation.domain.usecase.call.StaleCallCleanupTask
 import ke.co.smartroundclinic.consultation.koin.consultationKoinModule
 import ke.co.smartroundclinic.consultation.presentation.validation.registerConsultationValidators
 import ke.co.smartroundclinic.support.supportModule
@@ -62,7 +64,11 @@ fun Application.module() {
             registerConsultationValidators()
             registerNotificationValidators()
             registerPaymentValidators()
-        }
+        },
+        backgroundTasks = {
+            val staleCallCleanup: StaleCallCleanupTask by inject()
+            listOf(staleCallCleanup)
+        },
     )
     authModule()
     adminModule()

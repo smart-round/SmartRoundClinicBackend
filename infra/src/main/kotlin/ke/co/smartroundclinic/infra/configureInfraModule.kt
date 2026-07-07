@@ -2,6 +2,8 @@ package ke.co.smartroundclinic.infra
 
 import io.ktor.server.application.Application
 import io.ktor.server.plugins.requestvalidation.RequestValidationConfig
+import ke.co.smartroundclinic.infra.plugins.BackgroundTask
+import ke.co.smartroundclinic.infra.plugins.configureBackgroundTasks
 import ke.co.smartroundclinic.infra.plugins.configureHTTP
 import ke.co.smartroundclinic.infra.plugins.configureKoin
 import ke.co.smartroundclinic.infra.plugins.configureMonitoring
@@ -14,6 +16,7 @@ import org.koin.core.module.Module
 fun Application.configureInfraModule(
     appModules: List<Module> = emptyList(),
     validators: RequestValidationConfig.() -> Unit = {},
+    backgroundTasks: Application.() -> List<BackgroundTask> = { emptyList() },
 ) {
     configureHTTP()
     configureKoin(appModules)
@@ -22,4 +25,5 @@ fun Application.configureInfraModule(
     configureMonitoring()
     configureSockets()
     configureRequestValidation(validators)
+    configureBackgroundTasks(backgroundTasks())
 }
