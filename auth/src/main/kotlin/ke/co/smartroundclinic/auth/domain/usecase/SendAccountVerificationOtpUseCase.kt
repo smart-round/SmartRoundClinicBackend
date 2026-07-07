@@ -14,7 +14,6 @@ class SendAccountVerificationOtpUseCase(
             emailWithTemplate = EmailWithTemplate(
                 from = emailConfig.accountVerificationEmail,
                 to = toEmail,
-                subject = "Account Verification - SmartRound Clinic",
                 template = Template(
                     id = emailConfig.accountVerificationTemplateId,
                     variables = mapOf(

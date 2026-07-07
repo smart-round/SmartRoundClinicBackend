@@ -68,7 +68,6 @@ class AccountVerificationUseCase(
                     emailWithTemplate = EmailWithTemplate(
                         from = emailConfig.accountVerificationEmail,
                         to = toEmail,
-                        subject = "Account Pending Approval",
                         template = Template(
                             id = emailConfig.doctorAccountVerificationSuccessTemplateId,
                             variables = mapOf(
@@ -83,7 +82,6 @@ class AccountVerificationUseCase(
                     emailWithTemplate = EmailWithTemplate(
                         from = emailConfig.accountVerificationEmail,
                         to = toEmail,
-                        subject = "Welcome to SmartRound Clinic",
                         template = Template(
                             id = emailConfig.patientAccountVerificationSuccessTemplateId,
                             variables = mapOf(

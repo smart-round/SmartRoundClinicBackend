@@ -54,15 +54,17 @@ class RecommendationRepositoryImpl(
                 .also { if (it.isEmpty()) return Resource.Success(emptyList<RecommendedDoctorRes>() to 0L) }
         }
 
-        // Only include doctors who have been verified (compliance approved)
+        // Only include doctors who are verified (compliance approved) and not suspended
         val verifiedDoctorIds = loadVerifiedDoctorIds()
+        val suspendedDoctorIds = loadSuspendedDoctorIds()
+        val eligibleDoctorIds = verifiedDoctorIds - suspendedDoctorIds
 
         // Load only the relevant profiles
         val profileFilter = when {
-            allowedDoctorIds != null -> Filters.`in`(PractitionerProfileEntity::doctorId.name, allowedDoctorIds.intersect(verifiedDoctorIds))
-            else -> Filters.`in`(PractitionerProfileEntity::doctorId.name, verifiedDoctorIds)
+            allowedDoctorIds != null -> Filters.`in`(PractitionerProfileEntity::doctorId.name, allowedDoctorIds.intersect(eligibleDoctorIds))
+            else -> Filters.`in`(PractitionerProfileEntity::doctorId.name, eligibleDoctorIds)
         }
-        if ((allowedDoctorIds != null && allowedDoctorIds.intersect(verifiedDoctorIds).isEmpty()) || verifiedDoctorIds.isEmpty()) {
+        if ((allowedDoctorIds != null && allowedDoctorIds.intersect(eligibleDoctorIds).isEmpty()) || eligibleDoctorIds.isEmpty()) {
             return Resource.Success(emptyList<RecommendedDoctorRes>() to 0L)
         }
         val profiles = profileCol.find(profileFilter).toList()
@@ -169,6 +171,20 @@ class RecommendationRepositoryImpl(
             .toSet()
     } catch (e: Exception) {
         log.warn("Could not load verified/monetized doctor IDs — ${e.message}")
+        emptySet()
+    }
+
+    private suspend fun loadSuspendedDoctorIds(): Set<String> = try {
+        usersCol.find(
+            Filters.and(
+                Filters.eq("role", "DOCTOR"),
+                Filters.eq("accountStatus", "SUSPENDED"),
+            )
+        ).toList()
+            .mapNotNull { it.getString("id") }
+            .toSet()
+    } catch (e: Exception) {
+        log.warn("Could not load suspended doctor IDs — ${e.message}")
         emptySet()
     }
 
