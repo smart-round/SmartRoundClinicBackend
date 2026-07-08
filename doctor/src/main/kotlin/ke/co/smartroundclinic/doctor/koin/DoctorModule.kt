@@ -9,6 +9,8 @@ import ke.co.smartroundclinic.doctor.data.repository.PaymentDetailsRepositoryImp
 import ke.co.smartroundclinic.doctor.data.repository.PractitionerLicenceRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PractitionerProfileRepositoryImpl
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
+import ke.co.smartroundclinic.common.PatientNameResolver
+import ke.co.smartroundclinic.common.UserProfilePictureResolver
 import ke.co.smartroundclinic.doctor.data.repository.SpecializationRepositoryImpl
 import ke.co.smartroundclinic.doctor.domain.repository.RecommendationRepository
 import ke.co.smartroundclinic.doctor.domain.repository.DoctorRatingRepository
@@ -242,7 +244,7 @@ val doctorModule = module {
     single { SubmitRatingUseCase(get()) }
     single { UpdateRatingUseCase(get()) }
     single { DeleteRatingUseCase(get()) }
-    single { GetDoctorRatingsUseCase(get()) }
+    single { GetDoctorRatingsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<UserProfilePictureResolver>()) }
     single { GetRatingByIdUseCase(get()) }
     single { DoctorRatingService(get(), get(), get(), get(), get()) }
 

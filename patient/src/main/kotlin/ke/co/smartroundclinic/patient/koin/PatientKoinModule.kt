@@ -4,7 +4,9 @@ import ke.co.smartroundclinic.patient.data.repository.PatientRatingRepositoryImp
 import ke.co.smartroundclinic.patient.data.repository.PersonalInformationRepositoryImpl
 import ke.co.smartroundclinic.patient.domain.repository.PatientRatingRepository
 import ke.co.smartroundclinic.patient.domain.repository.PersonalInformationRepository
+import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.PatientProfileResolver
+import ke.co.smartroundclinic.common.UserProfilePictureResolver
 import ke.co.smartroundclinic.patient.domain.service.PatientRatingService
 import ke.co.smartroundclinic.patient.domain.service.PersonalInformationService
 import ke.co.smartroundclinic.patient.domain.usecase.CreatePersonalInformationUseCase
@@ -33,7 +35,7 @@ val patientModule = module {
     single { SubmitPatientRatingUseCase(get()) }
     single { UpdatePatientRatingUseCase(get()) }
     single { DeletePatientRatingUseCase(get()) }
-    single { GetPatientRatingsUseCase(get()) }
+    single { GetPatientRatingsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<UserProfilePictureResolver>()) }
     single { GetPatientRatingByIdUseCase(get()) }
     single { PatientRatingService(get(), get(), get(), get(), get()) }
 }

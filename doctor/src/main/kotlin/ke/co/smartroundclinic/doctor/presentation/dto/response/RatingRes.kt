@@ -13,6 +13,8 @@ data class RatingRes(
     val comment: String?,
     val createdAt: String,
     val updatedAt: String?,
+    val patientName: String? = null,
+    val patientProfilePicture: String? = null,
 )
 
 @Serializable
@@ -23,7 +25,7 @@ data class RatingsPageRes(
     val size: Int,
 )
 
-fun DoctorRating.toRes() = RatingRes(
+fun DoctorRating.toRes(patientName: String? = null, patientProfilePicture: String? = null) = RatingRes(
     id = id,
     appointmentId = appointmentId,
     doctorId = doctorId,
@@ -32,4 +34,6 @@ fun DoctorRating.toRes() = RatingRes(
     comment = comment,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    patientName = patientName,
+    patientProfilePicture = patientProfilePicture,
 )
