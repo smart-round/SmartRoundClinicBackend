@@ -24,6 +24,8 @@ data class PersonalInformationRes(
     val allergies: List<String> = emptyList(),
     val chronicConditions: List<String> = emptyList(),
     val currentMedications: List<String> = emptyList(),
+    val averageRating: Double,
+    val totalReviews: Int,
     val createdAt: String,
     val updatedAt: String?,
 )
@@ -44,6 +46,8 @@ fun PersonalInformation.toRes() = PersonalInformationRes(
     allergies = allergies,
     chronicConditions = chronicConditions,
     currentMedications = currentMedications,
+    averageRating = averageRating,
+    totalReviews = totalReviews,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

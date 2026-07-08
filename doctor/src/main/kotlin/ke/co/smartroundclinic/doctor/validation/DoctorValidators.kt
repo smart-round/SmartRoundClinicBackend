@@ -3,9 +3,29 @@ package ke.co.smartroundclinic.doctor.validation
 import io.ktor.server.plugins.requestvalidation.RequestValidationConfig
 import io.ktor.server.plugins.requestvalidation.ValidationResult
 import ke.co.smartroundclinic.doctor.presentation.dto.request.AddPaymentDetailsReq
+import ke.co.smartroundclinic.doctor.presentation.dto.request.SubmitRatingReq
 import ke.co.smartroundclinic.doctor.presentation.dto.request.UpdatePaymentDetailsReq
+import ke.co.smartroundclinic.doctor.presentation.dto.request.UpdateRatingReq
 
 fun RequestValidationConfig.registerDoctorValidators() {
+
+    validate<SubmitRatingReq> { req ->
+        val errors = buildList {
+            if (req.appointmentId.isNullOrBlank()) add("appointmentId is required")
+            if (req.doctorId.isNullOrBlank()) add("doctorId is required")
+            if (req.rating !in 1..5) add("rating must be between 1 and 5")
+        }
+        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
+    }
+
+    validate<UpdateRatingReq> { req ->
+        if (req.rating == null && req.comment == null)
+            return@validate ValidationResult.Invalid("At least one field must be provided for update")
+        val errors = buildList {
+            req.rating?.let { if (it !in 1..5) add("rating must be between 1 and 5") }
+        }
+        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
+    }
 
     validate<AddPaymentDetailsReq> { req ->
         val errors = buildList {

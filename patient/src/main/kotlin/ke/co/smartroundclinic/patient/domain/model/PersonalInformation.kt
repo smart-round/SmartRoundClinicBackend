@@ -21,6 +21,8 @@ data class PersonalInformation(
     val allergies: List<String> = emptyList(),
     val chronicConditions: List<String> = emptyList(),
     val currentMedications: List<String> = emptyList(),
+    val averageRating: Double = 0.0,
+    val totalReviews: Int = 0,
     val createdAt: String,
     val updatedAt: String? = null,
 )

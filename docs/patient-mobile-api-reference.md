@@ -1046,6 +1046,21 @@ On any 401 from a protected endpoint:
    → 400 "OTP has expired" → offer resend via GET /auth/user/password-reset/resend-otp?email=X
 ```
 
+## G7. Rate a Doctor (After a Completed Appointment)
+
+```
+1. On the "Past" appointments tab, for any appointment with status COMPLETED:
+   → check whether a rating already exists (GET /doctor/ratings?id=X if you stored the ratingId,
+     or track locally that this appointmentId was already rated after step 3 succeeds)
+2. Show a "Rate this doctor" prompt/star picker
+3. POST /doctor/ratings  { appointmentId, doctorId, rating, comment }
+   → 201  → show confirmation, hide the prompt for this appointment going forward
+   → 409  → surface the specific message (e.g. "You have already rated this appointment")
+4. Patient can edit later from their own ratings list:
+   PUT /doctor/ratings?id=X  { rating, comment }
+   DELETE /doctor/ratings?id=X
+```
+
 ---
 
 ---
@@ -1061,6 +1076,8 @@ On any 401 from a protected endpoint:
 | `slotStart` | `HH:mm` 24-hour format |
 | `slotStart` at booking | Must be present in the slot list returned by D1 |
 | `doctorId` | Required when booking |
+| `rating` (doctor rating) | Integer, `1`–`5` |
+| `appointmentId` (doctor rating) | Required — must reference a `COMPLETED` appointment owned by the patient |
 
 ---
 
@@ -1077,3 +1094,248 @@ On any 401 from a protected endpoint:
 5. **Filtering appointments server-side.** The patient appointments endpoint (`GET /scheduling/appointments/patient`) returns all statuses. Apply upcoming/past/cancelled filtering on the client.
 
 6. **Sending all fields on profile update.** Only send fields that the user actually changed. The server skips fields with no diff, but sending `null` for optional fields has no effect.
+
+7. **Treating all `POST /doctor/ratings` failures as generic errors.** Every business-rule rejection (appointment not found, not yours, wrong doctor, not completed yet, already rated) comes back as HTTP `409`, not `400` or `404`. Branch on `message`, not just the status code, to show the right copy.
+
+8. **Assuming `DELETE /doctor/ratings?id=X` failing silently means it worked.** The endpoint returns `200`/`status: true` even if `id` didn't match a rating owned by the caller (it reports the deleted-count internally but always returns a generic success message). Re-fetch the ratings list after delete to confirm, rather than trusting the response alone.
+
+---
+
+---
+
+# SECTION J — Rate a Doctor
+
+A patient can rate a doctor once per completed appointment. Ratings feed into that doctor's `averageRating` / `totalReviews` (shown in profile and recommendations) and into recommendation scoring.
+
+**Preconditions enforced server-side** (all checked on every submit):
+- The appointment referenced by `appointmentId` must exist.
+- It must belong to the calling patient (`patientId` from the JWT, not request body).
+- It must be with the specified `doctorId`.
+- Its `status` must be `COMPLETED`.
+- No existing rating for that `appointmentId` (one rating per appointment, not per patient/doctor pair).
+
+---
+
+## J1. Submit a Rating
+
+**`POST /doctor/ratings`**
+**Auth:** Bearer token required (PATIENT)
+
+### Request
+
+```json
+{
+  "appointmentId": "6a5678abcd1234ef90456789",
+  "doctorId": "69f8846c319d59e154fdab3c",
+  "rating": 5,
+  "comment": "Very thorough and patient, explained everything clearly."
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `appointmentId` | String | Yes | Must reference a `COMPLETED` appointment owned by this patient |
+| `doctorId` | String | Yes | Must match the appointment's doctor |
+| `rating` | Int | Yes | `1`–`5` |
+| `comment` | String | No | Free text |
+
+`patientId` is derived from the access token — do not send it.
+
+### Response `201`
+
+```json
+{
+  "httpStatusCode": 201,
+  "status": true,
+  "message": "Rating submitted successfully",
+  "data": {
+    "id": "6b1234abcd5678ef90123456",
+    "appointmentId": "6a5678abcd1234ef90456789",
+    "doctorId": "69f8846c319d59e154fdab3c",
+    "patientId": "69abc123def456789012abcd",
+    "rating": 5,
+    "comment": "Very thorough and patient, explained everything clearly.",
+    "createdAt": "2026-05-20T11:00:00.000000Z",
+    "updatedAt": null
+  }
+}
+```
+
+### Error Responses
+
+All business-rule rejections return **`409`** (not 400/404) — always branch on `message`:
+
+| HTTP | Message |
+|------|---------|
+| 409 | `"Appointment not found"` |
+| 409 | `"This appointment does not belong to you"` |
+| 409 | `"This appointment is not with the specified doctor"` |
+| 409 | `"You can only rate a doctor after a completed appointment"` |
+| 409 | `"You have already rated this appointment"` |
+| 400 | Validation error — `rating` not in `1..5`, or `appointmentId`/`doctorId` missing |
+
+---
+
+## J2. Update My Rating
+
+**`PUT /doctor/ratings?id=<ratingId>`**
+**Auth:** Bearer token required (PATIENT — must own the rating)
+
+### Query Parameters
+
+| Param | Type | Required |
+|-------|------|----------|
+| `id` | String | Yes |
+
+### Request
+
+```json
+{
+  "rating": 4,
+  "comment": "Updating after a follow-up visit."
+}
+```
+
+Both fields are optional individually, but **at least one is required** — sending both `null` is rejected client-request-validation-side with `400`. Only the fields you send are changed.
+
+### Response `200`
+
+```json
+{
+  "httpStatusCode": 200,
+  "status": true,
+  "message": "Rating updated successfully",
+  "data": {
+    "id": "6b1234abcd5678ef90123456",
+    "appointmentId": "6a5678abcd1234ef90456789",
+    "doctorId": "69f8846c319d59e154fdab3c",
+    "patientId": "69abc123def456789012abcd",
+    "rating": 4,
+    "comment": "Updating after a follow-up visit.",
+    "createdAt": "2026-05-20T11:00:00.000000Z",
+    "updatedAt": "2026-05-21T09:15:00.000000Z"
+  }
+}
+```
+
+### Error Responses
+
+| HTTP | Message |
+|------|---------|
+| 404 | `"Rating not found"` — wrong `id`, or the rating belongs to a different patient |
+| 400 | Validation error — `rating` not in `1..5`, or both fields omitted |
+
+---
+
+## J3. Delete My Rating
+
+**`DELETE /doctor/ratings?id=<ratingId>`**
+**Auth:** Bearer token required (PATIENT — must own the rating)
+
+### Response `200`
+
+```json
+{
+  "httpStatusCode": 200,
+  "status": true,
+  "message": "Rating deleted successfully",
+  "data": null
+}
+```
+
+> **Note:** this always returns `200`/`status: true`, even if `id` doesn't match any rating owned by the caller. There is no `404` on delete — if you need to confirm the deletion happened, re-fetch the rating (J4) or the list (J5) afterward.
+
+---
+
+## J4. Get a Single Rating
+
+**`GET /doctor/ratings?id=<ratingId>`**
+**Auth:** Bearer token required (any role)
+
+### Response `200`
+
+```json
+{
+  "httpStatusCode": 200,
+  "status": true,
+  "message": "Success",
+  "data": {
+    "id": "6b1234abcd5678ef90123456",
+    "appointmentId": "6a5678abcd1234ef90456789",
+    "doctorId": "69f8846c319d59e154fdab3c",
+    "patientId": "69abc123def456789012abcd",
+    "rating": 4,
+    "comment": "Updating after a follow-up visit.",
+    "createdAt": "2026-05-20T11:00:00.000000Z",
+    "updatedAt": "2026-05-21T09:15:00.000000Z"
+  }
+}
+```
+
+### Error Responses
+
+| HTTP | Message |
+|------|---------|
+| 404 | `"Rating not found"` |
+
+---
+
+## J5. Get a Doctor's Ratings (Paginated)
+
+Use this to render a doctor's review list on their profile screen.
+
+**`GET /doctor/ratings?doctorId=<doctorId>&page=1&size=20`**
+**Auth:** Bearer token required (any role)
+
+### Query Parameters
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `doctorId` | String | Yes | |
+| `page` | Int | No | Default `1` |
+| `size` | Int | No | Default `20`, capped at `100` |
+
+### Response `200`
+
+```json
+{
+  "httpStatusCode": 200,
+  "status": true,
+  "message": "Success",
+  "data": {
+    "items": [
+      {
+        "id": "6b1234abcd5678ef90123456",
+        "appointmentId": "6a5678abcd1234ef90456789",
+        "doctorId": "69f8846c319d59e154fdab3c",
+        "patientId": "69abc123def456789012abcd",
+        "rating": 4,
+        "comment": "Updating after a follow-up visit.",
+        "createdAt": "2026-05-20T11:00:00.000000Z",
+        "updatedAt": "2026-05-21T09:15:00.000000Z"
+      }
+    ],
+    "total": 37,
+    "page": 1,
+    "size": 20
+  }
+}
+```
+
+> The doctor's `averageRating` / `totalReviews` shown elsewhere (e.g. recommendations, profile) are recomputed automatically after every submit/update/delete — you don't need to compute them client-side, just display `data.averageRating` from the doctor profile endpoint.
+
+---
+
+## J6. Complete Flow — Rate a Doctor
+
+```
+1. Past appointments tab → appointment with status COMPLETED and not yet rated
+2. Show star picker + optional comment field
+3. POST /doctor/ratings  { appointmentId, doctorId, rating, comment }
+   → 201  → mark this appointment as "rated" locally, show confirmation
+   → 409 "You have already rated this appointment"  → treat as already-rated, hide the prompt
+   → 409 (other messages)  → surface message, likely a stale local appointment cache — refresh E2
+4. "My Reviews" screen → GET /doctor/ratings?doctorId=X or store the returned ratingId per appointment
+   → Edit: PUT /doctor/ratings?id=X  { rating, comment }
+   → Delete: DELETE /doctor/ratings?id=X, then re-fetch to confirm
+```
