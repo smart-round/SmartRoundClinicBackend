@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.article.koin
 
+import ke.co.smartroundclinic.article.data.lookup.DoctorNameLookup
 import ke.co.smartroundclinic.article.data.repository.ArticleCategoryRepositoryImpl
 import ke.co.smartroundclinic.article.data.repository.ArticleRepositoryImpl
 import ke.co.smartroundclinic.article.domain.repository.ArticleCategoryRepository
@@ -33,6 +34,7 @@ import org.koin.dsl.module
 val articleModule = module {
     single<ArticleCategoryRepository> { ArticleCategoryRepositoryImpl(get(named("articleDb"))) }
     single<ArticleRepository> { ArticleRepositoryImpl(get(named("articleDb"))) }
+    single { DoctorNameLookup(get(named("authDb"))) }
 
     single { CreateArticleCategoryUseCase(get()) }
     single { GetArticleCategoryByIdUseCase(get()) }
@@ -55,5 +57,5 @@ val articleModule = module {
     single { DeleteArticleUseCase(get(), getOrNull<NotificationSender>()) }
     single { DeleteArticleByDoctorUseCase(get()) }
     single { GetDeletedArticlesUseCase(get()) }
-    single { ArticleService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get<StorageRepository>()) }
+    single { ArticleService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get<StorageRepository>(), get()) }
 }

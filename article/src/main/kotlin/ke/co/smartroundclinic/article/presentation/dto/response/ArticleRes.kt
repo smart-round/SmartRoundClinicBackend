@@ -16,6 +16,7 @@ data class ArticleRes(
     val datePosted: String?,
     val createdAt: String,
     val updatedAt: String?,
+    val authorName: String? = null,
 )
 
 @Serializable

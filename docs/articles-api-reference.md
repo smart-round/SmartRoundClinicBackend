@@ -149,12 +149,14 @@ Articles are created as **multipart/form-data** because they optionally include 
     "state": "DRAFT",
     "datePosted": null,
     "createdAt": "2026-05-11T08:00:00.000000Z",
-    "updatedAt": null
+    "updatedAt": null,
+    "authorName": "Dr. Jane Wanjiru"
   }
 }
 ```
 
 > `thumbnailUrl` in the response is a **presigned URL** (time-limited). Do not store it — re-fetch the article to get a fresh URL when displaying.
+> `authorName` is resolved from `doctorId` and may be `null` if the doctor record can't be found — see [D3b](#d3b-author-name).
 
 ### Error Responses
 
@@ -665,6 +667,12 @@ Display a status badge per article based on `state`:
   - Upload a file directly as the `thumbnail` form field (recommended — stored in R2, CDN-delivered)
   - Pass a public URL as `thumbnailUrl` form field (stored as-is, not uploaded to R2)
 - If no thumbnail is provided on create, `thumbnailUrl` in the response will be `null`. Handle this with a fallback image in the UI.
+
+## D3b. Author Name
+
+- Every article response now includes `authorName` — the doctor's `fullName`, resolved server-side from `doctorId` against the auth user record.
+- It is resolved best-effort: if the doctor record can't be found (e.g. deleted account), `authorName` is `null`. Handle this with a fallback (e.g. "Unknown Doctor") in the UI.
+- Do not rely on `doctorId` alone to display an author — always prefer `authorName` when present.
 
 ## D4. Content Format
 
