@@ -28,6 +28,7 @@ data class MedicalRecordRes(
     val additionalNotes: String? = null,
     val createdAt: String,
     val updatedAt: String? = null,
+    val doctorName: String? = null,
 )
 
 fun PrescriptionItem.toRes() = PrescriptionItemRes(drug, dosage, frequency, duration, instructions)
