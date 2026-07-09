@@ -21,9 +21,9 @@ data class CreatePersonalInformationReq(
     val height: Double? = null,
     val heightIn: HeightIn? = null,
     val maritalStatus: MaritalStatus? = null,
-    val allergies: List<String> = emptyList(),
-    val chronicConditions: List<String> = emptyList(),
-    val currentMedications: List<String> = emptyList(),
+    val allergies: List<String>? = null,
+    val chronicConditions: List<String>? = null,
+    val currentMedications: List<String>? = null,
 ) {
     fun toModel(patientId: String) = PersonalInformation(
         id = ObjectId().toString(),
@@ -38,9 +38,9 @@ data class CreatePersonalInformationReq(
         height = height,
         heightIn = heightIn,
         maritalStatus = maritalStatus,
-        allergies = allergies,
-        chronicConditions = chronicConditions,
-        currentMedications = currentMedications,
+        allergies = allergies ?: emptyList(),
+        chronicConditions = chronicConditions ?: emptyList(),
+        currentMedications = currentMedications ?: emptyList(),
         createdAt = Clock.System.now().toString(),
         updatedAt = null,
     )

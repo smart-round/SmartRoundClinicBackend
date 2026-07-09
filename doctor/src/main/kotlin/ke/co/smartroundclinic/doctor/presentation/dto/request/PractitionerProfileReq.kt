@@ -12,7 +12,7 @@ data class CreatePractitionerProfileReq(
     val title: String? = null,
     val bio: String? = null,
     val yearsOfExperience: Int? = null,
-    val languages: List<String> = emptyList(),
+    val languages: List<String>? = null,
     val facilityName: String? = null,
 ) {
     fun toModel(doctorId: String) = PractitionerProfile(
@@ -22,7 +22,7 @@ data class CreatePractitionerProfileReq(
         title = title,
         bio = bio,
         yearsOfExperience = yearsOfExperience,
-        languages = languages,
+        languages = languages ?: emptyList(),
         facilityName = facilityName,
         averageRating = 0.0,
         totalReviews = 0,
