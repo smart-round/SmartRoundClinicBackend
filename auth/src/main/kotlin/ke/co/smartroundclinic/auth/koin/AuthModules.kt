@@ -79,7 +79,7 @@ val authModule = module {
     single { FilterUsersByRoleUseCase(get(), get(), getOrNull<PatientProfileResolver>()) }
     single { UpgradeToSuperAdminUseCase(get()) }
     single { GetUserStatsUseCase(get()) }
-    single { TrackUserPresenceUseCase(get()) }
+    single { TrackUserPresenceUseCase(get(), get()) }
     single { NotifyNewDoctorSignUpUseCase(get(), get()) }
     single {
         SignUpUseCase(

@@ -47,6 +47,16 @@ class ConsultationSessionRepositoryImpl(
         if (userId != doctorId && userId != patientId)
             return Resource.Error("You are not a participant of this appointment")
 
+        // Re-opening an already-started consultation must always succeed for its participants —
+        // check this before the creation gates below, which only apply to starting a brand-new
+        // session. Otherwise a CONFIRMED appointment whose slot has since passed (or hasn't
+        // opened yet) would wrongly lock participants out of a chat they already started.
+        val existing = col.find(Filters.eq(ConsultationSessionEntity::appointmentId.name, appointmentId)).firstOrNull()
+        if (existing != null) {
+            log.info("Returning existing consultation for appointmentId=$appointmentId")
+            return Resource.Success(existing, "Consultation retrieved")
+        }
+
         val status = appointment.getString("status") ?: ""
         if (status != "CONFIRMED" && status != "COMPLETED")
             return Resource.Error("Consultation is only available for confirmed or completed appointments")
@@ -70,13 +80,6 @@ class ConsultationSessionRepositoryImpl(
                     }
                 }
             }
-        }
-
-        // Return existing session if one already exists for this appointment
-        val existing = col.find(Filters.eq(ConsultationSessionEntity::appointmentId.name, appointmentId)).firstOrNull()
-        if (existing != null) {
-            log.info("Returning existing consultation for appointmentId=$appointmentId")
-            return Resource.Success(existing, "Consultation retrieved")
         }
 
         val entity = ConsultationSessionEntity(

@@ -52,6 +52,7 @@ class BackfillMessageThreadFieldsUseCaseTest {
         override suspend fun getUserName(userId: String): String? = null
         override suspend fun getUserInfo(userId: String): Pair<String, String?>? = null
         override suspend fun getLatestForThread(doctorId: String, patientId: String): ConsultationMessageEntity? = null
+        override suspend fun getLastSeenAt(userId: String): String? = null
         override suspend fun countMissingThreadFields(): Long = pending
         override suspend fun backfillThreadFields(consultationId: String, doctorId: String, patientId: String): Long {
             backfillCalls += Triple(consultationId, doctorId, patientId)

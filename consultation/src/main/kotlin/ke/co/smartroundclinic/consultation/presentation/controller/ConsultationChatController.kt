@@ -23,18 +23,24 @@ import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
+import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationMessageRes
+import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationPresenceEventRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 private val json = Json { ignoreUnknownKeys = true }
 
@@ -60,6 +66,7 @@ fun Route.consultationChatController(
     joinCallUseCase: JoinConsultationCallUseCase,
     endCallUseCase: EndCallUseCase,
     meetingWebhookUseCase: HandleMeetingEndedWebhookUseCase,
+    socketRegistry: ConsultationSocketRegistry,
 ) {
     // POST /webhooks/cloudflare/realtime-kit  (unauthenticated — called by Cloudflare)
     // Configure this URL in the Cloudflare RealtimeKit dashboard under Webhooks.
@@ -224,47 +231,81 @@ fun Route.consultationChatController(
             val recipientDestination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR
 
             val senderName = chatService.getUserName(userId) ?: "Unknown"
+            val threadKey = ConsultationSocketRegistry.threadKey(session.doctorId, session.patientId)
 
-            // Push recent history to the newly connected client
-            chatService.getRecentHistory(consultationId).forEach { msg ->
-                send(Frame.Text(json.encodeToString<ConsultationMessageRes>(msg.toModel().toRes())))
-            }
-
-            // Stream new messages via MongoDB change stream
-            val watchJob = launch {
-                try {
-                    chatService.watchMessages(consultationId).collect { msg ->
-                        val resolved = chatService.resolveEntityFiles(msg)
-                        send(Frame.Text(json.encodeToString<ConsultationMessageRes>(resolved.toModel().toRes())))
-                    }
-                } catch (_: Exception) {
-                    // change stream interrupted — client reconnects
+            socketRegistry.register(threadKey, userId, this)
+            var watchJob: Job? = null
+            var presenceJob: Job? = null
+            try {
+                // Push recent history to the newly connected client
+                chatService.getRecentHistory(consultationId).forEach { msg ->
+                    send(Frame.Text(json.encodeToString<ConsultationMessageRes>(msg.toModel().toRes())))
                 }
-            }
 
-            // Handle incoming TEXT frames from this client
-            for (frame in incoming) {
-                if (frame is Frame.Text) {
+                // Stream new messages via MongoDB change stream
+                watchJob = launch {
                     try {
-                        chatService.handleIncomingMessage(
-                            consultationId = consultationId,
-                            appointmentId = session.appointmentId,
-                            doctorId = session.doctorId,
-                            patientId = session.patientId,
-                            senderId = userId,
-                            senderRole = role,
-                            senderName = senderName,
-                            rawJson = frame.readText(),
-                            recipientId = recipientId,
-                            recipientDestination = recipientDestination,
-                        )
+                        chatService.watchMessages(consultationId).collect { msg ->
+                            val resolved = chatService.resolveEntityFiles(msg)
+                            send(Frame.Text(json.encodeToString<ConsultationMessageRes>(resolved.toModel().toRes())))
+                        }
                     } catch (_: Exception) {
-                        send(Frame.Text("""{"error":"Failed to process message"}"""))
+                        // change stream interrupted — client reconnects
                     }
                 }
-            }
 
-            watchJob.cancel()
+                // Poll the counterpart's global presence and relay changes over this socket — presence
+                // itself is tracked by the separate /auth/user/presence heartbeat, this just surfaces
+                // it here. On a transition to online, also bump their delivered watermark: their app
+                // having a live connection is the "delivered" signal, distinct from "read".
+                presenceJob = launch {
+                    var lastKnownOnline: Boolean? = null
+                    while (isActive) {
+                        try {
+                            val online = chatService.isOnline(recipientId)
+                            if (online != lastKnownOnline) {
+                                lastKnownOnline = online
+                                if (online) {
+                                    chatService.bumpDelivered(session.doctorId, session.patientId, recipientId, Clock.System.now().toString())
+                                }
+                                val lastSeenAt = if (!online) chatService.getLastSeenAt(recipientId) else null
+                                send(Frame.Text(json.encodeToString<ConsultationPresenceEventRes>(
+                                    ConsultationPresenceEventRes(userId = recipientId, isOnline = online, lastSeenAt = lastSeenAt)
+                                )))
+                            }
+                        } catch (_: Exception) {
+                            // transient Redis/Mongo hiccup — try again next tick
+                        }
+                        delay(9_000L)
+                    }
+                }
+
+                // Handle incoming TEXT/TYPING frames from this client
+                for (frame in incoming) {
+                    if (frame is Frame.Text) {
+                        try {
+                            chatService.handleIncomingMessage(
+                                consultationId = consultationId,
+                                appointmentId = session.appointmentId,
+                                doctorId = session.doctorId,
+                                patientId = session.patientId,
+                                senderId = userId,
+                                senderRole = role,
+                                senderName = senderName,
+                                rawJson = frame.readText(),
+                                recipientId = recipientId,
+                                recipientDestination = recipientDestination,
+                            )
+                        } catch (_: Exception) {
+                            send(Frame.Text("""{"error":"Failed to process message"}"""))
+                        }
+                    }
+                }
+            } finally {
+                watchJob?.cancel()
+                presenceJob?.cancel()
+                socketRegistry.unregister(threadKey, userId, this)
+            }
         }
     }
 }

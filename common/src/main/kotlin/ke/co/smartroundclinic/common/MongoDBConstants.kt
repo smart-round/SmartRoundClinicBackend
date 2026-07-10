@@ -71,6 +71,8 @@ object MongoDBConstants {
     const val CONSULTATION_DB = "src_consultation"
     const val CONSULTATION_SESSIONS = "consultation_sessions"
     const val CONSULTATION_MESSAGES = "consultation_messages"
+    const val CONSULTATION_THREAD_READ_STATE = "consultation_thread_read_state"
+    const val CONSULTATION_HIDDEN_THREADS = "consultation_hidden_threads"
 
     /**
      * MongoDB Databases and Entities for SCHEDULING

@@ -19,6 +19,9 @@ interface ConsultationMessageRepository {
     /** Display name + profile picture URL, for rendering a conversation thread's counterpart. */
     suspend fun getUserInfo(userId: String): Pair<String, String?>?
 
+    /** The user's persisted last-seen timestamp (set when their presence socket disconnects), null if never recorded. */
+    suspend fun getLastSeenAt(userId: String): String?
+
     /** Most recent message for a (doctorId, patientId) pair, across all their consultations — used for the thread-list preview. */
     suspend fun getLatestForThread(doctorId: String, patientId: String): ConsultationMessageEntity?
 

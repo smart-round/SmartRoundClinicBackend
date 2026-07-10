@@ -23,6 +23,8 @@ data class UserEntity(
     val policyGroupIds: List<String>? = emptyList(),
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
+    /** Set when the user's presence WebSocket disconnects — the moment they were last known online. */
+    val lastSeenAt: String? = null,
 ) {
 
     enum class Gender {

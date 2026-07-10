@@ -1,17 +1,22 @@
 package ke.co.smartroundclinic.consultation.domain.service
 
 import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationFile
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
+import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.request.ConsultationWsMessage
+import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationTypingEventRes
 import ke.co.smartroundclinic.infra.AppConfig
+import ke.co.smartroundclinic.infra.redis.RedisKeys
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
 
@@ -22,10 +27,21 @@ class ConsultationChatService(
     private val storageRepository: StorageRepository,
     private val historyUseCase: GetConsultationHistoryUseCase,
     private val notifyOfflineParticipant: NotifyOfflineConsultationParticipantUseCase,
+    private val socketRegistry: ConsultationSocketRegistry,
+    private val redis: RedisRepository,
+    private val readStateRepository: ConsultationThreadReadStateRepository,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun getUserName(userId: String): String? = repository.getUserName(userId)
+
+    suspend fun isOnline(userId: String): Boolean = redis.get(RedisKeys.presence(userId)) == "true"
+
+    suspend fun getLastSeenAt(userId: String): String? = repository.getLastSeenAt(userId)
+
+    suspend fun bumpDelivered(doctorId: String, patientId: String, recipientId: String, at: String) {
+        readStateRepository.bumpDelivered(doctorId, patientId, recipientId, at)
+    }
 
     suspend fun getHistory(consultationId: String, page: Int, size: Int) =
         historyUseCase(consultationId, page, size)
@@ -70,31 +86,44 @@ class ConsultationChatService(
         recipientDestination: NotificationDestination,
     ) {
         val msg = json.decodeFromString<ConsultationWsMessage>(rawJson)
-        if (msg.type != MessageType.TEXT) return
-        val text = msg.message?.takeIf { it.isNotBlank() } ?: return
-        repository.save(
-            ConsultationMessageEntity(
-                consultationId = consultationId,
-                doctorId = doctorId,
-                patientId = patientId,
-                senderId = senderId,
-                senderRole = senderRole,
-                senderName = senderName,
-                messageType = MessageType.TEXT,
-                message = text,
-            )
-        )
-        runCatching {
-            notifyOfflineParticipant(
-                recipientId = recipientId,
-                senderName = senderName,
-                messagePreview = text,
-                recipientDestination = recipientDestination,
-                consultationId = consultationId,
-                appointmentId = appointmentId,
-                doctorId = doctorId,
-                patientId = patientId,
-            )
+        when (msg.type) {
+            MessageType.TEXT.name -> {
+                val text = msg.message?.takeIf { it.isNotBlank() } ?: return
+                repository.save(
+                    ConsultationMessageEntity(
+                        consultationId = consultationId,
+                        doctorId = doctorId,
+                        patientId = patientId,
+                        senderId = senderId,
+                        senderRole = senderRole,
+                        senderName = senderName,
+                        messageType = MessageType.TEXT,
+                        message = text,
+                    )
+                )
+                runCatching {
+                    notifyOfflineParticipant(
+                        recipientId = recipientId,
+                        senderName = senderName,
+                        messagePreview = text,
+                        recipientDestination = recipientDestination,
+                        consultationId = consultationId,
+                        appointmentId = appointmentId,
+                        doctorId = doctorId,
+                        patientId = patientId,
+                    )
+                }
+            }
+            "TYPING" -> {
+                val isTyping = msg.isTyping ?: return
+                val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
+                socketRegistry.sendToUser(
+                    threadKey,
+                    recipientId,
+                    json.encodeToString(ConsultationTypingEventRes(senderId = senderId, isTyping = isTyping)),
+                )
+            }
+            else -> return
         }
     }
 

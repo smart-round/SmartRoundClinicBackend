@@ -4,6 +4,7 @@ import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
+import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
 import ke.co.smartroundclinic.consultation.domain.repository.MessageCursor
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConversationThreadMessagesRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
@@ -17,19 +18,29 @@ private const val FILE_URL_TTL = 86400L  // 24 hours
 class GetMergedConsultationHistoryUseCase(
     private val repository: ConsultationMessageRepository,
     private val storageRepository: StorageRepository,
+    private val readStateRepository: ConsultationThreadReadStateRepository,
 ) {
     suspend operator fun invoke(
         doctorId: String,
         patientId: String,
         before: String?,
         size: Int,
+        requesterId: String,
     ): DefaultResponse<ConversationThreadMessagesRes?> {
         val cursor = before?.let(::decodeCursor)
         val result = repository.getByThread(doctorId, patientId, cursor, size)
+        val readState = (readStateRepository.getByPair(doctorId, patientId) as? Resource.Success)?.data
+        // "Counterpart" relative to the requester — the ticks shown are for the requester's OWN sent
+        // messages, so we need to know whether the OTHER party has read/received them.
+        val counterpartLastReadAt = if (requesterId == doctorId) readState?.patientLastReadAt else readState?.doctorLastReadAt
+        val counterpartLastDeliveredAt = if (requesterId == doctorId) readState?.patientLastDeliveredAt else readState?.doctorLastDeliveredAt
+
         val mapped = (result as? Resource.Success)?.data?.let { items ->
             ConversationThreadMessagesRes(
                 items = items.map { resolveEntityFiles(it).toModel().toRes() },
                 nextCursor = if (items.size < size) null else items.last().let { encodeCursor(it.createdAt, it.id) },
+                counterpartLastReadAt = counterpartLastReadAt,
+                counterpartLastDeliveredAt = counterpartLastDeliveredAt,
             )
         }
         return result.toDefaultResponse { mapped }

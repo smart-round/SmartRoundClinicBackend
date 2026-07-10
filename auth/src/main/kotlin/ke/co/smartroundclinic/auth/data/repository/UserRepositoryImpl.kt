@@ -239,6 +239,19 @@ class UserRepositoryImpl(
             }
         }
 
+    override suspend fun updateLastSeen(userId: String, lastSeenAt: String): Resource<Nothing> =
+        withContext(Dispatchers.IO) {
+            try {
+                collection.updateOne(
+                    Filters.eq(UserEntity::id.name, userId),
+                    Updates.set(UserEntity::lastSeenAt.name, lastSeenAt)
+                )
+                Resource.Success(data = null)
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to update last seen")
+            }
+        }
+
     override suspend fun updatePassword(
         userId: String,
         newPassword: String

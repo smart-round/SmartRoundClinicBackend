@@ -20,6 +20,7 @@ interface UserRepository {
     suspend fun updateOtp(userId:String, otpCode:String, otpExpiresAt:Long): Resource<Nothing>
     suspend fun updatePassword(userId:String,newPassword:String): Resource<Nothing>
     suspend fun updateProfilePicture(userId: String, url: String?): Resource<Nothing>
+    suspend fun updateLastSeen(userId: String, lastSeenAt: String): Resource<Nothing>
     suspend fun emailSignIn(email: String, password: String): Resource<AuthToken?>
     suspend fun getUsersByRole(
         role: UserEntity.Role,
