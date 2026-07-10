@@ -10,4 +10,5 @@ kotlin {
 dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
+    testImplementation(libs.kotlin.test.junit)
 }

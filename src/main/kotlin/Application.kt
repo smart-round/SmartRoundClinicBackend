@@ -31,6 +31,7 @@ import ke.co.smartroundclinic.scheduling.koin.schedulingKoinModule
 import ke.co.smartroundclinic.scheduling.presentation.validation.registerSchedulingValidators
 import ke.co.smartroundclinic.consultation.consultationModule
 import ke.co.smartroundclinic.consultation.domain.usecase.call.StaleCallCleanupTask
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.BackfillMessageThreadFieldsUseCase
 import ke.co.smartroundclinic.consultation.koin.consultationKoinModule
 import ke.co.smartroundclinic.consultation.presentation.validation.registerConsultationValidators
 import ke.co.smartroundclinic.support.supportModule
@@ -67,7 +68,8 @@ fun Application.module() {
         },
         backgroundTasks = {
             val staleCallCleanup: StaleCallCleanupTask by inject()
-            listOf(staleCallCleanup)
+            val backfillMessageThreadFields: BackfillMessageThreadFieldsUseCase by inject()
+            listOf(staleCallCleanup, backfillMessageThreadFields)
         },
     )
     authModule()

@@ -1,8 +1,11 @@
 package ke.co.smartroundclinic.consultation.data.repository
 
+import com.mongodb.client.model.Accumulators
+import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import com.mongodb.client.model.ReturnDocument
+import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
@@ -11,6 +14,7 @@ import ke.co.smartroundclinic.consultation.data.entity.ConsultationSessionEntity
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationStatus
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import org.bson.Document
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
@@ -86,6 +90,37 @@ class ConsultationSessionRepositoryImpl(
     } catch (e: Exception) {
         log.error("Failed to start consultation — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to start consultation")
+    }
+
+    override suspend fun listThreadsForUser(userId: String, role: String): Resource<List<ConsultationSessionEntity>> = try {
+        val matchField = if (role.equals("DOCTOR", ignoreCase = true))
+            ConsultationSessionEntity::doctorId.name
+        else
+            ConsultationSessionEntity::patientId.name
+
+        val pipeline = listOf(
+            Aggregates.match(Filters.eq(matchField, userId)),
+            Aggregates.sort(Sorts.descending(ConsultationSessionEntity::createdAt.name)),
+            Aggregates.group(
+                Document("doctorId", "\$${ConsultationSessionEntity::doctorId.name}")
+                    .append("patientId", "\$${ConsultationSessionEntity::patientId.name}"),
+                Accumulators.first("latest", "\$\$ROOT"),
+            ),
+            Aggregates.replaceRoot("\$latest"),
+            Aggregates.sort(Sorts.descending(ConsultationSessionEntity::createdAt.name)),
+        )
+        val items = col.aggregate<ConsultationSessionEntity>(pipeline).toList()
+        Resource.Success(items)
+    } catch (e: Exception) {
+        log.error("Failed to list conversation threads for userId=$userId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to list conversations")
+    }
+
+    override suspend fun getAllSessions(): Resource<List<ConsultationSessionEntity>> = try {
+        Resource.Success(col.find().toList())
+    } catch (e: Exception) {
+        log.error("Failed to fetch all consultation sessions — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch sessions")
     }
 
     override suspend fun getById(id: String): Resource<ConsultationSessionEntity?> = try {

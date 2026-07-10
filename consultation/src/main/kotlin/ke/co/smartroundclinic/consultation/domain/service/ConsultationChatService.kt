@@ -60,6 +60,8 @@ class ConsultationChatService(
     suspend fun handleIncomingMessage(
         consultationId: String,
         appointmentId: String,
+        doctorId: String,
+        patientId: String,
         senderId: String,
         senderRole: String,
         senderName: String,
@@ -73,6 +75,8 @@ class ConsultationChatService(
         repository.save(
             ConsultationMessageEntity(
                 consultationId = consultationId,
+                doctorId = doctorId,
+                patientId = patientId,
                 senderId = senderId,
                 senderRole = senderRole,
                 senderName = senderName,
@@ -88,6 +92,8 @@ class ConsultationChatService(
                 recipientDestination = recipientDestination,
                 consultationId = consultationId,
                 appointmentId = appointmentId,
+                doctorId = doctorId,
+                patientId = patientId,
             )
         }
     }
@@ -99,6 +105,8 @@ class ConsultationChatService(
      */
     suspend fun uploadFile(
         consultationId: String,
+        doctorId: String,
+        patientId: String,
         senderId: String,
         senderRole: String,
         senderName: String,
@@ -121,6 +129,8 @@ class ConsultationChatService(
         val entity = ConsultationMessageEntity(
             id = messageId,
             consultationId = consultationId,
+            doctorId = doctorId,
+            patientId = patientId,
             senderId = senderId,
             senderRole = senderRole,
             senderName = senderName,

@@ -18,6 +18,8 @@ class NotifyOfflineConsultationParticipantUseCase(
         recipientDestination: NotificationDestination,
         consultationId: String,
         appointmentId: String,
+        doctorId: String,
+        patientId: String,
     ) {
         val presence = redis.get(RedisKeys.presence(recipientId))
         val isOnline = presence == "true"
@@ -33,6 +35,8 @@ class NotifyOfflineConsultationParticipantUseCase(
                 "event" to PushNotificationEvents.NEW_CHAT_MESSAGE,
                 "consultationId" to consultationId,
                 "appointmentId" to appointmentId,
+                "doctorId" to doctorId,
+                "patientId" to patientId,
             ),
         )
     }

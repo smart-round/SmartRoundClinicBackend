@@ -47,3 +47,18 @@ Each functional module (`admin`, `:doctor`, `:patient`, `:auth`) is organized in
 
 ## Dependency Injection (Koin)
 Each module defines its own Koin module to bind implementations to interfaces. These are then combined and started in the `:infra` layer or at the application entry point.
+
+## Database Indexes (manual — no migration framework)
+MongoDB collections are schema-on-read and there's no migration/index-creation tooling in this codebase — required indexes are applied by hand against the Atlas cluster (or via `mongosh`) whenever a change introduces a new query pattern. Run once per environment (idempotent — `createIndex` is a no-op if the index already exists):
+
+```js
+// src_consultation.consultation_messages — powers the merged doctor-patient conversation
+// history query (ConsultationMessageRepositoryImpl.getByThread), filtered by (doctorId, patientId)
+// and cursor-paginated by (createdAt, id) descending.
+db.consultation_messages.createIndex({ doctorId: 1, patientId: 1, createdAt: -1, id: -1 })
+
+// src_consultation.consultation_sessions — powers the conversation-thread-list aggregation
+// (ConsultationSessionRepositoryImpl.listThreadsForUser), which groups sessions by (doctorId, patientId)
+// and picks the most recent one per pair.
+db.consultation_sessions.createIndex({ doctorId: 1, patientId: 1, createdAt: -1 })
+```

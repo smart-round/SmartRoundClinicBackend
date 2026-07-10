@@ -8,6 +8,8 @@ import kotlin.time.Clock
 data class ConsultationMessageEntity(
     val id: String = ObjectId().toString(),
     val consultationId: String,
+    val doctorId: String = "",
+    val patientId: String = "",
     val senderId: String,
     val senderRole: String,
     val senderName: String,
@@ -20,6 +22,8 @@ data class ConsultationMessageEntity(
     fun toModel() = ConsultationMessage(
         id = id,
         consultationId = consultationId,
+        doctorId = doctorId,
+        patientId = patientId,
         senderId = senderId,
         senderRole = senderRole,
         senderName = senderName,
@@ -45,6 +49,8 @@ data class ConsultationFile(
 fun ConsultationMessage.toEntity() = ConsultationMessageEntity(
     id = id,
     consultationId = consultationId,
+    doctorId = doctorId,
+    patientId = patientId,
     senderId = senderId,
     senderRole = senderRole,
     senderName = senderName,

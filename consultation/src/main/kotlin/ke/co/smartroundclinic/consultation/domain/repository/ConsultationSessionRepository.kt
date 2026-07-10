@@ -5,6 +5,12 @@ import ke.co.smartroundclinic.consultation.data.entity.ConsultationSessionEntity
 
 interface ConsultationSessionRepository {
     suspend fun startOrGet(appointmentId: String, userId: String): Resource<ConsultationSessionEntity>
+
+    /** One entry per distinct (doctorId, patientId) pair the user participates in — the most recent session for each pair. */
+    suspend fun listThreadsForUser(userId: String, role: String): Resource<List<ConsultationSessionEntity>>
+
+    /** All sessions — used by the one-off thread-fields backfill task only. */
+    suspend fun getAllSessions(): Resource<List<ConsultationSessionEntity>>
     suspend fun getById(id: String): Resource<ConsultationSessionEntity?>
     suspend fun getByAppointmentId(appointmentId: String): Resource<ConsultationSessionEntity?>
     suspend fun getByVideoRoomId(videoRoomId: String): Resource<ConsultationSessionEntity?>

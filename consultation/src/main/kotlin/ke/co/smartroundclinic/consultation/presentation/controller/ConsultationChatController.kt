@@ -147,6 +147,8 @@ fun Route.consultationChatController(
             val senderName = chatService.getUserName(userId) ?: "Unknown"
             val result = chatService.uploadFile(
                 consultationId = consultationId,
+                doctorId = session.doctorId,
+                patientId = session.patientId,
                 senderId = userId,
                 senderRole = role,
                 senderName = senderName,
@@ -247,6 +249,8 @@ fun Route.consultationChatController(
                         chatService.handleIncomingMessage(
                             consultationId = consultationId,
                             appointmentId = session.appointmentId,
+                            doctorId = session.doctorId,
+                            patientId = session.patientId,
                             senderId = userId,
                             senderRole = role,
                             senderName = senderName,

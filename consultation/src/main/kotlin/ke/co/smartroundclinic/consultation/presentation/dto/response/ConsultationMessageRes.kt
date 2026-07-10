@@ -9,6 +9,8 @@ import kotlinx.serialization.Serializable
 data class ConsultationMessageRes(
     val id: String,
     val consultationId: String,
+    val doctorId: String,
+    val patientId: String,
     val senderId: String,
     val senderRole: String,
     val senderName: String,
@@ -27,9 +29,18 @@ data class ConsultationMessagePageRes(
     val size: Int,
 )
 
+/** Merged, cursor-paginated page for [ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase]. */
+@Serializable
+data class ConversationThreadMessagesRes(
+    val items: List<ConsultationMessageRes>,
+    val nextCursor: String?,
+)
+
 fun ConsultationMessage.toRes() = ConsultationMessageRes(
     id = id,
     consultationId = consultationId,
+    doctorId = doctorId,
+    patientId = patientId,
     senderId = senderId,
     senderRole = senderRole,
     senderName = senderName,

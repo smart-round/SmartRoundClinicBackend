@@ -7,8 +7,11 @@ import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionSer
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.ListConversationThreadsUseCase
 import ke.co.smartroundclinic.consultation.presentation.controller.consultationChatController
 import ke.co.smartroundclinic.consultation.presentation.controller.consultationSessionController
+import ke.co.smartroundclinic.consultation.presentation.controller.conversationThreadController
 import org.koin.ktor.ext.inject
 import kotlin.getValue
 
@@ -18,8 +21,11 @@ fun Application.consultationModule() {
     val joinCallUseCase: JoinConsultationCallUseCase by inject()
     val endCallUseCase: EndCallUseCase by inject()
     val meetingWebhookUseCase: HandleMeetingEndedWebhookUseCase by inject()
+    val listThreadsUseCase: ListConversationThreadsUseCase by inject()
+    val getMergedHistoryUseCase: GetMergedConsultationHistoryUseCase by inject()
     routing {
         consultationSessionController(sessionService)
         consultationChatController(chatService, sessionService, joinCallUseCase, endCallUseCase, meetingWebhookUseCase)
+        conversationThreadController(listThreadsUseCase, getMergedHistoryUseCase)
     }
 }

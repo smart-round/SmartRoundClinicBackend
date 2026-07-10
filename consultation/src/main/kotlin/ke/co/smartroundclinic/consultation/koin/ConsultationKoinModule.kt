@@ -10,7 +10,10 @@ import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.StaleCallCleanupTask
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.BackfillMessageThreadFieldsUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.chat.ListConversationThreadsUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.EndConsultationUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.session.GetConsultationUseCase
@@ -45,7 +48,10 @@ val consultationKoinModule = module {
      * Chat use cases
      */
     single { GetConsultationHistoryUseCase(get(), get<StorageRepository>()) }
+    single { GetMergedConsultationHistoryUseCase(get(), get<StorageRepository>()) }
+    single { ListConversationThreadsUseCase(get(), get()) }
     single { NotifyOfflineConsultationParticipantUseCase(get<RedisRepository>(), getOrNull<NotificationSender>()) }
+    single { BackfillMessageThreadFieldsUseCase(get(), get()) }
 
     /**
      * Call (Cloudflare RealtimeKit) use cases
