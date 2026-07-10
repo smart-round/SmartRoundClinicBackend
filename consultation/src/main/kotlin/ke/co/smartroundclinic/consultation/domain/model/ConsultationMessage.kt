@@ -5,7 +5,6 @@ import ke.co.smartroundclinic.consultation.data.entity.MessageType
 
 data class ConsultationMessage(
     val id: String,
-    val consultationId: String,
     val doctorId: String,
     val patientId: String,
     val senderId: String,
@@ -14,6 +13,7 @@ data class ConsultationMessage(
     val messageType: MessageType,
     val message: String?,
     val files: List<ConsultationFile>,
+    val appointmentId: String?,
     val createdAt: String,
     val updatedAt: String?,
 )

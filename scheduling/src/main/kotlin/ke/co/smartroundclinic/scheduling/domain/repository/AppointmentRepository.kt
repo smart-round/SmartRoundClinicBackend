@@ -21,4 +21,7 @@ interface AppointmentRepository {
         cancelledBy: String? = null,
     ): Resource<AppointmentEntity?>
     fun watchByDoctorId(doctorId: String): Flow<AppointmentEntity>
+
+    /** True once this doctor/patient pair has ever had a CONFIRMED or COMPLETED appointment — gates chat/call access. */
+    suspend fun existsConfirmedOrCompletedBetween(doctorId: String, patientId: String): Boolean
 }

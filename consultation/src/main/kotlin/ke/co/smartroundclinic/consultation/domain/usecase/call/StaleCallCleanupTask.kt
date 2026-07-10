@@ -1,7 +1,7 @@
 package ke.co.smartroundclinic.consultation.domain.usecase.call
 
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
+import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadRepository
 import ke.co.smartroundclinic.infra.plugins.BackgroundTask
 import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 import org.slf4j.LoggerFactory
@@ -14,7 +14,7 @@ private const val INTERVAL_MINUTES = 10L
 
 class StaleCallCleanupTask(
     private val client: RealtimeKitClient,
-    private val sessions: ConsultationSessionRepository,
+    private val threads: ConsultationThreadRepository,
 ) : BackgroundTask {
 
     private val log = LoggerFactory.getLogger(StaleCallCleanupTask::class.java)
@@ -49,17 +49,17 @@ class StaleCallCleanupTask(
                 else -> Unit
             }
 
-            when (val lookup = sessions.getByVideoRoomId(meeting.id)) {
+            when (val lookup = threads.getByVideoRoomId(meeting.id)) {
                 is Resource.Success -> {
-                    val session = lookup.data
-                    if (session != null) {
-                        sessions.clearVideoRoomId(session.id, completedRoomId = meeting.id)
-                        log.info("[StaleCallCleanup] Cleared videoRoomId on consultation=${session.id}")
+                    val thread = lookup.data
+                    if (thread != null) {
+                        threads.clearVideoRoomId(thread.doctorId, thread.patientId, completedRoomId = meeting.id)
+                        log.info("[StaleCallCleanup] Cleared videoRoomId for doctorId=${thread.doctorId} patientId=${thread.patientId}")
                     } else {
-                        log.info("[StaleCallCleanup] No consultation session found for meeting=${meeting.id}")
+                        log.info("[StaleCallCleanup] No thread found for meeting=${meeting.id}")
                     }
                 }
-                is Resource.Error -> log.warn("[StaleCallCleanup] Session lookup failed for meeting=${meeting.id} — ${lookup.message}")
+                is Resource.Error -> log.warn("[StaleCallCleanup] Thread lookup failed for meeting=${meeting.id} — ${lookup.message}")
             }
         }
     }

@@ -3,7 +3,6 @@ package ke.co.smartroundclinic.consultation.data.repository
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Sorts
-import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
@@ -44,27 +43,6 @@ class ConsultationMessageRepositoryImpl(
             }
         }
 
-    override suspend fun getByConsultationId(
-        consultationId: String,
-        page: Int,
-        size: Int,
-    ): Resource<Pair<List<ConsultationMessageEntity>, Long>> = withContext(Dispatchers.IO) {
-        try {
-            val safePage = maxOf(1, page)
-            val safeSize = minOf(maxOf(1, size), 100)
-            val filter = Filters.eq(ConsultationMessageEntity::consultationId.name, consultationId)
-            val total = col.countDocuments(filter)
-            val items = col.find(filter)
-                .sort(Sorts.ascending(ConsultationMessageEntity::createdAt.name, ConsultationMessageEntity::id.name))
-                .skip((safePage - 1) * safeSize)
-                .limit(safeSize)
-                .toList()
-            Resource.Success(items to total)
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Failed to fetch messages")
-        }
-    }
-
     override suspend fun getByThread(
         doctorId: String,
         patientId: String,
@@ -101,49 +79,18 @@ class ConsultationMessageRepositoryImpl(
         }
     }
 
-    override fun watchMessages(consultationId: String): Flow<ConsultationMessageEntity> =
+    override fun watchMessagesForThread(doctorId: String, patientId: String): Flow<ConsultationMessageEntity> =
         col.watch(
             listOf(
                 Aggregates.match(
                     Filters.and(
                         Filters.eq("operationType", "insert"),
-                        Filters.eq("fullDocument.consultationId", consultationId),
+                        Filters.eq("fullDocument.doctorId", doctorId),
+                        Filters.eq("fullDocument.patientId", patientId),
                     )
                 )
             )
         ).mapNotNull { it.fullDocument }
-
-    private fun missingThreadFieldsFilter() = Filters.or(
-        Filters.exists(ConsultationMessageEntity::doctorId.name, false),
-        Filters.eq(ConsultationMessageEntity::doctorId.name, ""),
-    )
-
-    override suspend fun countMissingThreadFields(): Long = withContext(Dispatchers.IO) {
-        try {
-            col.countDocuments(missingThreadFieldsFilter())
-        } catch (e: Exception) {
-            log.error("Failed to count messages missing thread fields — ${e.message}", e)
-            0L
-        }
-    }
-
-    override suspend fun backfillThreadFields(consultationId: String, doctorId: String, patientId: String): Long =
-        withContext(Dispatchers.IO) {
-            try {
-                val filter = Filters.and(
-                    Filters.eq(ConsultationMessageEntity::consultationId.name, consultationId),
-                    missingThreadFieldsFilter(),
-                )
-                val update = Updates.combine(
-                    Updates.set(ConsultationMessageEntity::doctorId.name, doctorId),
-                    Updates.set(ConsultationMessageEntity::patientId.name, patientId),
-                )
-                col.updateMany(filter, update).modifiedCount
-            } catch (e: Exception) {
-                log.error("Failed to backfill thread fields for consultationId=$consultationId — ${e.message}", e)
-                0L
-            }
-        }
 
     override suspend fun getUserName(userId: String): String? = withContext(Dispatchers.IO) {
         try {

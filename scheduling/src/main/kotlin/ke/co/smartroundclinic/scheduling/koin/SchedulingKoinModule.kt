@@ -2,7 +2,6 @@ package ke.co.smartroundclinic.scheduling.koin
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
-import ke.co.smartroundclinic.scheduling.data.lookup.ConsultationVideoRoomLookup
 import ke.co.smartroundclinic.scheduling.data.lookup.PaymentVerificationLookup
 import ke.co.smartroundclinic.scheduling.data.repository.AppointmentRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.DoctorScheduleRepositoryImpl
@@ -19,7 +18,6 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.BookAppointm
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CancelAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CompleteAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.ConfirmAppointmentUseCase
-import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.UserProfilePictureResolver
@@ -48,7 +46,6 @@ val schedulingKoinModule = module {
     single { ServiceTierLookup(get(named("adminDb")), get(named("doctorDb"))) }
     single { AppointmentAdminLookup(get(named("authDb")), get(named("paymentsDb"))) }
     single { PaymentVerificationLookup(get(named("paymentsDb"))) }
-    single { ConsultationVideoRoomLookup(get(named("consultationDb"))) }
 
     // Appointment use cases
     single { BookAppointmentUseCase(get(), get(), get(), get(), get(), getOrNull()) }
@@ -60,7 +57,7 @@ val schedulingKoinModule = module {
     single { GetDoctorAppointmentsUseCase(get()) }
     single { ConfirmAppointmentUseCase(get(), getOrNull()) }
     single { CancelAppointmentUseCase(get(), getOrNull()) }
-    single { CompleteAppointmentUseCase(get(), getOrNull(), getOrNull(), getOrNull<RealtimeKitClient>()) }
+    single { CompleteAppointmentUseCase(get(), getOrNull()) }
     single { MarkNoShowUseCase(get(), getOrNull()) }
 
     // Schedule use cases

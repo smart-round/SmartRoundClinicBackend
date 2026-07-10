@@ -16,8 +16,6 @@ class NotifyOfflineConsultationParticipantUseCase(
         senderName: String,
         messagePreview: String,
         recipientDestination: NotificationDestination,
-        consultationId: String,
-        appointmentId: String,
         doctorId: String,
         patientId: String,
     ) {
@@ -33,8 +31,6 @@ class NotifyOfflineConsultationParticipantUseCase(
             recipientId = recipientId,
             metadata = mapOf(
                 "event" to PushNotificationEvents.NEW_CHAT_MESSAGE,
-                "consultationId" to consultationId,
-                "appointmentId" to appointmentId,
                 "doctorId" to doctorId,
                 "patientId" to patientId,
             ),

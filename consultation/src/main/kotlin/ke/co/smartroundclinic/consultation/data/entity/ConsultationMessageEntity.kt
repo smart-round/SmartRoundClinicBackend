@@ -7,21 +7,22 @@ import org.bson.types.ObjectId
 
 data class ConsultationMessageEntity(
     val id: String = ObjectId().toString(),
-    val consultationId: String,
-    val doctorId: String = "",
-    val patientId: String = "",
+    val doctorId: String,
+    val patientId: String,
     val senderId: String,
     val senderRole: String,
     val senderName: String,
     val messageType: MessageType = MessageType.TEXT,
     val message: String? = null,
     val files: List<ConsultationFile> = emptyList(),
+    // Set only for PRESCRIPTION messages — which visit they were issued for. Plain chat messages
+    // belong to the permanent (doctorId, patientId) thread, not any particular visit.
+    val appointmentId: String? = null,
     val createdAt: String = sortableNowIso(),
     val updatedAt: String? = null,
 ) {
     fun toModel() = ConsultationMessage(
         id = id,
-        consultationId = consultationId,
         doctorId = doctorId,
         patientId = patientId,
         senderId = senderId,
@@ -30,6 +31,7 @@ data class ConsultationMessageEntity(
         messageType = messageType,
         message = message,
         files = files,
+        appointmentId = appointmentId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -48,7 +50,6 @@ data class ConsultationFile(
 
 fun ConsultationMessage.toEntity() = ConsultationMessageEntity(
     id = id,
-    consultationId = consultationId,
     doctorId = doctorId,
     patientId = patientId,
     senderId = senderId,
@@ -57,6 +58,7 @@ fun ConsultationMessage.toEntity() = ConsultationMessageEntity(
     messageType = messageType,
     message = message,
     files = files,
+    appointmentId = appointmentId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

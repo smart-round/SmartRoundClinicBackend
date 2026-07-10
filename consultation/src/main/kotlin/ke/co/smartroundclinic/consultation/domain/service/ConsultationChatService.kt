@@ -9,7 +9,6 @@ import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
-import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.request.ConsultationWsMessage
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationReadReceiptEventRes
@@ -27,7 +26,6 @@ private const val FILE_URL_TTL = 86400L  // 24 hours
 class ConsultationChatService(
     private val repository: ConsultationMessageRepository,
     private val storageRepository: StorageRepository,
-    private val historyUseCase: GetConsultationHistoryUseCase,
     private val notifyOfflineParticipant: NotifyOfflineConsultationParticipantUseCase,
     private val socketRegistry: ConsultationSocketRegistry,
     private val redis: RedisRepository,
@@ -45,17 +43,8 @@ class ConsultationChatService(
         readStateRepository.bumpDelivered(doctorId, patientId, recipientId, at)
     }
 
-    suspend fun getHistory(consultationId: String, page: Int, size: Int) =
-        historyUseCase(consultationId, page, size)
-
-    fun watchMessages(consultationId: String): Flow<ConsultationMessageEntity> =
-        repository.watchMessages(consultationId)
-
-    suspend fun getRecentHistory(consultationId: String): List<ConsultationMessageEntity> =
-        when (val result = repository.getByConsultationId(consultationId, 1, 50)) {
-            is Resource.Success -> result.data?.first?.map { resolveEntityFiles(it) } ?: emptyList()
-            is Resource.Error -> emptyList()
-        }
+    fun watchMessagesForThread(doctorId: String, patientId: String): Flow<ConsultationMessageEntity> =
+        repository.watchMessagesForThread(doctorId, patientId)
 
     suspend fun resolveEntityFiles(entity: ConsultationMessageEntity): ConsultationMessageEntity {
         if (entity.files.isEmpty()) return entity
@@ -70,14 +59,12 @@ class ConsultationChatService(
     }
 
     /**
-     * WebSocket-only handler for incoming text messages from a connected client.
+     * WebSocket-only handler for incoming text/typing/read frames from a connected client.
      * File uploads no longer travel over the WebSocket — clients call
-     * `POST /consultation/{id}/files` (multipart) instead. The MongoDB change
+     * `POST /chat/{otherUserId}/files` (multipart) instead. The MongoDB change
      * stream still broadcasts the resulting FILE message to all connected sockets.
      */
     suspend fun handleIncomingMessage(
-        consultationId: String,
-        appointmentId: String,
         doctorId: String,
         patientId: String,
         senderId: String,
@@ -93,7 +80,6 @@ class ConsultationChatService(
                 val text = msg.message?.takeIf { it.isNotBlank() } ?: return
                 repository.save(
                     ConsultationMessageEntity(
-                        consultationId = consultationId,
                         doctorId = doctorId,
                         patientId = patientId,
                         senderId = senderId,
@@ -109,8 +95,6 @@ class ConsultationChatService(
                         senderName = senderName,
                         messagePreview = text,
                         recipientDestination = recipientDestination,
-                        consultationId = consultationId,
-                        appointmentId = appointmentId,
                         doctorId = doctorId,
                         patientId = patientId,
                     )
@@ -147,12 +131,11 @@ class ConsultationChatService(
     }
 
     /**
-     * Uploads a file to R2 under `consultation-files/{consultationId}/{messageId}.{ext}`
+     * Uploads a file to R2 under `consultation-files/{doctorId}-{patientId}/{messageId}.{ext}`
      * and persists a FILE-type message. The change stream pushes the new message
      * to any connected WebSocket clients.
      */
     suspend fun uploadFile(
-        consultationId: String,
         doctorId: String,
         patientId: String,
         senderId: String,
@@ -167,7 +150,7 @@ class ConsultationChatService(
         val safeContentType = contentType.ifBlank { "application/octet-stream" }
         val messageId = ObjectId().toString()
         val ext = safeName.substringAfterLast(".", "bin")
-        val key = "consultation-files/$consultationId/$messageId.$ext"
+        val key = "consultation-files/$doctorId-$patientId/$messageId.$ext"
 
         val uploadResult = storageRepository.upload(AppConfig.r2.bucket, key, bytes, safeContentType)
         if (uploadResult is Resource.Error) {
@@ -176,7 +159,6 @@ class ConsultationChatService(
 
         val entity = ConsultationMessageEntity(
             id = messageId,
-            consultationId = consultationId,
             doctorId = doctorId,
             patientId = patientId,
             senderId = senderId,
