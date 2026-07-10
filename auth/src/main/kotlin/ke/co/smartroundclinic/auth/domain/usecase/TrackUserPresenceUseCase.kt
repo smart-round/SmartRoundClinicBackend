@@ -2,8 +2,8 @@ package ke.co.smartroundclinic.auth.domain.usecase
 
 import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.RedisRepository
+import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.infra.redis.RedisKeys
-import kotlin.time.Clock
 
 class TrackUserPresenceUseCase(
     private val redis: RedisRepository,
@@ -20,6 +20,6 @@ class TrackUserPresenceUseCase(
 
     suspend fun clear(userId: String) {
         redis.delete(RedisKeys.presence(userId))
-        userRepository.updateLastSeen(userId, Clock.System.now().toString())
+        userRepository.updateLastSeen(userId, sortableNowIso())
     }
 }

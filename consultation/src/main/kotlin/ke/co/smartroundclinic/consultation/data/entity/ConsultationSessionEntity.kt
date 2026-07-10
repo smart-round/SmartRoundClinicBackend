@@ -1,9 +1,9 @@
 package ke.co.smartroundclinic.consultation.data.entity
 
+import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.domain.model.ConsultationSession
 import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
-import kotlin.time.Clock
 
 data class ConsultationSessionEntity(
     val id: String = ObjectId().toString(),
@@ -13,7 +13,7 @@ data class ConsultationSessionEntity(
     val status: ConsultationStatus = ConsultationStatus.ACTIVE,
     val videoRoomId: String? = null,
     val lastVideoRoomId: String? = null,
-    val createdAt: String = Clock.System.now().toString(),
+    val createdAt: String = sortableNowIso(),
     val updatedAt: String? = null,
 ) {
     fun toModel() = ConsultationSession(

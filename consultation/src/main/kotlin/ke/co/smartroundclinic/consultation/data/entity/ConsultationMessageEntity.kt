@@ -1,9 +1,9 @@
 package ke.co.smartroundclinic.consultation.data.entity
 
+import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.domain.model.ConsultationMessage
 import kotlinx.serialization.Serializable
 import org.bson.types.ObjectId
-import kotlin.time.Clock
 
 data class ConsultationMessageEntity(
     val id: String = ObjectId().toString(),
@@ -16,7 +16,7 @@ data class ConsultationMessageEntity(
     val messageType: MessageType = MessageType.TEXT,
     val message: String? = null,
     val files: List<ConsultationFile> = emptyList(),
-    val createdAt: String = Clock.System.now().toString(),
+    val createdAt: String = sortableNowIso(),
     val updatedAt: String? = null,
 ) {
     fun toModel() = ConsultationMessage(

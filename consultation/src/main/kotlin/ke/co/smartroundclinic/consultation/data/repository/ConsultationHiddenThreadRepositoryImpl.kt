@@ -7,11 +7,11 @@ import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationHiddenThreadEntity
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationHiddenThreadRepository
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
-import kotlin.time.Clock
 
 class ConsultationHiddenThreadRepositoryImpl(
     consultationDb: MongoDatabase,
@@ -27,7 +27,7 @@ class ConsultationHiddenThreadRepositoryImpl(
                 Filters.eq(ConsultationHiddenThreadEntity::doctorId.name, doctorId),
                 Filters.eq(ConsultationHiddenThreadEntity::patientId.name, patientId),
             ),
-            Updates.set(ConsultationHiddenThreadEntity::hiddenAt.name, Clock.System.now().toString()),
+            Updates.set(ConsultationHiddenThreadEntity::hiddenAt.name, sortableNowIso()),
             FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER),
         )
         Resource.Success(Unit)

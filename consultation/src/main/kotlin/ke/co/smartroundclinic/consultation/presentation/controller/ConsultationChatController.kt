@@ -21,6 +21,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
@@ -40,7 +41,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.time.Clock
 
 private val json = Json { ignoreUnknownKeys = true }
 
@@ -266,7 +266,7 @@ fun Route.consultationChatController(
                             if (online != lastKnownOnline) {
                                 lastKnownOnline = online
                                 if (online) {
-                                    chatService.bumpDelivered(session.doctorId, session.patientId, recipientId, Clock.System.now().toString())
+                                    chatService.bumpDelivered(session.doctorId, session.patientId, recipientId, sortableNowIso())
                                 }
                                 val lastSeenAt = if (!online) chatService.getLastSeenAt(recipientId) else null
                                 send(Frame.Text(json.encodeToString<ConsultationPresenceEventRes>(

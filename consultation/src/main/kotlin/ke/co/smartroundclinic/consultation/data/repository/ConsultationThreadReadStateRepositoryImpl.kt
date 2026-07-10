@@ -7,12 +7,12 @@ import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationThreadReadStateEntity
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
-import kotlin.time.Clock
 
 class ConsultationThreadReadStateRepositoryImpl(
     consultationDb: MongoDatabase,
@@ -63,7 +63,7 @@ class ConsultationThreadReadStateRepositoryImpl(
             pairFilter(doctorId, patientId),
             Updates.combine(
                 Updates.max(fieldName, at),
-                Updates.set(ConsultationThreadReadStateEntity::updatedAt.name, Clock.System.now().toString()),
+                Updates.set(ConsultationThreadReadStateEntity::updatedAt.name, sortableNowIso()),
             ),
             FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER),
         )
