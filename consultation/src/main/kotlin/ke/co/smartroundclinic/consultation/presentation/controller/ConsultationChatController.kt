@@ -18,7 +18,6 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import ke.co.smartroundclinic.common.NotificationDestination
-import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndThreadCallUseCase
@@ -231,9 +230,7 @@ fun Route.consultationChatController(
                 }
 
                 // Poll the counterpart's global presence and relay changes over this socket — presence
-                // itself is tracked by the separate /auth/user/presence heartbeat, this just surfaces
-                // it here. On a transition to online, also bump their delivered watermark: their app
-                // having a live connection is the "delivered" signal, distinct from "read".
+                // itself is tracked by the separate /auth/user/presence heartbeat, this just surfaces it here.
                 presenceJob = launch {
                     var lastKnownOnline: Boolean? = null
                     while (isActive) {
@@ -241,9 +238,6 @@ fun Route.consultationChatController(
                             val online = chatService.isOnline(recipientId)
                             if (online != lastKnownOnline) {
                                 lastKnownOnline = online
-                                if (online) {
-                                    chatService.bumpDelivered(doctorId, patientId, recipientId, sortableNowIso())
-                                }
                                 val lastSeenAt = if (!online) chatService.getLastSeenAt(recipientId) else null
                                 send(Frame.Text(json.encodeToString<ConsultationPresenceEventRes>(
                                     ConsultationPresenceEventRes(userId = recipientId, isOnline = online, lastSeenAt = lastSeenAt)

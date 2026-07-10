@@ -3,11 +3,9 @@ package ke.co.smartroundclinic.consultation.koin
 import ke.co.smartroundclinic.consultation.data.repository.ConsultationHiddenThreadRepositoryImpl
 import ke.co.smartroundclinic.consultation.data.repository.ConsultationMessageRepositoryImpl
 import ke.co.smartroundclinic.consultation.data.repository.ConsultationThreadRepositoryImpl
-import ke.co.smartroundclinic.consultation.data.repository.ConsultationThreadReadStateRepositoryImpl
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationHiddenThreadRepository
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadRepository
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndThreadCallUseCase
@@ -17,7 +15,6 @@ import ke.co.smartroundclinic.consultation.domain.usecase.call.StaleCallCleanupT
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.HideConversationThreadUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.ListConversationThreadsUseCase
-import ke.co.smartroundclinic.consultation.domain.usecase.chat.MarkThreadReadUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.RedisRepository
@@ -37,9 +34,6 @@ val consultationKoinModule = module {
     single<ConsultationMessageRepository> {
         ConsultationMessageRepositoryImpl(get(named("consultationDb")), get(named("authDb")), get<StorageRepository>())
     }
-    single<ConsultationThreadReadStateRepository> {
-        ConsultationThreadReadStateRepositoryImpl(get(named("consultationDb")))
-    }
     single<ConsultationHiddenThreadRepository> {
         ConsultationHiddenThreadRepositoryImpl(get(named("consultationDb")))
     }
@@ -47,10 +41,9 @@ val consultationKoinModule = module {
     /**
      * Chat use cases
      */
-    single { GetMergedConsultationHistoryUseCase(get(), get<StorageRepository>(), get()) }
+    single { GetMergedConsultationHistoryUseCase(get(), get<StorageRepository>()) }
     single { ListConversationThreadsUseCase(get(), get(), get(), get<RedisRepository>()) }
     single { NotifyOfflineConsultationParticipantUseCase(get<RedisRepository>(), getOrNull<NotificationSender>()) }
-    single { MarkThreadReadUseCase(get()) }
     single { HideConversationThreadUseCase(get()) }
 
     /**
@@ -69,5 +62,5 @@ val consultationKoinModule = module {
     /**
      * Services
      */
-    single { ConsultationChatService(get(), get<StorageRepository>(), get(), get(), get<RedisRepository>(), get()) }
+    single { ConsultationChatService(get(), get<StorageRepository>(), get(), get(), get<RedisRepository>()) }
 }

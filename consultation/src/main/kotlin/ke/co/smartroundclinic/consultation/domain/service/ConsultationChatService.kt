@@ -3,15 +3,12 @@ package ke.co.smartroundclinic.consultation.domain.service
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationFile
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.NotifyOfflineConsultationParticipantUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.request.ConsultationWsMessage
-import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationReadReceiptEventRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationTypingEventRes
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.redis.RedisKeys
@@ -29,7 +26,6 @@ class ConsultationChatService(
     private val notifyOfflineParticipant: NotifyOfflineConsultationParticipantUseCase,
     private val socketRegistry: ConsultationSocketRegistry,
     private val redis: RedisRepository,
-    private val readStateRepository: ConsultationThreadReadStateRepository,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -38,10 +34,6 @@ class ConsultationChatService(
     suspend fun isOnline(userId: String): Boolean = redis.get(RedisKeys.presence(userId)) == "true"
 
     suspend fun getLastSeenAt(userId: String): String? = repository.getLastSeenAt(userId)
-
-    suspend fun bumpDelivered(doctorId: String, patientId: String, recipientId: String, at: String) {
-        readStateRepository.bumpDelivered(doctorId, patientId, recipientId, at)
-    }
 
     fun watchMessagesForThread(doctorId: String, patientId: String): Flow<ConsultationMessageEntity> =
         repository.watchMessagesForThread(doctorId, patientId)
@@ -59,7 +51,7 @@ class ConsultationChatService(
     }
 
     /**
-     * WebSocket-only handler for incoming text/typing/read frames from a connected client.
+     * WebSocket-only handler for incoming text/typing frames from a connected client.
      * File uploads no longer travel over the WebSocket — clients call
      * `POST /chat/{otherUserId}/files` (multipart) instead. The MongoDB change
      * stream still broadcasts the resulting FILE message to all connected sockets.
@@ -107,23 +99,6 @@ class ConsultationChatService(
                     threadKey,
                     recipientId,
                     json.encodeToString(ConsultationTypingEventRes(senderId = senderId, isTyping = isTyping)),
-                )
-            }
-            // Sent by a client that already has this conversation open when a new message arrives —
-            // keeps the sender's ticks flipping to "read" live, instead of only once per REST fetch
-            // (see markThreadReadAndRelay in ConversationThreadController for the REST-triggered path).
-            "READ" -> {
-                val readState = readStateRepository.markRead(doctorId, patientId, senderId, sortableNowIso())
-                val lastReadAt = (readState as? Resource.Success)?.data?.let {
-                    if (senderId == doctorId) it.doctorLastReadAt else it.patientLastReadAt
-                } ?: return
-                val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
-                socketRegistry.sendToUser(
-                    threadKey,
-                    recipientId,
-                    json.encodeToString(
-                        ConsultationReadReceiptEventRes(doctorId = doctorId, patientId = patientId, readerId = senderId, lastReadAt = lastReadAt)
-                    ),
                 )
             }
             else -> return

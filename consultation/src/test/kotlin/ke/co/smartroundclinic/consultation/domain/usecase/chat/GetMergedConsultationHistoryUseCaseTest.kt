@@ -3,10 +3,8 @@ package ke.co.smartroundclinic.consultation.domain.usecase.chat
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationFile
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
-import ke.co.smartroundclinic.consultation.data.entity.ConsultationThreadReadStateEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadReadStateRepository
 import ke.co.smartroundclinic.consultation.domain.repository.MessageCursor
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
@@ -69,13 +67,6 @@ class GetMergedConsultationHistoryUseCaseTest {
             Resource.Success(presignedUrl)
     }
 
-    private class FakeReadStateRepository(private val state: ConsultationThreadReadStateEntity? = null) : ConsultationThreadReadStateRepository {
-        override suspend fun getByPair(doctorId: String, patientId: String): Resource<ConsultationThreadReadStateEntity?> = Resource.Success(state)
-        override suspend fun getByPairs(pairs: List<Pair<String, String>>) = Resource.Success(listOfNotNull(state))
-        override suspend fun markRead(doctorId: String, patientId: String, readerId: String, at: String): Resource<ConsultationThreadReadStateEntity?> = Resource.Success(state)
-        override suspend fun bumpDelivered(doctorId: String, patientId: String, recipientId: String, at: String): Resource<ConsultationThreadReadStateEntity?> = Resource.Success(state)
-    }
-
     private fun message(id: String, createdAt: String, files: List<ConsultationFile> = emptyList()) =
         ConsultationMessageEntity(
             id = id,
@@ -102,9 +93,9 @@ class GetMergedConsultationHistoryUseCaseTest {
             message("5", "2026-01-01T00:04:00.000Z"),
             message("6", "2026-01-01T00:05:00.000Z"),
         )
-        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository(), FakeReadStateRepository())
+        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository())
 
-        val response = useCase("doc-1", "pat-1", before = null, size = 10, requesterId = "doc-1")
+        val response = useCase("doc-1", "pat-1", before = null, size = 10)
 
         val ids = response.data?.items?.map { it.id }
         assertEquals(listOf("6", "5", "4", "3", "2", "1"), ids, "expected strict createdAt-descending order")
@@ -116,14 +107,14 @@ class GetMergedConsultationHistoryUseCaseTest {
             message(i.toString(), "2026-01-01T00:0$i:00.000Z")
         }
         val repo = FakeThreadMessageRepository(messages)
-        val useCase = GetMergedConsultationHistoryUseCase(repo, FakeStorageRepository(), FakeReadStateRepository())
+        val useCase = GetMergedConsultationHistoryUseCase(repo, FakeStorageRepository())
 
-        val unpaged = useCase("doc-1", "pat-1", before = null, size = 6, requesterId = "doc-1").data?.items?.map { it.id } ?: emptyList()
+        val unpaged = useCase("doc-1", "pat-1", before = null, size = 6).data?.items?.map { it.id } ?: emptyList()
 
         val paged = mutableListOf<String>()
         var cursor: String? = null
         do {
-            val page = useCase("doc-1", "pat-1", before = cursor, size = 2, requesterId = "doc-1")
+            val page = useCase("doc-1", "pat-1", before = cursor, size = 2)
             paged += page.data?.items?.map { it.id } ?: emptyList()
             cursor = page.data?.nextCursor
         } while (cursor != null)
@@ -137,9 +128,9 @@ class GetMergedConsultationHistoryUseCaseTest {
             message("1", "2026-01-01T00:00:00.000Z"),
             message("2", "2026-01-01T00:01:00.000Z"),
         )
-        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository(), FakeReadStateRepository())
+        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository())
 
-        val response = useCase("doc-1", "pat-1", before = null, size = 50, requesterId = "doc-1")
+        val response = useCase("doc-1", "pat-1", before = null, size = 50)
 
         assertEquals(2, response.data?.items?.size)
         assertNull(response.data?.nextCursor)
@@ -153,42 +144,10 @@ class GetMergedConsultationHistoryUseCaseTest {
         // branch is exercised in this unit test suite.
         val httpsFile = ConsultationFile("already-hosted.pdf", "https://existing.example/file.pdf", "application/pdf", 100L)
         val messages = listOf(message("1", "2026-01-01T00:00:00.000Z", files = listOf(httpsFile)))
-        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository(), FakeReadStateRepository())
+        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository())
 
-        val response = useCase("doc-1", "pat-1", before = null, size = 10, requesterId = "doc-1")
+        val response = useCase("doc-1", "pat-1", before = null, size = 10)
 
         assertEquals("https://existing.example/file.pdf", response.data?.items?.first()?.files?.first()?.url)
-    }
-
-    // ── Counterpart watermark selection (ticks are computed relative to the OTHER party) ────────
-
-    @Test
-    fun `doctor requester sees the patient's watermarks as the counterpart's`(): Unit = runBlocking {
-        val readState = ConsultationThreadReadStateEntity(
-            doctorId = "doc-1", patientId = "pat-1",
-            doctorLastReadAt = "2026-01-01T00:00:00.000Z", doctorLastDeliveredAt = "2026-01-01T00:00:00.000Z",
-            patientLastReadAt = "2026-01-02T00:00:00.000Z", patientLastDeliveredAt = "2026-01-01T12:00:00.000Z",
-        )
-        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(emptyList()), FakeStorageRepository(), FakeReadStateRepository(readState))
-
-        val response = useCase("doc-1", "pat-1", before = null, size = 10, requesterId = "doc-1")
-
-        assertEquals("2026-01-02T00:00:00.000Z", response.data?.counterpartLastReadAt)
-        assertEquals("2026-01-01T12:00:00.000Z", response.data?.counterpartLastDeliveredAt)
-    }
-
-    @Test
-    fun `patient requester sees the doctor's watermarks as the counterpart's`(): Unit = runBlocking {
-        val readState = ConsultationThreadReadStateEntity(
-            doctorId = "doc-1", patientId = "pat-1",
-            doctorLastReadAt = "2026-01-01T00:00:00.000Z", doctorLastDeliveredAt = "2026-01-01T00:00:00.000Z",
-            patientLastReadAt = "2026-01-02T00:00:00.000Z", patientLastDeliveredAt = "2026-01-01T12:00:00.000Z",
-        )
-        val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(emptyList()), FakeStorageRepository(), FakeReadStateRepository(readState))
-
-        val response = useCase("doc-1", "pat-1", before = null, size = 10, requesterId = "pat-1")
-
-        assertEquals("2026-01-01T00:00:00.000Z", response.data?.counterpartLastReadAt)
-        assertEquals("2026-01-01T00:00:00.000Z", response.data?.counterpartLastDeliveredAt)
     }
 }

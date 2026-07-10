@@ -26,9 +26,6 @@ data class ConsultationMessageRes(
 data class ConversationThreadMessagesRes(
     val items: List<ConsultationMessageRes>,
     val nextCursor: String?,
-    /** The counterpart's read/delivered watermarks, for computing tick state on the requester's own sent messages. */
-    val counterpartLastReadAt: String? = null,
-    val counterpartLastDeliveredAt: String? = null,
 )
 
 fun ConsultationMessage.toRes() = ConsultationMessageRes(

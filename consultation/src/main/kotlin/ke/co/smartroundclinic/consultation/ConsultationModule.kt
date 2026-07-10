@@ -10,7 +10,6 @@ import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinThreadCallUse
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.HideConversationThreadUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.ListConversationThreadsUseCase
-import ke.co.smartroundclinic.consultation.domain.usecase.chat.MarkThreadReadUseCase
 import ke.co.smartroundclinic.consultation.presentation.controller.consultationChatController
 import ke.co.smartroundclinic.consultation.presentation.controller.conversationThreadController
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
@@ -25,11 +24,10 @@ fun Application.consultationModule() {
     val meetingWebhookUseCase: HandleMeetingEndedWebhookUseCase by inject()
     val listThreadsUseCase: ListConversationThreadsUseCase by inject()
     val getMergedHistoryUseCase: GetMergedConsultationHistoryUseCase by inject()
-    val markThreadReadUseCase: MarkThreadReadUseCase by inject()
     val hideConversationThreadUseCase: HideConversationThreadUseCase by inject()
     val socketRegistry: ConsultationSocketRegistry by inject()
     routing {
         consultationChatController(chatService, appointmentRepository, joinCallUseCase, endCallUseCase, meetingWebhookUseCase, socketRegistry)
-        conversationThreadController(listThreadsUseCase, getMergedHistoryUseCase, markThreadReadUseCase, hideConversationThreadUseCase, socketRegistry)
+        conversationThreadController(listThreadsUseCase, getMergedHistoryUseCase, hideConversationThreadUseCase, socketRegistry)
     }
 }

@@ -22,12 +22,3 @@ data class ConsultationPresenceEventRes(
     val isOnline: Boolean,
     val lastSeenAt: String? = null,
 )
-
-@Serializable
-data class ConsultationReadReceiptEventRes(
-    val type: String = "READ",
-    val doctorId: String,
-    val patientId: String,
-    val readerId: String,
-    val lastReadAt: String,
-)
