@@ -10,5 +10,6 @@ kotlin {
 dependencies {
     implementation(project(":common"))
     implementation(project(":infra"))
+    implementation(project(":scheduling"))
     testImplementation(libs.kotlin.test.junit)
 }

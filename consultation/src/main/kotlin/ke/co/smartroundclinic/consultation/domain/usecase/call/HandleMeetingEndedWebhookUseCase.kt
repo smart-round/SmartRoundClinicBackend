@@ -5,7 +5,7 @@ import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
+import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadRepository
 import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 import org.slf4j.LoggerFactory
 
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory
  *                            (another participant may still be connected).
  */
 class HandleMeetingEndedWebhookUseCase(
-    private val sessions: ConsultationSessionRepository,
+    private val threads: ConsultationThreadRepository,
     private val client: RealtimeKitClient,
     private val notificationSender: NotificationSender? = null,
 ) {
@@ -38,43 +38,43 @@ class HandleMeetingEndedWebhookUseCase(
 
         client.endMeeting(meetingId)
 
-        when (val r = sessions.getByVideoRoomId(meetingId)) {
+        when (val r = threads.getByVideoRoomId(meetingId)) {
             is Resource.Success -> {
-                val session = r.data
-                if (session != null) {
-                    sessions.clearVideoRoomId(session.id, completedRoomId = meetingId)
-                    log.info("Webhook: cleared videoRoomId on consultation=${session.id}")
+                val thread = r.data
+                if (thread != null) {
+                    threads.clearVideoRoomId(thread.doctorId, thread.patientId, completedRoomId = meetingId)
+                    log.info("Webhook: cleared videoRoomId for doctorId=${thread.doctorId} patientId=${thread.patientId}")
                     runCatching {
                         notificationSender?.send(
                             title = PushNotificationEvents.CALL_ENDED,
                             message = "The video call has ended",
                             channel = NotificationChannel.PUSH_NOTIFICATION,
                             destination = NotificationDestination.DOCTOR,
-                            recipientId = session.doctorId,
+                            recipientId = thread.doctorId,
                             metadata = mapOf(
-                            "event" to PushNotificationEvents.CALL_ENDED,
-                            "consultationId" to session.id,
-                            "appointmentId" to session.appointmentId,
-                        ),
+                                "event" to PushNotificationEvents.CALL_ENDED,
+                                "doctorId" to thread.doctorId,
+                                "patientId" to thread.patientId,
+                            ),
                         )
                         notificationSender?.send(
                             title = PushNotificationEvents.CALL_ENDED,
                             message = "The video call has ended",
                             channel = NotificationChannel.PUSH_NOTIFICATION,
                             destination = NotificationDestination.PATIENT,
-                            recipientId = session.patientId,
+                            recipientId = thread.patientId,
                             metadata = mapOf(
-                            "event" to PushNotificationEvents.CALL_ENDED,
-                            "consultationId" to session.id,
-                            "appointmentId" to session.appointmentId,
-                        ),
+                                "event" to PushNotificationEvents.CALL_ENDED,
+                                "doctorId" to thread.doctorId,
+                                "patientId" to thread.patientId,
+                            ),
                         )
                     }
                 } else {
-                    log.info("Webhook: no consultation found for meetingId=$meetingId — already cleaned up")
+                    log.info("Webhook: no thread found for meetingId=$meetingId — already cleaned up")
                 }
             }
-            is Resource.Error -> log.error("Webhook: failed to look up consultation for meetingId=$meetingId — ${r.message}")
+            is Resource.Error -> log.error("Webhook: failed to look up thread for meetingId=$meetingId — ${r.message}")
         }
     }
 }

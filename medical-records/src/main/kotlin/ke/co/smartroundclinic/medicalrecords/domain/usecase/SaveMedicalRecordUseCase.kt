@@ -9,7 +9,6 @@ import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
 import ke.co.smartroundclinic.medicalrecords.data.entity.toEntity
 import ke.co.smartroundclinic.medicalrecords.domain.model.MedicalRecord
 import ke.co.smartroundclinic.medicalrecords.domain.repository.MedicalRecordRepository
@@ -21,7 +20,6 @@ import kotlinx.serialization.json.Json
 class SaveMedicalRecordUseCase(
     private val repository: MedicalRecordRepository,
     private val messageRepository: ConsultationMessageRepository,
-    private val sessionRepository: ConsultationSessionRepository,
     private val notificationSender: NotificationSender? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -41,23 +39,19 @@ class SaveMedicalRecordUseCase(
             }
         }
         if (result is Resource.Success && model.prescription.isNotEmpty()) {
-            // Use the explicit consultationId if provided; otherwise look up the session by appointmentId.
-            // This covers the case where the doctor saves from the Bookings tab (no consultationId in the request).
-            val consultationId = model.consultationId
-                ?: (sessionRepository.getByAppointmentId(model.appointmentId) as? Resource.Success)?.data?.id
-            if (consultationId != null) {
-                runCatching {
-                    messageRepository.save(
-                        ConsultationMessageEntity(
-                            consultationId = consultationId,
-                            senderId = model.doctorId,
-                            senderRole = "DOCTOR",
-                            senderName = senderName,
-                            messageType = MessageType.PRESCRIPTION,
-                            message = json.encodeToString(model.toRes()),
-                        )
+            runCatching {
+                messageRepository.save(
+                    ConsultationMessageEntity(
+                        doctorId = model.doctorId,
+                        patientId = model.patientId,
+                        appointmentId = model.appointmentId,
+                        senderId = model.doctorId,
+                        senderRole = "DOCTOR",
+                        senderName = senderName,
+                        messageType = MessageType.PRESCRIPTION,
+                        message = json.encodeToString(model.toRes()),
                     )
-                }
+                )
             }
         }
         return result.toDefaultResponse(

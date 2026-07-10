@@ -11,33 +11,29 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.server.routing.route
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import ke.co.smartroundclinic.common.NotificationDestination
-import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.common.sortableNowIso
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
-import ke.co.smartroundclinic.consultation.domain.service.ConsultationSessionService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
-import ke.co.smartroundclinic.consultation.domain.usecase.call.EndCallUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.EndThreadCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
-import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinConsultationCallUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinThreadCallUseCase
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationMessageRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationPresenceEventRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
+import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -60,11 +56,15 @@ private data class CloudflareWebhookMeeting(
     val status: String? = null,
 )
 
+/** (doctorId, patientId), resolved from the caller's own id/role plus the other party's id. */
+private fun resolvePair(callerId: String, role: String, otherUserId: String): Pair<String, String> =
+    if (role.equals("DOCTOR", ignoreCase = true)) callerId to otherUserId else otherUserId to callerId
+
 fun Route.consultationChatController(
     chatService: ConsultationChatService,
-    sessionService: ConsultationSessionService,
-    joinCallUseCase: JoinConsultationCallUseCase,
-    endCallUseCase: EndCallUseCase,
+    appointmentRepository: AppointmentRepository,
+    joinCallUseCase: JoinThreadCallUseCase,
+    endCallUseCase: EndThreadCallUseCase,
     meetingWebhookUseCase: HandleMeetingEndedWebhookUseCase,
     socketRegistry: ConsultationSocketRegistry,
 ) {
@@ -90,38 +90,19 @@ fun Route.consultationChatController(
 
     authenticate("auth-jwt") {
 
-        // GET /consultation/{id}/messages?page=1&size=50
-        // Paginated message history (REST, for on-demand loading).
-        route("/consultation/{id}/messages") {
-            get {
-                val id = call.parameters["id"]
-                    ?: throw MissingParametersException("id path parameter is required")
-                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 50
-                val result = chatService.getHistory(id, page, size)
-                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-            }
-        }
-
-        // POST /consultation/{id}/files
+        // POST /chat/{otherUserId}/files
         // Multipart file upload. The saved FILE message is broadcast to any open
         // WebSocket clients via the MongoDB change stream — the response is the
         // single source of truth for the sender's optimistic message.
-        post("/consultation/{id}/files") {
-            val consultationId = call.parameters["id"]
-                ?: throw MissingParametersException("id path parameter is required")
+        post("/chat/{otherUserId}/files") {
+            val otherUserId = call.parameters["otherUserId"]
+                ?: throw MissingParametersException("otherUserId path parameter is required")
             val userId = call.getUserId() ?: return@post
             val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
+            val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
 
-            val session = when (val r = sessionService.repository.getById(consultationId)) {
-                is Resource.Success -> r.data
-                is Resource.Error -> null
-            }
-            if (session == null) {
-                return@post call.respond(HttpStatusCode.NotFound, mapOf("message" to "Consultation not found"))
-            }
-            if (userId != session.doctorId && userId != session.patientId) {
-                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "Not a participant"))
+            if (!appointmentRepository.existsConfirmedOrCompletedBetween(doctorId, patientId)) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No consultation relationship with this user"))
             }
 
             var fileBytes: ByteArray? = null
@@ -153,9 +134,8 @@ fun Route.consultationChatController(
 
             val senderName = chatService.getUserName(userId) ?: "Unknown"
             val result = chatService.uploadFile(
-                consultationId = consultationId,
-                doctorId = session.doctorId,
-                patientId = session.patientId,
+                doctorId = doctorId,
+                patientId = patientId,
                 senderId = userId,
                 senderRole = role,
                 senderName = senderName,
@@ -170,35 +150,42 @@ fun Route.consultationChatController(
             call.respond(HttpStatusCode.fromValue(response.httpStatusCode), response)
         }
 
-        // POST /consultation/{id}/call/join
+        // POST /chat/{otherUserId}/call/join
         // Returns this user's Cloudflare RealtimeKit join token. Creates the
-        // meeting on first call and persists the id on the consultation.
-        post("/consultation/{id}/call/join") {
-            val consultationId = call.parameters["id"]
-                ?: throw MissingParametersException("id path parameter is required")
+        // meeting on first call and persists the id on the permanent thread.
+        post("/chat/{otherUserId}/call/join") {
+            val otherUserId = call.parameters["otherUserId"]
+                ?: throw MissingParametersException("otherUserId path parameter is required")
             val userId = call.getUserId() ?: return@post
-            val result = joinCallUseCase(consultationId, userId)
+            val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
+            val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
+
+            if (!appointmentRepository.existsConfirmedOrCompletedBetween(doctorId, patientId)) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No consultation relationship with this user"))
+            }
+
+            val result = joinCallUseCase(doctorId, patientId, userId)
             call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 
-        // POST /consultation/{id}/call/end  (doctor only)
+        // POST /chat/{otherUserId}/call/end  (doctor only)
         // Ends the Cloudflare meeting and clears videoRoomId so the next call/join
         // provisions a fresh meeting room.
-        post("/consultation/{id}/call/end") {
-            val consultationId = call.parameters["id"]
-                ?: throw MissingParametersException("id path parameter is required")
+        post("/chat/{otherUserId}/call/end") {
+            val otherUserId = call.parameters["otherUserId"]
+                ?: throw MissingParametersException("otherUserId path parameter is required")
             val doctorId = call.getUserId() ?: return@post
-            val result = endCallUseCase(consultationId, doctorId)
+            val result = endCallUseCase(doctorId, otherUserId, doctorId)
             call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 
-        // WS /consultation/{id}/chat
-        // Real-time text chat. Send TEXT frames only:
+        // WS /chat/{otherUserId}
+        // Real-time text chat over the permanent (doctorId, patientId) thread. Send TEXT frames only:
         // {"type":"TEXT","message":"Hello"}
-        // Files go through POST /consultation/{id}/files (see above).
-        webSocket("/consultation/{id}/chat") {
-            val consultationId = call.parameters["id"] ?: run {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing consultation id"))
+        // Files go through POST /chat/{otherUserId}/files (see above).
+        webSocket("/chat/{otherUserId}") {
+            val otherUserId = call.parameters["otherUserId"] ?: run {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing otherUserId"))
                 return@webSocket
             }
 
@@ -211,41 +198,30 @@ fun Route.consultationChatController(
                 return@webSocket
             }
             val role = principal.payload.getClaim("role")?.asString() ?: ""
+            val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
 
-            // Validate participation
-            val session = when (val result = sessionService.repository.getById(consultationId)) {
-                is Resource.Success -> result.data
-                is Resource.Error -> null
-            }
-            if (session == null) {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Consultation not found"))
-                return@webSocket
-            }
-            if (userId != session.doctorId && userId != session.patientId) {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Not a participant"))
+            if (!appointmentRepository.existsConfirmedOrCompletedBetween(doctorId, patientId)) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No consultation relationship with this user"))
                 return@webSocket
             }
 
-            val isDoctor = userId == session.doctorId
-            val recipientId = if (isDoctor) session.patientId else session.doctorId
+            val isDoctor = userId == doctorId
+            val recipientId = if (isDoctor) patientId else doctorId
             val recipientDestination = if (isDoctor) NotificationDestination.PATIENT else NotificationDestination.DOCTOR
 
             val senderName = chatService.getUserName(userId) ?: "Unknown"
-            val threadKey = ConsultationSocketRegistry.threadKey(session.doctorId, session.patientId)
+            val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
 
             socketRegistry.register(threadKey, userId, this)
             var watchJob: Job? = null
             var presenceJob: Job? = null
             try {
-                // Push recent history to the newly connected client
-                chatService.getRecentHistory(consultationId).forEach { msg ->
-                    send(Frame.Text(json.encodeToString<ConsultationMessageRes>(msg.toModel().toRes())))
-                }
-
-                // Stream new messages via MongoDB change stream
+                // Stream new messages via MongoDB change stream. The initial history load is the
+                // client's own REST fetch (GET /consultation/threads/{doctorId}/{patientId}/messages) —
+                // no separate "recent history" push here, so there's nothing to race against it.
                 watchJob = launch {
                     try {
-                        chatService.watchMessages(consultationId).collect { msg ->
+                        chatService.watchMessagesForThread(doctorId, patientId).collect { msg ->
                             val resolved = chatService.resolveEntityFiles(msg)
                             send(Frame.Text(json.encodeToString<ConsultationMessageRes>(resolved.toModel().toRes())))
                         }
@@ -266,7 +242,7 @@ fun Route.consultationChatController(
                             if (online != lastKnownOnline) {
                                 lastKnownOnline = online
                                 if (online) {
-                                    chatService.bumpDelivered(session.doctorId, session.patientId, recipientId, sortableNowIso())
+                                    chatService.bumpDelivered(doctorId, patientId, recipientId, sortableNowIso())
                                 }
                                 val lastSeenAt = if (!online) chatService.getLastSeenAt(recipientId) else null
                                 send(Frame.Text(json.encodeToString<ConsultationPresenceEventRes>(
@@ -280,15 +256,13 @@ fun Route.consultationChatController(
                     }
                 }
 
-                // Handle incoming TEXT/TYPING frames from this client
+                // Handle incoming TEXT/TYPING/READ frames from this client
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
                         try {
                             chatService.handleIncomingMessage(
-                                consultationId = consultationId,
-                                appointmentId = session.appointmentId,
-                                doctorId = session.doctorId,
-                                patientId = session.patientId,
+                                doctorId = doctorId,
+                                patientId = patientId,
                                 senderId = userId,
                                 senderRole = role,
                                 senderName = senderName,

@@ -8,7 +8,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ConsultationMessageRes(
     val id: String,
-    val consultationId: String,
     val doctorId: String,
     val patientId: String,
     val senderId: String,
@@ -17,16 +16,9 @@ data class ConsultationMessageRes(
     val messageType: MessageType,
     val message: String?,
     val files: List<ConsultationFile>,
+    val appointmentId: String? = null,
     val createdAt: String,
     val updatedAt: String?,
-)
-
-@Serializable
-data class ConsultationMessagePageRes(
-    val items: List<ConsultationMessageRes>,
-    val total: Long,
-    val page: Int,
-    val size: Int,
 )
 
 /** Merged, cursor-paginated page for [ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase]. */
@@ -41,7 +33,6 @@ data class ConversationThreadMessagesRes(
 
 fun ConsultationMessage.toRes() = ConsultationMessageRes(
     id = id,
-    consultationId = consultationId,
     doctorId = doctorId,
     patientId = patientId,
     senderId = senderId,
@@ -50,6 +41,7 @@ fun ConsultationMessage.toRes() = ConsultationMessageRes(
     messageType = messageType,
     message = message,
     files = files,
+    appointmentId = appointmentId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

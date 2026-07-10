@@ -37,9 +37,6 @@ class GetMergedConsultationHistoryUseCaseTest {
             return Resource.Success(entity)
         }
 
-        override suspend fun getByConsultationId(consultationId: String, page: Int, size: Int) =
-            Resource.Success(emptyList<ConsultationMessageEntity>() to 0L)
-
         override suspend fun getByThread(
             doctorId: String,
             patientId: String,
@@ -57,13 +54,11 @@ class GetMergedConsultationHistoryUseCaseTest {
             return Resource.Success(matching)
         }
 
-        override fun watchMessages(consultationId: String): Flow<ConsultationMessageEntity> = emptyFlow()
+        override fun watchMessagesForThread(doctorId: String, patientId: String): Flow<ConsultationMessageEntity> = emptyFlow()
         override suspend fun getUserName(userId: String): String? = null
         override suspend fun getUserInfo(userId: String): Pair<String, String?>? = null
         override suspend fun getLatestForThread(doctorId: String, patientId: String): ConsultationMessageEntity? = null
         override suspend fun getLastSeenAt(userId: String): String? = null
-        override suspend fun countMissingThreadFields(): Long = 0L
-        override suspend fun backfillThreadFields(consultationId: String, doctorId: String, patientId: String): Long = 0L
     }
 
     private class FakeStorageRepository(private val presignedUrl: String = "https://cdn.test/resolved") : StorageRepository {
@@ -81,10 +76,9 @@ class GetMergedConsultationHistoryUseCaseTest {
         override suspend fun bumpDelivered(doctorId: String, patientId: String, recipientId: String, at: String): Resource<ConsultationThreadReadStateEntity?> = Resource.Success(state)
     }
 
-    private fun message(id: String, consultationId: String, createdAt: String, files: List<ConsultationFile> = emptyList()) =
+    private fun message(id: String, createdAt: String, files: List<ConsultationFile> = emptyList()) =
         ConsultationMessageEntity(
             id = id,
-            consultationId = consultationId,
             doctorId = "doc-1",
             patientId = "pat-1",
             senderId = "doc-1",
@@ -99,28 +93,27 @@ class GetMergedConsultationHistoryUseCaseTest {
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     @Test
-    fun `merges messages from different consultations in strict createdAt order`(): Unit = runBlocking {
-        // Session A at T0, T2, T4; session B at T1, T3, T5 — interleaved across two consultations.
+    fun `merges messages in strict createdAt order`(): Unit = runBlocking {
         val messages = listOf(
-            message("1", "sessionA", "2026-01-01T00:00:00.000Z"),
-            message("2", "sessionB", "2026-01-01T00:01:00.000Z"),
-            message("3", "sessionA", "2026-01-01T00:02:00.000Z"),
-            message("4", "sessionB", "2026-01-01T00:03:00.000Z"),
-            message("5", "sessionA", "2026-01-01T00:04:00.000Z"),
-            message("6", "sessionB", "2026-01-01T00:05:00.000Z"),
+            message("1", "2026-01-01T00:00:00.000Z"),
+            message("2", "2026-01-01T00:01:00.000Z"),
+            message("3", "2026-01-01T00:02:00.000Z"),
+            message("4", "2026-01-01T00:03:00.000Z"),
+            message("5", "2026-01-01T00:04:00.000Z"),
+            message("6", "2026-01-01T00:05:00.000Z"),
         )
         val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository(), FakeReadStateRepository())
 
         val response = useCase("doc-1", "pat-1", before = null, size = 10, requesterId = "doc-1")
 
         val ids = response.data?.items?.map { it.id }
-        assertEquals(listOf("6", "5", "4", "3", "2", "1"), ids, "expected strict createdAt-descending order regardless of consultationId")
+        assertEquals(listOf("6", "5", "4", "3", "2", "1"), ids, "expected strict createdAt-descending order")
     }
 
     @Test
     fun `cursor pagination in size-2 pages returns the same set and order as one unpaged fetch`(): Unit = runBlocking {
         val messages = (1..6).map { i ->
-            message(i.toString(), if (i % 2 == 0) "sessionA" else "sessionB", "2026-01-01T00:0$i:00.000Z")
+            message(i.toString(), "2026-01-01T00:0$i:00.000Z")
         }
         val repo = FakeThreadMessageRepository(messages)
         val useCase = GetMergedConsultationHistoryUseCase(repo, FakeStorageRepository(), FakeReadStateRepository())
@@ -141,8 +134,8 @@ class GetMergedConsultationHistoryUseCaseTest {
     @Test
     fun `nextCursor is null once fewer than the page size is returned`(): Unit = runBlocking {
         val messages = listOf(
-            message("1", "sessionA", "2026-01-01T00:00:00.000Z"),
-            message("2", "sessionA", "2026-01-01T00:01:00.000Z"),
+            message("1", "2026-01-01T00:00:00.000Z"),
+            message("2", "2026-01-01T00:01:00.000Z"),
         )
         val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository(), FakeReadStateRepository())
 
@@ -159,7 +152,7 @@ class GetMergedConsultationHistoryUseCaseTest {
         // as the (also untested) GetConsultationHistoryUseCase this mirrors. Only the pass-through
         // branch is exercised in this unit test suite.
         val httpsFile = ConsultationFile("already-hosted.pdf", "https://existing.example/file.pdf", "application/pdf", 100L)
-        val messages = listOf(message("1", "sessionA", "2026-01-01T00:00:00.000Z", files = listOf(httpsFile)))
+        val messages = listOf(message("1", "2026-01-01T00:00:00.000Z", files = listOf(httpsFile)))
         val useCase = GetMergedConsultationHistoryUseCase(FakeThreadMessageRepository(messages), FakeStorageRepository(), FakeReadStateRepository())
 
         val response = useCase("doc-1", "pat-1", before = null, size = 10, requesterId = "doc-1")

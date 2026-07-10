@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * One row in the doctor/patient chat list — one entry per (doctorId, patientId) pair,
- * merging all of that pair's consultations into a single conversation.
+ * a single permanent conversation independent of any particular appointment/visit.
  */
 @Serializable
 data class ConversationThreadRes(
@@ -15,7 +15,6 @@ data class ConversationThreadRes(
     val counterpartPicture: String?,
     val lastMessagePreview: String?,
     val lastMessageAt: String?,
-    val latestConsultationStatus: String,
     val latestAppointmentId: String,
     val isOnline: Boolean = false,
     val lastSeenAt: String? = null,

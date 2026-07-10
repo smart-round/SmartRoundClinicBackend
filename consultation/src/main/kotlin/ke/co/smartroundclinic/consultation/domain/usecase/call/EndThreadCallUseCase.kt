@@ -7,44 +7,46 @@ import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.consultation.domain.repository.ConsultationSessionRepository
+import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadRepository
 import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
 
 /**
- * Doctor ends the active video call:
- *   1. Verifies the caller is the doctor on the session
- *   2. Ends the Cloudflare meeting (kicks all participants)
- *   3. Clears `videoRoomId` on the session so the next join provisions a fresh meeting
+ * Doctor ends the active video call for a (doctorId, patientId) thread:
+ *   1. Ends the Cloudflare meeting (kicks all participants)
+ *   2. Clears `videoRoomId` on the thread so the next join provisions a fresh meeting
+ *
+ * Purely a "hang up" — no longer tied to appointment completion (that's now a separate,
+ * doctor-triggered action independent of whether/how a call happened).
  */
-class EndCallUseCase(
-    private val sessions: ConsultationSessionRepository,
+class EndThreadCallUseCase(
+    private val threads: ConsultationThreadRepository,
     private val client: RealtimeKitClient,
     private val notificationSender: NotificationSender? = null,
 ) {
-    suspend operator fun invoke(consultationId: String, doctorId: String): DefaultResponse<Unit?> {
-        val session = when (val r = sessions.getById(consultationId)) {
-            is Resource.Success -> r.data
-            is Resource.Error -> return DefaultResponse(
-                httpStatusCode = HttpStatusCode.InternalServerError.value,
-                status = false,
-                message = r.message ?: "Failed to load consultation",
-                data = null,
-            )
-        } ?: return DefaultResponse(
-            httpStatusCode = HttpStatusCode.NotFound.value,
-            status = false,
-            message = "Consultation not found",
-            data = null,
-        )
-
-        if (doctorId != session.doctorId) return DefaultResponse(
+    suspend operator fun invoke(doctorId: String, patientId: String, callerId: String): DefaultResponse<Unit?> {
+        if (callerId != doctorId) return DefaultResponse(
             httpStatusCode = HttpStatusCode.Forbidden.value,
             status = false,
             message = "Only the doctor can end the call",
             data = null,
         )
 
-        val meetingId = session.videoRoomId
+        val thread = when (val r = threads.getOrCreate(doctorId, patientId)) {
+            is Resource.Success -> r.data ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.InternalServerError.value,
+                status = false,
+                message = "Failed to load thread",
+                data = null,
+            )
+            is Resource.Error -> return DefaultResponse(
+                httpStatusCode = HttpStatusCode.InternalServerError.value,
+                status = false,
+                message = r.message ?: "Failed to load thread",
+                data = null,
+            )
+        }
+
+        val meetingId = thread.videoRoomId
         if (meetingId != null) {
             when (val result = client.endMeeting(meetingId)) {
                 is Resource.Error -> return DefaultResponse(
@@ -55,7 +57,7 @@ class EndCallUseCase(
                 )
                 else -> Unit
             }
-            sessions.clearVideoRoomId(consultationId, completedRoomId = meetingId)
+            threads.clearVideoRoomId(doctorId, patientId, completedRoomId = meetingId)
         }
 
         runCatching {
@@ -64,11 +66,11 @@ class EndCallUseCase(
                 message = "The video call has been ended by your doctor",
                 channel = NotificationChannel.PUSH_NOTIFICATION,
                 destination = NotificationDestination.PATIENT,
-                recipientId = session.patientId,
+                recipientId = patientId,
                 metadata = mapOf(
                     "event" to PushNotificationEvents.CALL_ENDED,
-                    "consultationId" to consultationId,
-                    "appointmentId" to session.appointmentId,
+                    "doctorId" to doctorId,
+                    "patientId" to patientId,
                 ),
             )
         }

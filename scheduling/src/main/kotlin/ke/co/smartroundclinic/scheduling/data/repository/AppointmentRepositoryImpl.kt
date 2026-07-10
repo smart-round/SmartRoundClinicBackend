@@ -224,4 +224,20 @@ class AppointmentRepositoryImpl(
                 Resource.Error(e.localizedMessage ?: "Failed to update appointment")
             }
         }
+
+    override suspend fun existsConfirmedOrCompletedBetween(doctorId: String, patientId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                col.find(
+                    Filters.and(
+                        Filters.eq(AppointmentEntity::doctorId.name, doctorId),
+                        Filters.eq(AppointmentEntity::patientId.name, patientId),
+                        Filters.`in`(AppointmentEntity::status.name, "CONFIRMED", "COMPLETED"),
+                    )
+                ).firstOrNull() != null
+            } catch (e: Exception) {
+                log.error("Failed to check appointment relationship doctorId=$doctorId patientId=$patientId — ${e.message}", e)
+                false
+            }
+        }
 }
