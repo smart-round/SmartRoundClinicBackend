@@ -34,7 +34,7 @@ val consultationKoinModule = module {
         ConsultationSessionRepositoryImpl(get(named("consultationDb")), get(named("schedulingDb")))
     }
     single<ConsultationMessageRepository> {
-        ConsultationMessageRepositoryImpl(get(named("consultationDb")), get(named("authDb")))
+        ConsultationMessageRepositoryImpl(get(named("consultationDb")), get(named("authDb")), get<StorageRepository>())
     }
 
     /**

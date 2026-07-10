@@ -10,6 +10,8 @@ import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.data.entity.ConsultationMessageEntity
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.repository.MessageCursor
+import ke.co.smartroundclinic.infra.AppConfig
+import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -19,9 +21,12 @@ import kotlinx.coroutines.withContext
 import org.bson.Document
 import org.slf4j.LoggerFactory
 
+private const val PROFILE_PICTURE_URL_TTL = 86400L  // 24 hours
+
 class ConsultationMessageRepositoryImpl(
     consultationDb: MongoDatabase,
     authDb: MongoDatabase,
+    private val storageRepository: StorageRepository,
 ) : ConsultationMessageRepository {
 
     private val log = LoggerFactory.getLogger(ConsultationMessageRepositoryImpl::class.java)
@@ -151,7 +156,12 @@ class ConsultationMessageRepositoryImpl(
     override suspend fun getUserInfo(userId: String): Pair<String, String?>? = withContext(Dispatchers.IO) {
         try {
             val doc = users.find(Filters.eq("id", userId)).firstOrNull() ?: return@withContext null
-            (doc.getString("fullName") ?: "Unknown") to doc.getString("profilePicture")
+            val name = doc.getString("fullName") ?: "Unknown"
+            // profilePicture is a storage key, not a fetchable URL — presign it like every other call site does.
+            val key = doc.getString("profilePicture")
+            val picture = if (key.isNullOrBlank()) null else
+                (storageRepository.presignedGetUrl(AppConfig.r2.bucket, key, PROFILE_PICTURE_URL_TTL) as? Resource.Success)?.data
+            name to picture
         } catch (_: Exception) {
             null
         }
