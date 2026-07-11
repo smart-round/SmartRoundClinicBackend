@@ -22,6 +22,7 @@ data class AppointmentRes(
     val cancellationReason: String?,
     val cancelledBy: String?,
     val updatedAt: String?,
+    val refund: AppointmentRefundRes? = null,
 )
 
 @Serializable
@@ -91,6 +92,7 @@ fun Appointment.toRes(
     doctorName: String? = null,
     doctorProfilePicture: String? = null,
     doctorSpeciality: String? = null,
+    refund: AppointmentRefundRes? = null,
 ) = AppointmentRes(
     id = id,
     doctorId = doctorId,
@@ -109,4 +111,5 @@ fun Appointment.toRes(
     cancellationReason = cancellationReason,
     cancelledBy = cancelledBy,
     updatedAt = updatedAt,
+    refund = refund,
 )

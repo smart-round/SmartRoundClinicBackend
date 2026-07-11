@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.scheduling.data.lookup.RefundDoc
 import ke.co.smartroundclinic.scheduling.data.lookup.RefundLookup
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
+import ke.co.smartroundclinic.scheduling.presentation.dto.response.toAppointmentRefundRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
 import org.slf4j.LoggerFactory
 
@@ -38,6 +39,7 @@ class CancelAppointmentUseCase(
         if (!authorized) return Resource.Error<Nothing>("Not authorized to cancel this appointment")
             .toDefaultResponse(failedStatusCode = 403) { null }
 
+        var createdRefund: RefundDoc? = null
         val result = repository.updateStatus(id, "CANCELLED", cancellationReason = reason, cancelledBy = userId)
         if (result is Resource.Success && result.data != null) {
             runCatching {
@@ -67,21 +69,21 @@ class CancelAppointmentUseCase(
                     log.info("No completed payment found for appointmentId=$id — skipping refund record")
                     return@runCatching
                 }
-                refundLookup.create(
-                    RefundDoc(
-                        appointmentId = id,
-                        doctorId = entity.doctorId,
-                        patientId = entity.patientId,
-                        paymentId = payment.paymentId,
-                        amount = payment.amount,
-                        currency = payment.currency,
-                        reason = reason,
-                        cancelledBy = userId,
-                        cancelledByRole = role,
-                    )
+                val refund = RefundDoc(
+                    appointmentId = id,
+                    doctorId = entity.doctorId,
+                    patientId = entity.patientId,
+                    paymentId = payment.paymentId,
+                    amount = payment.amount,
+                    currency = payment.currency,
+                    reason = reason,
+                    cancelledBy = userId,
+                    cancelledByRole = role,
                 )
+                refundLookup.create(refund)
+                createdRefund = refund
             }
         }
-        return result.toDefaultResponse { it?.toModel()?.toRes() }
+        return result.toDefaultResponse { it?.toModel()?.toRes(refund = createdRefund?.toAppointmentRefundRes()) }
     }
 }

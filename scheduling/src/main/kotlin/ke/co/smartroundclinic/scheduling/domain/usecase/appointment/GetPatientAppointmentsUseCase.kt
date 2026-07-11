@@ -4,8 +4,10 @@ import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.UserProfilePictureResolver
+import ke.co.smartroundclinic.scheduling.data.lookup.RefundLookup
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
+import ke.co.smartroundclinic.scheduling.presentation.dto.response.toAppointmentRefundRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
 
 class GetPatientAppointmentsUseCase(
@@ -13,6 +15,7 @@ class GetPatientAppointmentsUseCase(
     private val patientNameResolver: PatientNameResolver? = null,
     private val userProfilePictureResolver: UserProfilePictureResolver? = null,
     private val doctorSpecialitiesResolver: DoctorSpecialitiesResolver? = null,
+    private val refundLookup: RefundLookup? = null,
 ) {
     suspend operator fun invoke(patientId: String): DefaultResponse<List<AppointmentRes>?> {
         val resource = repository.getByPatient(patientId)
@@ -34,6 +37,9 @@ class GetPatientAppointmentsUseCase(
             }
         } else emptyMap()
 
+        val cancelledIds = entities.filter { it.status == "CANCELLED" }.map { it.id }
+        val refunds = refundLookup?.getByAppointmentIds(cancelledIds) ?: emptyMap()
+
         return resource.toDefaultResponse { items ->
             items?.map { entity ->
                 val appointment = entity.toModel()
@@ -41,6 +47,7 @@ class GetPatientAppointmentsUseCase(
                     doctorName = doctorNames[appointment.doctorId],
                     doctorProfilePicture = doctorPictures[appointment.doctorId],
                     doctorSpeciality = doctorSpecialities[appointment.doctorId],
+                    refund = refunds[appointment.id]?.toAppointmentRefundRes(),
                 )
             }
         }

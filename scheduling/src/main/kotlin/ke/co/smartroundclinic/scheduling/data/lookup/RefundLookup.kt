@@ -55,6 +55,27 @@ class RefundLookup(paymentsDb: MongoDatabase) {
         null
     }
 
+    suspend fun getByAppointmentId(appointmentId: String): RefundDoc? = try {
+        refunds.find(Filters.eq(RefundDoc::appointmentId.name, appointmentId)).firstOrNull()
+    } catch (e: Exception) {
+        log.error("Failed to fetch refund for appointmentId=$appointmentId — ${e.message}", e)
+        null
+    }
+
+    /** Batch-fetches refunds for a list of appointmentIds. Returns a map of appointmentId -> RefundDoc. */
+    suspend fun getByAppointmentIds(appointmentIds: Collection<String>): Map<String, RefundDoc> = try {
+        if (appointmentIds.isEmpty()) {
+            emptyMap()
+        } else {
+            refunds.find(Filters.`in`(RefundDoc::appointmentId.name, appointmentIds))
+                .toList()
+                .associateBy { it.appointmentId }
+        }
+    } catch (e: Exception) {
+        log.error("Failed to batch-fetch refunds — ${e.message}", e)
+        emptyMap()
+    }
+
     suspend fun getAll(status: String?, page: Int, size: Int): Pair<List<RefundDoc>, Long> = try {
         val filter = status?.takeIf { it.isNotBlank() }?.let { Filters.eq(RefundDoc::status.name, it.uppercase()) }
         val total = if (filter != null) refunds.countDocuments(filter) else refunds.countDocuments()

@@ -872,10 +872,29 @@ Returns all appointments for the authenticated patient across all statuses.
     "notes": "Persistent headache for 3 days",
     "cancellationReason": null,
     "cancelledBy": null,
+    "updatedAt": null,
+    "refund": null
+  }
+}
+```
+
+`refund` is only populated when `status` is `"CANCELLED"` **and** a completed payment existed for the appointment at cancellation time (free/unpaid cancellations have no refund record, so `refund` stays `null`). Shape:
+
+```json
+{
+  "refund": {
+    "id": "6a9988abcd5678ef90123abc",
+    "amount": 1500.0,
+    "currency": "KES",
+    "status": "PENDING",
+    "reason": "I am feeling better",
+    "createdAt": "2026-05-18T10:15:00.123456Z",
     "updatedAt": null
   }
 }
 ```
+
+`refund.status` lifecycle: `PENDING` (record created on cancellation) → `COMPLETED` | `FAILED` (set once the payout is processed via IntaSend).
 
 ### Error Responses
 
