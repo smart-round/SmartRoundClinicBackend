@@ -29,7 +29,10 @@ class ConsultationChatService(
     private val redis: RedisRepository,
 ) {
     private val log = LoggerFactory.getLogger(ConsultationChatService::class.java)
-    private val json = Json { ignoreUnknownKeys = true }
+    // encodeDefaults = true — the "type" discriminator on ConsultationTypingEventRes defaults to
+    // "TYPING", so without this it's always equal to its default and gets omitted entirely from the
+    // wire payload, leaving clients with no "type" field to dispatch on.
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     suspend fun getUserName(userId: String): String? = repository.getUserName(userId)
 

@@ -37,7 +37,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-private val json = Json { ignoreUnknownKeys = true }
+// encodeDefaults = true — otherwise the "type" discriminator field on PRESENCE events (and any other
+// defaulted field) is omitted whenever it equals its default value, which is always in this case, so
+// clients doing type-based peek dispatch see no "type" at all and can't tell events apart.
+private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
 // Cloudflare RealtimeKit webhook payload (actual format observed from dashboard)
 // Events: meeting.started | meeting.ended | meeting.participantJoined | meeting.participantLeft
