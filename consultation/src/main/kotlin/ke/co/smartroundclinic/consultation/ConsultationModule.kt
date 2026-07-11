@@ -4,8 +4,11 @@ import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
+import ke.co.smartroundclinic.consultation.domain.usecase.call.CancelCallInviteUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.DeclineCallInviteUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndThreadCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.InviteToCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinThreadCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.HideConversationThreadUseCase
@@ -26,8 +29,14 @@ fun Application.consultationModule() {
     val getMergedHistoryUseCase: GetMergedConsultationHistoryUseCase by inject()
     val hideConversationThreadUseCase: HideConversationThreadUseCase by inject()
     val socketRegistry: ConsultationSocketRegistry by inject()
+    val inviteToCallUseCase: InviteToCallUseCase by inject()
+    val declineCallInviteUseCase: DeclineCallInviteUseCase by inject()
+    val cancelCallInviteUseCase: CancelCallInviteUseCase by inject()
     routing {
-        consultationChatController(chatService, appointmentRepository, joinCallUseCase, endCallUseCase, meetingWebhookUseCase, socketRegistry)
+        consultationChatController(
+            chatService, appointmentRepository, joinCallUseCase, endCallUseCase, meetingWebhookUseCase, socketRegistry,
+            inviteToCallUseCase, declineCallInviteUseCase, cancelCallInviteUseCase,
+        )
         conversationThreadController(listThreadsUseCase, getMergedHistoryUseCase, hideConversationThreadUseCase, socketRegistry)
     }
 }

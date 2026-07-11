@@ -5,4 +5,13 @@ object RedisKeys {
     fun presence(userId: String) = "presence:$userId"
 
     const val PRESENCE_TTL_SECONDS = 35L
+
+    /** Serialized CallInviteState for a single ringing call, keyed by callId. TTL = CALL_INVITE_TTL_SECONDS. */
+    fun callInvite(callId: String) = "call_invite:$callId"
+
+    /** callId of the currently-ringing invite for a thread, used to reject a second simultaneous invite. */
+    fun activeCallForThread(doctorId: String, patientId: String) = "call_invite:thread:$doctorId:$patientId"
+
+    /** How long an invite rings before it's considered a missed call and expires on its own. */
+    const val CALL_INVITE_TTL_SECONDS = 45L
 }

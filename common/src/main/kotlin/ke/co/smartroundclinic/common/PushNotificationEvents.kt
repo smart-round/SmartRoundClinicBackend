@@ -24,6 +24,12 @@ object PushNotificationEvents {
     const val CALL_PATIENT_JOINED = "Patient Joined the Call"
     const val CALL_ENDED         = "Call Ended"
 
+    // ── Incoming call ringing (invite/answer/decline/cancel signaling) ────────────
+    const val CALL_INVITE    = "Incoming Video Call"
+    const val CALL_ANSWERED  = "Call Answered"
+    const val CALL_DECLINED  = "Call Declined"
+    const val CALL_CANCELLED = "Call Cancelled"
+
     // ── Chat (DM) ───────────────────────────────────────────────────────────────
     const val NEW_CHAT_MESSAGE = "New Chat Message"
     fun newChatMessage(senderName: String) = "New message from $senderName"

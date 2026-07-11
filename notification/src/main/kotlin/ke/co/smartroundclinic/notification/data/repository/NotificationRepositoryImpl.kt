@@ -8,8 +8,11 @@ import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.infra.apns.ApnsAppTarget
+import ke.co.smartroundclinic.infra.apns.ApnsVoipClient
 import ke.co.smartroundclinic.notification.data.entity.NotificationEntity
 import ke.co.smartroundclinic.notification.domain.model.NotificationStatus
+import ke.co.smartroundclinic.notification.domain.model.TokenType
 import ke.co.smartroundclinic.notification.domain.model.UserType
 import ke.co.smartroundclinic.notification.domain.repository.NotificationRepository
 import ke.co.smartroundclinic.notification.domain.repository.PushNotificationRepository
@@ -25,6 +28,7 @@ class NotificationRepositoryImpl(
     database: MongoDatabase,
     private val deviceTokenRepo: UserDeviceTokenRepository,
     private val pushRepo: PushNotificationRepository,
+    private val apnsVoipClient: ApnsVoipClient? = null,
 ) : NotificationRepository, NotificationSender {
 
     private val collection = database.getCollection<NotificationEntity>(MongoDBConstants.NOTIFICATIONS)
@@ -179,6 +183,31 @@ class NotificationRepositoryImpl(
             val tokens = (tokensResource as? Resource.Success)?.data ?: emptyList()
             if (tokens.isNotEmpty()) {
                 runCatching { pushRepo.send(tokens, title, message, metadata) }
+            }
+        }
+    }
+
+    override suspend fun sendCallSignal(
+        event: String,
+        recipientId: String,
+        metadata: Map<String, String>,
+    ) {
+        val tokens = (deviceTokenRepo.getByUser(recipientId) as? Resource.Success)?.data ?: emptyList()
+        val (voipTokens, standardTokens) = tokens.partition { it.tokenType == TokenType.VOIP }
+
+        if (standardTokens.isNotEmpty()) {
+            runCatching { pushRepo.sendDataOnly(standardTokens, event, metadata) }
+        }
+        // VoIP tokens ring reliably via a direct APNs push even when the app is killed — the
+        // reliable channel for iOS, on top of (not instead of) the FCM silent-push fallback above.
+        val voipClient = apnsVoipClient
+        if (voipTokens.isNotEmpty() && voipClient != null) {
+            voipTokens.forEach { token ->
+                val target = when (token.userType) {
+                    UserType.DOCTOR -> ApnsAppTarget.DOCTOR
+                    UserType.PATIENT -> ApnsAppTarget.PATIENT
+                }
+                runCatching { voipClient.send(token.deviceToken, event, metadata, target) }
             }
         }
     }

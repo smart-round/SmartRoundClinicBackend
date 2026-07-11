@@ -6,12 +6,20 @@ import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.consultation.domain.model.CallInviteState
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadRepository
+import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
+import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationCallAnsweredEventRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.JoinCallRes
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.realtime.RealtimeKitClient
+import ke.co.smartroundclinic.infra.redis.RedisKeys
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Resolves (or lazily provisions) the Cloudflare RealtimeKit meeting tied to a
@@ -27,8 +35,36 @@ class JoinThreadCallUseCase(
     private val messages: ConsultationMessageRepository,
     private val client: RealtimeKitClient,
     private val notificationSender: NotificationSender? = null,
+    private val redis: RedisRepository? = null,
+    private val socketRegistry: ConsultationSocketRegistry? = null,
 ) {
+    private val json = Json { ignoreUnknownKeys = true }
+
     private fun meetingTitle(doctorId: String, patientId: String) = "Thread $doctorId:$patientId"
+
+    /**
+     * If this join is the callee accepting a ringing invite (see [InviteToCallUseCase]), tells the
+     * caller's client CALL_ANSWERED so it stops ringing and calls join itself. No-ops otherwise —
+     * including when the *caller's own* client calls join in response to that signal, since by then
+     * the invite has already been cleared below.
+     */
+    private suspend fun signalAnsweredIfRinging(doctorId: String, patientId: String, joiningUserId: String) {
+        if (redis == null || socketRegistry == null) return
+        val callId = redis.get(RedisKeys.activeCallForThread(doctorId, patientId)) ?: return
+        val raw = redis.get(RedisKeys.callInvite(callId)) ?: return
+        val invite = json.decodeFromString<CallInviteState>(raw)
+        if (invite.calleeId != joiningUserId) return
+
+        redis.delete(RedisKeys.callInvite(callId))
+        redis.delete(RedisKeys.activeCallForThread(doctorId, patientId))
+        val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
+        socketRegistry.sendToUser(threadKey, invite.callerId, json.encodeToString(ConsultationCallAnsweredEventRes(callId = callId)))
+        notificationSender?.sendCallSignal(
+            event = PushNotificationEvents.CALL_ANSWERED,
+            recipientId = invite.callerId,
+            metadata = mapOf("callId" to callId, "doctorId" to doctorId, "patientId" to patientId),
+        )
+    }
 
     private suspend fun resolveMeetingId(doctorId: String, patientId: String, currentStoredId: String?): Resource<String> {
         val title = meetingTitle(doctorId, patientId)
@@ -123,6 +159,7 @@ class JoinThreadCallUseCase(
         return when (resolvedParticipant) {
             is Resource.Success -> {
                 val p = resolvedParticipant.data!!
+                runCatching { signalAnsweredIfRinging(doctorId, patientId, userId) }
                 runCatching {
                     notificationSender?.send(
                         title = if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED,

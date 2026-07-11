@@ -42,7 +42,7 @@ val notificationModule = module {
     }
 
     // ── In-app notifications (also dispatches FCM on PUSH_NOTIFICATION channel) ──
-    single { NotificationRepositoryImpl(get(named("notificationDb")), get(), get()) } bind NotificationSender::class
+    single { NotificationRepositoryImpl(get(named("notificationDb")), get(), get(), get()) } bind NotificationSender::class
     single<NotificationRepository> { get<NotificationRepositoryImpl>() }
 
     // ── Use cases ──────────────────────────────────────────────────────────────

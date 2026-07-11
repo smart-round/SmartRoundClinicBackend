@@ -20,9 +20,14 @@ import io.ktor.websocket.readText
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
+import ke.co.smartroundclinic.consultation.domain.usecase.call.CancelCallInviteUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.DeclineCallInviteUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndThreadCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.InviteToCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinThreadCallUseCase
+import ke.co.smartroundclinic.consultation.presentation.dto.request.CallActionReq
+import ke.co.smartroundclinic.consultation.presentation.dto.request.InviteToCallReq
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationMessageRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.ConsultationPresenceEventRes
 import ke.co.smartroundclinic.consultation.presentation.dto.response.toRes
@@ -69,6 +74,9 @@ fun Route.consultationChatController(
     endCallUseCase: EndThreadCallUseCase,
     meetingWebhookUseCase: HandleMeetingEndedWebhookUseCase,
     socketRegistry: ConsultationSocketRegistry,
+    inviteToCallUseCase: InviteToCallUseCase,
+    declineCallInviteUseCase: DeclineCallInviteUseCase,
+    cancelCallInviteUseCase: CancelCallInviteUseCase,
 ) {
     // POST /webhooks/cloudflare/realtime-kit  (unauthenticated — called by Cloudflare)
     // Configure this URL in the Cloudflare RealtimeKit dashboard under Webhooks.
@@ -167,6 +175,42 @@ fun Route.consultationChatController(
             }
 
             val result = joinCallUseCase(doctorId, patientId, userId)
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+        }
+
+        // POST /chat/{otherUserId}/call/invite
+        // Rings the other party (WhatsApp-style) without touching the RealtimeKit meeting —
+        // if they accept, their client calls /call/join as normal, which signals CALL_ANSWERED
+        // back to this caller so it can also join.
+        post("/chat/{otherUserId}/call/invite") {
+            val otherUserId = call.parameters["otherUserId"]
+                ?: throw MissingParametersException("otherUserId path parameter is required")
+            val userId = call.getUserId() ?: return@post
+            val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
+            val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
+
+            if (!appointmentRepository.hasJoinableConfirmedAppointment(doctorId, patientId)) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No active appointment ready for a call right now"))
+            }
+
+            val req = runCatching { call.receive<InviteToCallReq>() }.getOrDefault(InviteToCallReq())
+            val result = inviteToCallUseCase(doctorId, patientId, userId, req.isVideo)
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+        }
+
+        // POST /chat/{otherUserId}/call/decline  (callee only)
+        post("/chat/{otherUserId}/call/decline") {
+            val userId = call.getUserId() ?: return@post
+            val req = call.receive<CallActionReq>()
+            val result = declineCallInviteUseCase(req.callId, userId)
+            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+        }
+
+        // POST /chat/{otherUserId}/call/cancel  (caller only — hung up before the callee answered)
+        post("/chat/{otherUserId}/call/cancel") {
+            val userId = call.getUserId() ?: return@post
+            val req = call.receive<CallActionReq>()
+            val result = cancelCallInviteUseCase(req.callId, userId)
             call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 

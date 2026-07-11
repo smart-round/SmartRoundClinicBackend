@@ -8,8 +8,11 @@ import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessage
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationThreadRepository
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
+import ke.co.smartroundclinic.consultation.domain.usecase.call.CancelCallInviteUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.DeclineCallInviteUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.EndThreadCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.HandleMeetingEndedWebhookUseCase
+import ke.co.smartroundclinic.consultation.domain.usecase.call.InviteToCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.JoinThreadCallUseCase
 import ke.co.smartroundclinic.consultation.domain.usecase.call.StaleCallCleanupTask
 import ke.co.smartroundclinic.consultation.domain.usecase.chat.GetMergedConsultationHistoryUseCase
@@ -49,7 +52,7 @@ val consultationKoinModule = module {
     /**
      * Call (Cloudflare RealtimeKit) use cases
      */
-    single { JoinThreadCallUseCase(get(), get(), get<RealtimeKitClient>(), getOrNull()) }
+    single { JoinThreadCallUseCase(get(), get(), get<RealtimeKitClient>(), getOrNull(), get<RedisRepository>(), get()) }
     single { EndThreadCallUseCase(get(), get<RealtimeKitClient>(), getOrNull()) }
     single { HandleMeetingEndedWebhookUseCase(get(), get<RealtimeKitClient>(), getOrNull()) }
     single { StaleCallCleanupTask(get<RealtimeKitClient>(), get()) }
@@ -58,6 +61,13 @@ val consultationKoinModule = module {
      * Real-time infra
      */
     single { ConsultationSocketRegistry() }
+
+    /**
+     * Incoming-call ringing (invite/answer/decline/cancel)
+     */
+    single { InviteToCallUseCase(get(), get(), get<RedisRepository>(), get(), getOrNull()) }
+    single { DeclineCallInviteUseCase(get<RedisRepository>(), get(), getOrNull()) }
+    single { CancelCallInviteUseCase(get<RedisRepository>(), get(), getOrNull()) }
 
     /**
      * Services

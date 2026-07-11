@@ -1,5 +1,8 @@
 package ke.co.smartroundclinic.notification.data.repository
 
+import com.google.firebase.messaging.AndroidConfig
+import com.google.firebase.messaging.Aps
+import com.google.firebase.messaging.ApnsConfig
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.MulticastMessage
 import com.google.firebase.messaging.Notification
@@ -82,6 +85,69 @@ class PushNotificationRepositoryImpl(
             )
         } catch (e: Exception) {
             Resource.Error(e.localizedMessage ?: "Failed to send push notifications")
+        }
+    }
+
+    override suspend fun sendDataOnly(
+        tokens: List<UserDeviceToken>,
+        event: String,
+        data: Map<String, String>,
+    ): Resource<PushNotificationSummary> = withContext(Dispatchers.IO) {
+        if (messaging == null) {
+            return@withContext Resource.Error("Push notifications not configured (FCM credentials missing)")
+        }
+        if (tokens.isEmpty()) {
+            return@withContext Resource.Error("No device tokens found for the specified target")
+        }
+        try {
+            var totalSent = 0
+            var totalFailed = 0
+            val payload = data + ("event" to event)
+            val sentAt = Clock.System.now().toString()
+
+            tokens.chunked(FCM_BATCH_SIZE).forEach { chunk ->
+                val multicast = MulticastMessage.builder()
+                    .putAllData(payload)
+                    .addAllTokens(chunk.map { it.deviceToken })
+                    .setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build())
+                    .setApnsConfig(
+                        ApnsConfig.builder()
+                            .putHeader("apns-push-type", "background")
+                            .putHeader("apns-priority", "5")
+                            .setAps(Aps.builder().setContentAvailable(true).build())
+                            .build()
+                    )
+                    .build()
+
+                val batchResponse = messaging.sendEachForMulticast(multicast)
+
+                chunk.forEachIndexed { i, token ->
+                    val response = batchResponse.responses[i]
+                    logCollection.insertOne(
+                        PushNotificationLogEntity(
+                            id = ObjectId().toString(),
+                            title = event,
+                            body = "",
+                            deviceToken = token.deviceToken,
+                            userId = token.userId,
+                            userType = token.userType.name,
+                            status = if (response.isSuccessful) PushNotificationLogStatus.SENT.name
+                                     else PushNotificationLogStatus.FAILED.name,
+                            messageId = response.messageId,
+                            error = response.exception?.message,
+                            sentAt = sentAt,
+                        )
+                    )
+                    if (response.isSuccessful) totalSent++ else totalFailed++
+                }
+            }
+
+            Resource.Success(
+                data = PushNotificationSummary(sent = totalSent, failed = totalFailed, total = tokens.size),
+                message = "Data-only push dispatched: $totalSent sent, $totalFailed failed out of ${tokens.size}",
+            )
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to send data-only push notifications")
         }
     }
 
