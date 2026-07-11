@@ -1,27 +1,22 @@
 package ke.co.smartroundclinic.payments.domain.usecase.refund
 
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.infra.IntaSendConfig
-import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
-import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateMpesaB2CRequestReq
-import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateMpesaB2CTransaction
-import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.toApproveMpesaB2CRequest
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateChargebackRequestReq
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.repository.RefundRepository
 import org.slf4j.LoggerFactory
 
 /**
- * Processes a single pending refund via M-Pesa B2C — the patient's paying phone number is
- * resolved from the original payment (the same `account` field STK push confirmation writes).
- * Invoked one refund at a time by [ProcessRefundsTask].
+ * Processes a single pending refund via IntaSend's native chargeback API — reverses the
+ * original collection transaction by invoiceId instead of initiating a fresh outbound
+ * disbursement, avoiding B2C-style payout charges. Invoked one refund at a time by
+ * [ProcessRefundsTask].
  */
 class ProcessNextRefundUseCase(
     private val refundRepository: RefundRepository,
     private val paymentRepository: PaymentRepository,
     private val intaSendRepository: IntaSendRepository,
-    private val appointmentInfoLookup: AppointmentInfoLookup,
-    private val config: IntaSendConfig,
 ) {
     private val log = LoggerFactory.getLogger(ProcessNextRefundUseCase::class.java)
 
@@ -30,51 +25,31 @@ class ProcessNextRefundUseCase(
         val refund = (refundRepository.getNextPending() as? Resource.Success)?.data ?: return false
 
         val payment = (paymentRepository.getById(refund.paymentId) as? Resource.Success)?.data
-        val phoneNumber = payment?.account
-        if (phoneNumber.isNullOrBlank()) {
-            log.warn("Refund id=${refund.id} — no phone number on file for paymentId=${refund.paymentId}, marking FAILED")
-            refundRepository.markFailed(refund.id, "No phone number on file for the original payment")
+        val invoiceId = payment?.invoiceId
+        if (invoiceId.isNullOrBlank()) {
+            log.warn("Refund id=${refund.id} — no invoiceId on file for paymentId=${refund.paymentId}, marking FAILED")
+            refundRepository.markFailed(refund.id, "No invoice reference on file for the original payment")
             return true
         }
 
-        val patientName = appointmentInfoLookup.getParticipants(refund.appointmentId)?.patientName ?: "Refund Recipient"
-
-        val initiateResult = intaSendRepository.createMpesaB2CRequest(
-            CreateMpesaB2CRequestReq(
-                // IntaSend routes all send-money disbursement webhooks to the account's single
-                // registered callback regardless of the URL passed per-request, so this must
-                // match the withdrawal callback — the same route now handles both.
-                callbackUrl = config.callBackWithdrawalUrl,
-                transactions = listOf(
-                    CreateMpesaB2CTransaction(
-                        account = phoneNumber,
-                        amount = refund.amount.toInt().toString(),
-                        name = patientName,
-                        narrative = "Refund for cancelled appointment ${refund.appointmentId}",
-                    )
-                ),
+        val result = intaSendRepository.createChargeback(
+            CreateChargebackRequestReq(
+                invoiceId = invoiceId,
+                amount = "%.2f".format(refund.amount),
+                reason = refund.reason ?: "Appointment cancelled",
             )
         )
 
-        if (initiateResult !is Resource.Success || initiateResult.data == null) {
-            val reason = (initiateResult as? Resource.Error)?.message ?: "Failed to initiate refund with payment provider"
-            log.warn("Refund id=${refund.id} — initiate failed: $reason")
+        if (result !is Resource.Success || result.data?.chargebackId == null) {
+            val reason = (result as? Resource.Error)?.message ?: "Failed to create chargeback with payment provider"
+            log.warn("Refund id=${refund.id} — chargeback creation failed: $reason")
             refundRepository.markFailed(refund.id, reason)
             return true
         }
 
-        val initiated = initiateResult.data!!
-        val approveResult = intaSendRepository.approveMpesaB2CRequest(initiated.toApproveMpesaB2CRequest())
-
-        if (approveResult !is Resource.Success) {
-            val reason = (approveResult as? Resource.Error)?.message ?: "Failed to approve refund with payment provider"
-            log.warn("Refund id=${refund.id} — approve failed: $reason")
-            refundRepository.markFailed(refund.id, reason)
-            return true
-        }
-
-        log.info("Refund id=${refund.id} submitted — trackingId=${initiated.trackingId} phoneNumber=$phoneNumber amount=${refund.amount}")
-        refundRepository.markSubmitted(refund.id, initiated.trackingId, phoneNumber)
+        val chargebackId = result.data!!.chargebackId!!
+        log.info("Refund id=${refund.id} submitted — chargebackId=$chargebackId invoiceId=$invoiceId amount=${refund.amount}")
+        refundRepository.markSubmitted(refund.id, chargebackId)
         return true
     }
 }

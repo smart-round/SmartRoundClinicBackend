@@ -37,12 +37,11 @@ class RefundRepositoryImpl(database: MongoDatabase) : RefundRepository {
         Resource.Error(e.message ?: "Failed to fetch refund")
     }
 
-    override suspend fun markSubmitted(id: String, trackingId: String, phoneNumber: String): Resource<Unit> = try {
+    override suspend fun markSubmitted(id: String, trackingId: String): Resource<Unit> = try {
         col.updateOne(
             Filters.eq(RefundEntity::id.name, id),
             Updates.combine(
                 Updates.set(RefundEntity::trackingId.name, trackingId),
-                Updates.set(RefundEntity::phoneNumber.name, phoneNumber),
                 Updates.set(RefundEntity::updatedAt.name, Clock.System.now().toString()),
             )
         )

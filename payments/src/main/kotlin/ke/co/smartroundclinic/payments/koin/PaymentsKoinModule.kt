@@ -89,7 +89,7 @@ val paymentsKoinModule = module {
     single { HandleWithdrawalWebhookUseCase(get()) }
 
     // Refund use cases + background payout task
-    single { ProcessNextRefundUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
+    single { ProcessNextRefundUseCase(get(), get(), get()) }
     single { HandleRefundWebhookUseCase(get()) }
     single { ProcessRefundsTask(get()) }
 

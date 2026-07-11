@@ -20,8 +20,8 @@ data class RefundEntity(
     val cancelledBy: String,
     val cancelledByRole: String,
     val status: String = RefundStatus.PENDING.name,
+    /** Holds IntaSend's chargeback_id once the refund is submitted. */
     val trackingId: String? = null,
-    val phoneNumber: String? = null,
     val failureReason: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,

@@ -9,7 +9,7 @@ interface RefundRepository {
     suspend fun getById(id: String): Resource<RefundEntity?>
 
     /** Marks a refund as submitted to the payment provider — stays PENDING until the webhook confirms it. */
-    suspend fun markSubmitted(id: String, trackingId: String, phoneNumber: String): Resource<Unit>
+    suspend fun markSubmitted(id: String, trackingId: String): Resource<Unit>
     suspend fun markFailed(id: String, reason: String): Resource<Unit>
     suspend fun updateStatusByTrackingId(trackingId: String, status: String): Resource<Unit>
 }
