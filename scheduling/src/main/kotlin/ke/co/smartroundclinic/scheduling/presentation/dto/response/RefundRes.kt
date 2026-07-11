@@ -58,6 +58,11 @@ fun RefundDoc.toRes(names: Map<String, String> = emptyMap(), payment: Appointmen
             commissionRate = it.commissionRate,
             platformFee = it.platformFee,
             netAmount = it.netAmount,
+            paymentMethod = it.paymentMethod,
+            phoneNumber = it.phoneNumber,
+            transactionRef = it.transactionRef,
+            invoiceId = it.invoiceId,
+            mpesaReference = it.mpesaReference,
         )
     },
 )

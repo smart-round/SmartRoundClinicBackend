@@ -25,6 +25,11 @@ data class AdminAppointmentPaymentRes(
     val commissionRate: Double,
     val platformFee: Double,
     val netAmount: Double,
+    val paymentMethod: String?,
+    val phoneNumber: String?,
+    val transactionRef: String?,
+    val invoiceId: String?,
+    val mpesaReference: String?,
 )
 
 @Serializable

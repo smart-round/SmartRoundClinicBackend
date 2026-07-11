@@ -18,6 +18,11 @@ private data class PaymentDoc(
     val currency: String = "KES",
     val status: String = "PENDING",
     val commissionRate: Double = 0.0,
+    val paymentMethod: String? = null,
+    val account: String? = null,
+    val transactionRef: String? = null,
+    val invoiceId: String? = null,
+    val mpesaReference: String? = null,
 )
 
 data class AppointmentPaymentInfo(
@@ -28,7 +33,30 @@ data class AppointmentPaymentInfo(
     val commissionRate: Double,
     val platformFee: Double,
     val netAmount: Double,
+    val paymentMethod: String?,
+    val phoneNumber: String?,
+    val transactionRef: String?,
+    val invoiceId: String?,
+    val mpesaReference: String?,
 )
+
+private fun PaymentDoc.toInfo(): AppointmentPaymentInfo {
+    val fee = amount * (commissionRate / 100.0)
+    return AppointmentPaymentInfo(
+        paymentId = id,
+        amount = amount,
+        currency = currency,
+        status = status,
+        commissionRate = commissionRate,
+        platformFee = fee,
+        netAmount = amount - fee,
+        paymentMethod = paymentMethod,
+        phoneNumber = account,
+        transactionRef = transactionRef,
+        invoiceId = invoiceId,
+        mpesaReference = mpesaReference,
+    )
+}
 
 class AppointmentAdminLookup(
     authDb: MongoDatabase,
@@ -47,19 +75,10 @@ class AppointmentAdminLookup(
     }
 
     suspend fun getPaymentByAppointmentId(appointmentId: String): AppointmentPaymentInfo? {
-        val doc = payments
+        return payments
             .find(Filters.eq(PaymentDoc::appointmentId.name, appointmentId))
-            .firstOrNull() ?: return null
-        val fee = doc.amount * (doc.commissionRate / 100.0)
-        return AppointmentPaymentInfo(
-            paymentId = doc.id,
-            amount = doc.amount,
-            currency = doc.currency,
-            status = doc.status,
-            commissionRate = doc.commissionRate,
-            platformFee = fee,
-            netAmount = doc.amount - fee,
-        )
+            .firstOrNull()
+            ?.toInfo()
     }
 
     /** Batch-fetches payments for a list of appointmentIds. Returns a map of appointmentId → info. */
@@ -68,34 +87,14 @@ class AppointmentAdminLookup(
         return payments
             .find(Filters.`in`(PaymentDoc::appointmentId.name, appointmentIds))
             .toList()
-            .associate { doc ->
-                val fee = doc.amount * (doc.commissionRate / 100.0)
-                doc.appointmentId to AppointmentPaymentInfo(
-                    paymentId = doc.id,
-                    amount = doc.amount,
-                    currency = doc.currency,
-                    status = doc.status,
-                    commissionRate = doc.commissionRate,
-                    platformFee = fee,
-                    netAmount = doc.amount - fee,
-                )
-            }
+            .associate { it.appointmentId to it.toInfo() }
     }
 
     suspend fun getPaymentById(paymentId: String): AppointmentPaymentInfo? {
-        val doc = payments
+        return payments
             .find(Filters.eq(PaymentDoc::id.name, paymentId))
-            .firstOrNull() ?: return null
-        val fee = doc.amount * (doc.commissionRate / 100.0)
-        return AppointmentPaymentInfo(
-            paymentId = doc.id,
-            amount = doc.amount,
-            currency = doc.currency,
-            status = doc.status,
-            commissionRate = doc.commissionRate,
-            platformFee = fee,
-            netAmount = doc.amount - fee,
-        )
+            .firstOrNull()
+            ?.toInfo()
     }
 
     /** Batch-fetches payments for a list of payment ids. Returns a map of paymentId → info. */
@@ -104,17 +103,6 @@ class AppointmentAdminLookup(
         return payments
             .find(Filters.`in`(PaymentDoc::id.name, paymentIds))
             .toList()
-            .associate { doc ->
-                val fee = doc.amount * (doc.commissionRate / 100.0)
-                doc.id to AppointmentPaymentInfo(
-                    paymentId = doc.id,
-                    amount = doc.amount,
-                    currency = doc.currency,
-                    status = doc.status,
-                    commissionRate = doc.commissionRate,
-                    platformFee = fee,
-                    netAmount = doc.amount - fee,
-                )
-            }
+            .associate { it.id to it.toInfo() }
     }
 }
