@@ -41,7 +41,10 @@ class ProcessNextRefundUseCase(
 
         val initiateResult = intaSendRepository.createMpesaB2CRequest(
             CreateMpesaB2CRequestReq(
-                callbackUrl = config.callBackRefundUrl,
+                // IntaSend routes all send-money disbursement webhooks to the account's single
+                // registered callback regardless of the URL passed per-request, so this must
+                // match the withdrawal callback — the same route now handles both.
+                callbackUrl = config.callBackWithdrawalUrl,
                 transactions = listOf(
                     CreateMpesaB2CTransaction(
                         account = phoneNumber,

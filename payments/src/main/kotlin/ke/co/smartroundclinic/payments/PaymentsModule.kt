@@ -11,7 +11,6 @@ import ke.co.smartroundclinic.payments.presentation.controller.doctorPaymentsCon
 import ke.co.smartroundclinic.payments.presentation.controller.intaSendController
 import ke.co.smartroundclinic.payments.presentation.controller.patientPaymentsController
 import ke.co.smartroundclinic.payments.presentation.controller.paymentController
-import ke.co.smartroundclinic.payments.presentation.controller.refundPayoutController
 import org.koin.ktor.ext.inject
 
 fun Application.paymentsModule() {
@@ -24,6 +23,5 @@ fun Application.paymentsModule() {
         doctorPaymentsController(paymentService, intaSendService, AppConfig.intaSend.webhookChallenge)
         patientPaymentsController(paymentService)
         adminPaymentsController(adminPaymentsService)
-        refundPayoutController(intaSendService, AppConfig.intaSend.webhookChallenge)
     }
 }

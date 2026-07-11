@@ -72,7 +72,6 @@ data class IntaSendConfig(
     val webhookChallenge: String = require("INTASEND_WEBHOOK_CHALLENGE"),
 ) {
     val callBackWithdrawalUrl: String get() = "$callBackBaseUrl/payments/instasend/withdrawal/callback"
-    val callBackRefundUrl: String get() = "$callBackBaseUrl/payments/instasend/refund/callback"
 }
 
 object AppConfig {

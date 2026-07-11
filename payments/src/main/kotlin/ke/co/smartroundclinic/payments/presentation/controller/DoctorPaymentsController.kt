@@ -33,7 +33,9 @@ fun Route.doctorPaymentsController(
     intaSendService: IntaSendService,
     webhookChallenge: String,
 ) {
-    // Unauthenticated — IntaSend calls this server-to-server after every disbursement state change.
+    // Unauthenticated — IntaSend calls this server-to-server after every send-money disbursement
+    // state change, for both doctor withdrawals (PesaLink) and patient refund payouts (M-Pesa B2C).
+    // A trackingId only ever matches one of the two collections, so it's safe to attempt both.
     post("/payments/instasend/withdrawal/callback") {
         val raw = call.receiveText()
 
@@ -42,7 +44,7 @@ fun Route.doctorPaymentsController(
         }.getOrNull()
 
         if (payload == null) {
-            log.warn("Withdrawal webhook rejected — could not parse body")
+            log.warn("Disbursement webhook rejected — could not parse body")
             call.respond(HttpStatusCode.OK)
             return@post
         }
@@ -50,7 +52,7 @@ fun Route.doctorPaymentsController(
         // Authenticate using the challenge shared secret configured in IntaSend dashboard.
         if (payload.challenge != webhookChallenge) {
             log.warn(
-                "Withdrawal webhook rejected — challenge mismatch " +
+                "Disbursement webhook rejected — challenge mismatch " +
                 "(received=${payload.challenge}, expected=***)"
             )
             call.respond(HttpStatusCode.OK)
@@ -59,13 +61,15 @@ fun Route.doctorPaymentsController(
 
         // Authenticated — log the payload now that we know it came from IntaSend.
         log.info(
-            "Withdrawal webhook authenticated — trackingId=${payload.trackingId} " +
+            "Disbursement webhook authenticated — trackingId=${payload.trackingId} " +
             "status=${payload.status} statusCode=${payload.statusCode} " +
             "totalAmount=${payload.totalAmount} topic=${payload.topic}"
         )
 
         runCatching { intaSendService.handleWithdrawalWebhook(payload) }
             .onFailure { log.error("Withdrawal webhook handler failed — ${it.message}", it) }
+        runCatching { intaSendService.handleRefundWebhook(payload) }
+            .onFailure { log.error("Refund webhook handler failed — ${it.message}", it) }
 
         call.respond(HttpStatusCode.OK)
     }
