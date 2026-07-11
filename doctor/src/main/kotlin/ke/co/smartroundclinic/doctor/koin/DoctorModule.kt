@@ -147,8 +147,8 @@ val doctorModule = module {
     single { ComplianceCheckUseCase(get(), get()) }
     single { ToggleMonetizationUseCase(get(), get()) }
     single { ConfirmComplianceCorrectionUseCase(get(), get()) }
-    single { GetLatestComplianceCorrectionsUseCase(get()) }
-    single { GetComplianceCorrectionHistoryUseCase(get()) }
+    single { GetLatestComplianceCorrectionsUseCase(get(), get()) }
+    single { GetComplianceCorrectionHistoryUseCase(get(), get()) }
 
     /**
      * Specialization

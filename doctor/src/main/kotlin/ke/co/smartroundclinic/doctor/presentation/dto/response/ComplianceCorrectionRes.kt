@@ -11,6 +11,7 @@ data class ComplianceCorrectionRes(
     val submittedAt: String,
     val reviewedAt: String?,
     val reviewedBy: String?,
+    val doctorProfile: DoctorProfileInfo?,
 )
 
 data class ComplianceCorrectionsPageRes(
@@ -21,7 +22,7 @@ data class ComplianceCorrectionsPageRes(
     val pages: Long,
 )
 
-fun ComplianceCorrection.toRes() = ComplianceCorrectionRes(
+fun ComplianceCorrection.toRes(doctorProfile: DoctorProfileInfo? = null) = ComplianceCorrectionRes(
     id = id,
     doctorId = doctorId,
     complianceId = complianceId,
@@ -30,4 +31,5 @@ fun ComplianceCorrection.toRes() = ComplianceCorrectionRes(
     submittedAt = submittedAt,
     reviewedAt = reviewedAt,
     reviewedBy = reviewedBy,
+    doctorProfile = doctorProfile,
 )

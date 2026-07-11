@@ -130,28 +130,32 @@ fun Route.complianceController(service: ComplianceService) {
                 }
             }
 
-            // GET /admin/compliance/corrections?page=1&size=20&status=PENDING
-            // Admin queue — most recently submitted correction confirmations across all doctors.
-            get("corrections") {
-                call.requireRole(ADMIN) {
-                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                    val status = call.request.queryParameters["status"]
-                    val result = service.getLatestCorrections(page, size, status)
-                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-                }
-            }
+            // ── Admin: correction confirmations ─────────────────────────────
+            route("corrections") {
 
-            // GET /admin/compliance/corrections/history?doctorId=&page=1&size=20
-            // Admin — full correction history for a specific doctor (can span multiple rejections).
-            get("corrections/history") {
-                call.requireRole(ADMIN) {
-                    val doctorId = call.request.queryParameters["doctorId"]
-                        ?: throw MissingParametersException("doctorId query parameter is required")
-                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                    val result = service.getCorrectionHistory(doctorId, page, size)
-                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                // GET /admin/compliance/corrections?page=1&size=20&status=PENDING
+                // Admin queue — most recently submitted correction confirmations across all doctors.
+                get {
+                    call.requireRole(ADMIN) {
+                        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                        val status = call.request.queryParameters["status"]
+                        val result = service.getLatestCorrections(page, size, status)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                // GET /admin/compliance/corrections/history?doctorId=&page=1&size=20
+                // Admin — full correction history for a specific doctor (can span multiple rejections).
+                get("history") {
+                    call.requireRole(ADMIN) {
+                        val doctorId = call.request.queryParameters["doctorId"]
+                            ?: throw MissingParametersException("doctorId query parameter is required")
+                        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                        val result = service.getCorrectionHistory(doctorId, page, size)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
                 }
             }
         }
