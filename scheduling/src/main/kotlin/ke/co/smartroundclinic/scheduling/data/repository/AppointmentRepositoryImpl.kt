@@ -15,9 +15,14 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.bson.conversions.Bson
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 
 class AppointmentRepositoryImpl(
     private val client: MongoClient,
@@ -240,4 +245,31 @@ class AppointmentRepositoryImpl(
                 false
             }
         }
+
+    override suspend fun hasJoinableConfirmedAppointment(doctorId: String, patientId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val now = kotlinx.datetime.Clock.System.now()
+                col.find(
+                    Filters.and(
+                        Filters.eq(AppointmentEntity::doctorId.name, doctorId),
+                        Filters.eq(AppointmentEntity::patientId.name, patientId),
+                        Filters.eq(AppointmentEntity::status.name, "CONFIRMED"),
+                    )
+                ).toList().any { appointment ->
+                    val unlockInstant = parseSlotStart(appointment.date, appointment.slotStart)?.minus(10.minutes)
+                    unlockInstant != null && now >= unlockInstant
+                }
+            } catch (e: Exception) {
+                log.error("Failed to check joinable appointment doctorId=$doctorId patientId=$patientId — ${e.message}", e)
+                false
+            }
+        }
+
+    private fun parseSlotStart(date: String, slotStart: String): Instant? = runCatching {
+        val (h, m) = slotStart.split(":").map { it.toInt() }
+        val dateParts = date.split("-").map { it.toInt() }
+        LocalDateTime(dateParts[0], dateParts[1], dateParts[2], h, m, 0, 0)
+            .toInstant(TimeZone.of("Africa/Nairobi"))
+    }.getOrNull()
 }

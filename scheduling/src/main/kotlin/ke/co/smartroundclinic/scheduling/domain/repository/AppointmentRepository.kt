@@ -24,4 +24,7 @@ interface AppointmentRepository {
 
     /** True once this doctor/patient pair has ever had a CONFIRMED or COMPLETED appointment — gates chat/call access. */
     suspend fun existsConfirmedOrCompletedBetween(doctorId: String, patientId: String): Boolean
+
+    /** True if a CONFIRMED appointment between this pair has entered its joinable window (from 10 min before slotStart onward, no upper bound) — gates video call join. */
+    suspend fun hasJoinableConfirmedAppointment(doctorId: String, patientId: String): Boolean
 }

@@ -162,8 +162,8 @@ fun Route.consultationChatController(
             val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
             val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
 
-            if (!appointmentRepository.existsConfirmedOrCompletedBetween(doctorId, patientId)) {
-                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No consultation relationship with this user"))
+            if (!appointmentRepository.hasJoinableConfirmedAppointment(doctorId, patientId)) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No active appointment ready for a call right now"))
             }
 
             val result = joinCallUseCase(doctorId, patientId, userId)
