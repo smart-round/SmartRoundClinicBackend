@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctor.domain.model.toModel
+import ke.co.smartroundclinic.doctor.domain.repository.ComplianceCorrectionRepository
 import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.presentation.dto.response.ComplianceRes
 import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
@@ -23,6 +24,7 @@ class RejectComplianceUseCase(
     private val repository: ComplianceRepository,
     private val emailRepository: EmailRepository,
     private val userRepository: UserRepository,
+    private val correctionRepository: ComplianceCorrectionRepository,
     private val notificationSender: NotificationSender? = null,
 ) {
     suspend operator fun invoke(id: String, adminId: String, reason: String): DefaultResponse<ComplianceRes?> = withContext(
@@ -31,6 +33,7 @@ class RejectComplianceUseCase(
         if (rejected is Resource.Error) return@withContext rejected.toDefaultResponse()
         val doctorId = rejected.data?.doctorId ?: return@withContext rejected.toDefaultResponse()
         userRepository.adminUpdateUser(doctorId, accountStatus = null, verificationStatus = UserEntity.VerificationStatus.REJECTED)
+        runCatching { correctionRepository.resolvePending(doctorId, "REJECTED", adminId) }
         val user = userRepository.getUser(doctorId)
         if (user is Resource.Error) return@withContext user.toDefaultResponse()
         sendApplicationRejectEmail(user.data?.fullName ?: "", user.data?.email ?: "", reason)

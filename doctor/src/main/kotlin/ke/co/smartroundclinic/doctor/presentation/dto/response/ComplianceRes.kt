@@ -25,6 +25,7 @@ data class ComplianceRes(
     val updatedAt: String?,
     val doctorProfile: DoctorProfileInfo?,
     val specializations: List<SpecializationWithNamesRes>,
+    val hasPendingCorrection: Boolean = false,
 )
 
 data class CompliancePageResult(
@@ -38,6 +39,7 @@ data class CompliancePageResult(
 fun Compliance.toRes(
     doctorProfile: DoctorProfileInfo? = null,
     specializations: List<SpecializationWithNamesRes> = emptyList(),
+    hasPendingCorrection: Boolean = false,
 ) = ComplianceRes(
     id = id,
     doctorId = doctorId,
@@ -51,4 +53,5 @@ fun Compliance.toRes(
     updatedAt = updatedAt,
     doctorProfile = doctorProfile,
     specializations = specializations,
+    hasPendingCorrection = hasPendingCorrection,
 )

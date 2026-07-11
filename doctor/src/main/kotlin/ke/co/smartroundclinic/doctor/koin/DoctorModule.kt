@@ -4,6 +4,7 @@ import ke.co.smartroundclinic.doctor.data.repository.DoctorProfileLookup
 import ke.co.smartroundclinic.doctor.data.repository.RecommendationRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.DoctorRatingRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.CertificationRepositoryImpl
+import ke.co.smartroundclinic.doctor.data.repository.ComplianceCorrectionRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.ComplianceRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PaymentDetailsRepositoryImpl
 import ke.co.smartroundclinic.doctor.data.repository.PractitionerLicenceRepositoryImpl
@@ -15,6 +16,7 @@ import ke.co.smartroundclinic.doctor.data.repository.SpecializationRepositoryImp
 import ke.co.smartroundclinic.doctor.domain.repository.RecommendationRepository
 import ke.co.smartroundclinic.doctor.domain.repository.DoctorRatingRepository
 import ke.co.smartroundclinic.doctor.domain.repository.CertificationRepository
+import ke.co.smartroundclinic.doctor.domain.repository.ComplianceCorrectionRepository
 import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.domain.repository.PaymentDetailsRepository
 import ke.co.smartroundclinic.doctor.domain.repository.PractitionerLicenceRepository
@@ -40,8 +42,11 @@ import ke.co.smartroundclinic.doctor.domain.usecase.certification.GetCertificati
 import ke.co.smartroundclinic.doctor.domain.usecase.certification.GetMyCertificationsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.certification.UpdateCertificationUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ApproveComplianceUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.compliance.ConfirmComplianceCorrectionUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetAllComplianceUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetComplianceByIdUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetComplianceCorrectionHistoryUseCase
+import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetLatestComplianceCorrectionsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.GetMyComplianceStatusUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.RejectComplianceUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.compliance.SubmitComplianceUseCase
@@ -91,6 +96,7 @@ val doctorModule = module {
     single<PractitionerProfileRepository> { PractitionerProfileRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
     single<CertificationRepository> { CertificationRepositoryImpl(get(named("doctorDb"))) }
     single<ComplianceRepository> { ComplianceRepositoryImpl(get(named("doctorDb"))) }
+    single<ComplianceCorrectionRepository> { ComplianceCorrectionRepositoryImpl(get(named("doctorDb"))) }
     single { DoctorProfileLookup(get(named("doctorDb")), get(named("authDb")), get(named("adminDb"))) }
     single<PractitionerLicenceRepository> { PractitionerLicenceRepositoryImpl(get(named("doctorDb"))) }
     single<SpecializationRepositoryImpl> { SpecializationRepositoryImpl(get(named("doctorDb")), get(named("adminDb"))) }
@@ -132,14 +138,17 @@ val doctorModule = module {
     /**
      * Compliance
      * */
-    single { ApproveComplianceUseCase(get(), get(), get(), getOrNull()) }
+    single { ApproveComplianceUseCase(get(), get(), get(), get(), getOrNull()) }
     single { GetAllComplianceUseCase(get(), get()) }
     single { GetComplianceByIdUseCase(get(), get()) }
-    single { GetMyComplianceStatusUseCase(get()) }
-    single { RejectComplianceUseCase(get(), get(), get(), getOrNull()) }
+    single { GetMyComplianceStatusUseCase(get(), get()) }
+    single { RejectComplianceUseCase(get(), get(), get(), get(), getOrNull()) }
     single { SubmitComplianceUseCase(get(),get(),get(),get()) }
     single { ComplianceCheckUseCase(get(), get()) }
     single { ToggleMonetizationUseCase(get(), get()) }
+    single { ConfirmComplianceCorrectionUseCase(get(), get()) }
+    single { GetLatestComplianceCorrectionsUseCase(get()) }
+    single { GetComplianceCorrectionHistoryUseCase(get()) }
 
     /**
      * Specialization
@@ -194,6 +203,9 @@ val doctorModule = module {
     }
     single {
         ComplianceService(
+            get(),
+            get(),
+            get(),
             get(),
             get(),
             get(),

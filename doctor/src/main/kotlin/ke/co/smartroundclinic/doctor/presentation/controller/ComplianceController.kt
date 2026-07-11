@@ -43,6 +43,17 @@ fun Route.complianceController(service: ComplianceService) {
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
+
+            // POST /doctor/compliance/corrections/confirm
+            // A rejected doctor confirms they've made the requested changes — creates a new
+            // PENDING correction record, resolved later when an admin approves/rejects again.
+            post("corrections/confirm") {
+                call.requireRole(DOCTOR) {
+                    val doctorId = call.getUserId() ?: return@requireRole
+                    val result = service.confirmCorrection(doctorId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
         }
 
         // ── Admin: review and approve/reject doctors ──────────────────────────
@@ -115,6 +126,31 @@ fun Route.complianceController(service: ComplianceService) {
                     val id = call.parameters["id"]
                         ?: throw MissingParametersException("id path parameter is required")
                     val result = service.setMonetization(id, false)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // GET /admin/compliance/corrections?page=1&size=20&status=PENDING
+            // Admin queue — most recently submitted correction confirmations across all doctors.
+            get("corrections") {
+                call.requireRole(ADMIN) {
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val status = call.request.queryParameters["status"]
+                    val result = service.getLatestCorrections(page, size, status)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // GET /admin/compliance/corrections/history?doctorId=&page=1&size=20
+            // Admin — full correction history for a specific doctor (can span multiple rejections).
+            get("corrections/history") {
+                call.requireRole(ADMIN) {
+                    val doctorId = call.request.queryParameters["doctorId"]
+                        ?: throw MissingParametersException("doctorId query parameter is required")
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
+                    val result = service.getCorrectionHistory(doctorId, page, size)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }

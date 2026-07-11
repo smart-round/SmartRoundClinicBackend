@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.auth.domain.repository.UserRepository
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctor.domain.model.toModel
+import ke.co.smartroundclinic.doctor.domain.repository.ComplianceCorrectionRepository
 import ke.co.smartroundclinic.doctor.domain.repository.ComplianceRepository
 import ke.co.smartroundclinic.doctor.presentation.dto.response.ComplianceRes
 import ke.co.smartroundclinic.doctor.presentation.dto.response.toRes
@@ -24,6 +25,7 @@ class ApproveComplianceUseCase(
     private val repository: ComplianceRepository,
     private val emailRepository: EmailRepository,
     private val userRepository: UserRepository,
+    private val correctionRepository: ComplianceCorrectionRepository,
     private val notificationSender: NotificationSender? = null,
 ) {
     private val log = LoggerFactory.getLogger(ApproveComplianceUseCase::class.java)
@@ -34,6 +36,7 @@ class ApproveComplianceUseCase(
             if (approve is Resource.Error) return@withContext approve.toDefaultResponse()
             val doctorId = approve.data?.doctorId ?: return@withContext approve.toDefaultResponse()
             userRepository.adminUpdateUser(doctorId, accountStatus = null, verificationStatus = UserEntity.VerificationStatus.VERIFIED)
+            runCatching { correctionRepository.resolvePending(doctorId, "COMPLETED", adminId) }
             val user = userRepository.getUser(doctorId)
             if (user is Resource.Error) return@withContext user.toDefaultResponse()
             sendApplicationApprovedEmail(user.data?.fullName ?: "", user.data?.email ?: "")

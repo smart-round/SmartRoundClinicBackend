@@ -44,6 +44,7 @@ object MongoDBConstants {
      */
     const val DOCTOR_PROFILES = "doctor_profiles"
     const val DOCTOR_COMPLIANCE = "doctor_compliance"
+    const val DOCTOR_COMPLIANCE_CORRECTIONS = "doctor_compliance_corrections"
     const val DOCTOR_LICENCES = "doctor_licences"
     const val DOCTOR_SPECIALIZATIONS = "doctor_specializations"
     const val DOCTOR_CERTIFICATIONS = "doctor_certifications"
