@@ -8,11 +8,13 @@ import ke.co.smartroundclinic.payments.data.repository.IntaSendRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentLogRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PlatformCommissionLogRepositoryImpl
+import ke.co.smartroundclinic.payments.data.repository.RefundRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.WithdrawalRepositoryImpl
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentLogRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRepository
+import ke.co.smartroundclinic.payments.domain.repository.RefundRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
 import ke.co.smartroundclinic.payments.domain.service.AdminPaymentsService
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
@@ -26,6 +28,9 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCas
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.refund.HandleRefundWebhookUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessNextRefundUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessRefundsTask
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionLogsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSummaryUseCase
@@ -50,6 +55,7 @@ val paymentsKoinModule = module {
     single<PaymentLogRepository> { PaymentLogRepositoryImpl(get(named("paymentsDb"))) }
     single<WithdrawalRepository> { WithdrawalRepositoryImpl(get(named("paymentsDb"))) }
     single<PlatformCommissionLogRepository> { PlatformCommissionLogRepositoryImpl(get(named("paymentsDb"))) }
+    single<RefundRepository> { RefundRepositoryImpl(get(named("paymentsDb"))) }
     single<IntaSendRepository> { IntaSendRepositoryImpl(get(), AppConfig.intaSend) }
 
     // General payment use cases
@@ -82,7 +88,12 @@ val paymentsKoinModule = module {
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
 
-    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    // Refund use cases + background payout task
+    single { ProcessNextRefundUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
+    single { HandleRefundWebhookUseCase(get()) }
+    single { ProcessRefundsTask(get()) }
+
+    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
     single { GetPlatformOverviewUseCase(get(), get(), get()) }

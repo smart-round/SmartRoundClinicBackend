@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.payments.domain.service
 import ke.co.smartroundclinic.payments.data.remote.dto.response.IntaSendCallbackPayload
 import ke.co.smartroundclinic.payments.data.remote.dto.response.WithdrawalWebhookPayload
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.refund.HandleRefundWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.GetStkPushPaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushPreBookingUseCase
@@ -25,12 +26,14 @@ class IntaSendService(
     private val stkPushAppointmentUseCase: InitiateStkPushAppointmentUseCase,
     private val stkPushPreBookingUseCase: InitiateStkPushPreBookingUseCase,
     private val getStkPushStatusUseCase: GetStkPushPaymentStatusUseCase,
+    private val handleRefundWebhookUseCase: HandleRefundWebhookUseCase,
 ) {
     suspend fun handleWebhook(payload: IntaSendCallbackPayload) = handleWebhookUseCase(payload)
     suspend fun withdraw(doctorId: String, req: WithdrawInitiateReq) = withdrawalUseCase(doctorId, req)
     suspend fun getWithdrawalBalance(doctorId: String) = getWithdrawalBalanceUseCase(doctorId)
     suspend fun checkWithdrawalStatus(trackingId: String) = checkWithdrawalStatusUseCase(trackingId)
     suspend fun handleWithdrawalWebhook(payload: WithdrawalWebhookPayload) = handleWithdrawalWebhookUseCase(payload)
+    suspend fun handleRefundWebhook(payload: WithdrawalWebhookPayload) = handleRefundWebhookUseCase(payload)
     suspend fun getWithdrawalHistory(doctorId: String, page: Int, size: Int) =
         getWithdrawalHistoryUseCase(doctorId, page, size)
     suspend fun getWithdrawalById(id: String, doctorId: String) =

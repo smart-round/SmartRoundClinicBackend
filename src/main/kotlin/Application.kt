@@ -43,6 +43,7 @@ import ke.co.smartroundclinic.notification.presentation.validation.registerNotif
 import ke.co.smartroundclinic.payments.paymentsModule
 import ke.co.smartroundclinic.payments.koin.paymentsKoinModule
 import ke.co.smartroundclinic.payments.presentation.validation.registerPaymentValidators
+import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessRefundsTask
 import ke.co.smartroundclinic.medicalrecords.medicalRecordsModule
 import ke.co.smartroundclinic.medicalrecords.koin.medicalRecordsKoinModule
 
@@ -67,7 +68,8 @@ fun Application.module() {
         },
         backgroundTasks = {
             val staleCallCleanup: StaleCallCleanupTask by inject()
-            listOf(staleCallCleanup)
+            val processRefunds: ProcessRefundsTask by inject()
+            listOf(staleCallCleanup, processRefunds)
         },
     )
     authModule()
