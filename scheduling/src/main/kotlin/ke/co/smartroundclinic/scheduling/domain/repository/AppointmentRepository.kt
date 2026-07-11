@@ -27,4 +27,7 @@ interface AppointmentRepository {
 
     /** True if a CONFIRMED appointment between this pair has entered its joinable window (from 10 min before slotStart onward, no upper bound) — gates video call join. */
     suspend fun hasJoinableConfirmedAppointment(doctorId: String, patientId: String): Boolean
+
+    /** The soonest CONFIRMED appointment between this pair whose date is today or later, or null if none — the single source of truth clients use to decide whether/when the video-call option should appear for a permanent chat thread. */
+    suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String, today: String): Resource<AppointmentEntity?>
 }

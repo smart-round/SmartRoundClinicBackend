@@ -8,6 +8,7 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAllAppoin
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentDetailsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAppointmentByIdUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorAppointmentsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetNextAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsForAdminUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
@@ -22,6 +23,7 @@ class AppointmentService(
     private val getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
     private val getPatientAppointmentsForAdminUseCase: GetPatientAppointmentsForAdminUseCase,
     private val getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase,
+    private val getNextAppointmentUseCase: GetNextAppointmentUseCase,
     private val confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private val cancelAppointmentUseCase: CancelAppointmentUseCase,
     private val completeAppointmentUseCase: CompleteAppointmentUseCase,
@@ -34,6 +36,7 @@ class AppointmentService(
     suspend fun getByPatient(patientId: String) = getPatientAppointmentsUseCase(patientId)
     suspend fun getByPatientForAdmin(patientId: String) = getPatientAppointmentsForAdminUseCase(patientId)
     suspend fun getByDoctor(doctorId: String, date: String) = getDoctorAppointmentsUseCase(doctorId, date)
+    suspend fun getNext(doctorId: String, patientId: String) = getNextAppointmentUseCase(doctorId, patientId)
     suspend fun confirm(id: String, doctorId: String) = confirmAppointmentUseCase(id, doctorId)
     suspend fun cancel(id: String, userId: String, role: String, req: CancelAppointmentReq) =
         cancelAppointmentUseCase(id, userId, role, req.reason)

@@ -86,6 +86,22 @@ fun Route.appointmentController(appointmentService: AppointmentService) {
                 }
             }
 
+            // GET /scheduling/appointments/next?otherUserId=<the doctor/patient on the other side of a chat thread>
+            // Chat threads are permanent per doctor-patient pair and can span many appointments over
+            // time, so this is the single source of truth clients use to decide whether/when to show
+            // the video-call option for a thread — the soonest CONFIRMED appointment that hasn't passed.
+            get("/next") {
+                call.requireRole(DOCTOR, PATIENT) {
+                    val userId = call.getUserId() ?: return@requireRole
+                    val role = call.getRole() ?: return@requireRole
+                    val otherUserId = call.request.queryParameters["otherUserId"]
+                        ?: throw MissingParametersException("otherUserId query parameter is required")
+                    val (doctorId, patientId) = if (role.equals(DOCTOR, ignoreCase = true)) userId to otherUserId else otherUserId to userId
+                    val result = appointmentService.getNext(doctorId, patientId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
             get {
                 call.requireRole(DOCTOR, PATIENT) {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id is required")

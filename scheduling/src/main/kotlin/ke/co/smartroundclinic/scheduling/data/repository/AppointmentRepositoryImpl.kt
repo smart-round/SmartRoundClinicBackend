@@ -272,4 +272,22 @@ class AppointmentRepositoryImpl(
         LocalDateTime(dateParts[0], dateParts[1], dateParts[2], h, m, 0, 0)
             .toInstant(TimeZone.of("Africa/Nairobi"))
     }.getOrNull()
+
+    override suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String, today: String): Resource<AppointmentEntity?> =
+        withContext(Dispatchers.IO) {
+            try {
+                val next = col.find(
+                    Filters.and(
+                        Filters.eq(AppointmentEntity::doctorId.name, doctorId),
+                        Filters.eq(AppointmentEntity::patientId.name, patientId),
+                        Filters.eq(AppointmentEntity::status.name, "CONFIRMED"),
+                        Filters.gte(AppointmentEntity::date.name, today),
+                    )
+                ).toList().minWithOrNull(compareBy({ it.date }, { it.slotStart }))
+                Resource.Success(data = next, message = "Next appointment retrieved successfully")
+            } catch (e: Exception) {
+                log.error("Failed to fetch next appointment doctorId=$doctorId patientId=$patientId — ${e.message}", e)
+                Resource.Error(e.localizedMessage ?: "Failed to fetch next appointment")
+            }
+        }
 }
