@@ -6,14 +6,22 @@ import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
+import ke.co.smartroundclinic.scheduling.data.lookup.RefundDoc
+import ke.co.smartroundclinic.scheduling.data.lookup.RefundLookup
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
+import org.slf4j.LoggerFactory
 
 class CancelAppointmentUseCase(
     private val repository: AppointmentRepository,
+    private val paymentLookup: AppointmentAdminLookup,
+    private val refundLookup: RefundLookup,
     private val notificationSender: NotificationSender? = null,
 ) {
+    private val log = LoggerFactory.getLogger(CancelAppointmentUseCase::class.java)
+
     suspend operator fun invoke(
         id: String,
         userId: String,
@@ -52,6 +60,26 @@ class CancelAppointmentUseCase(
                         metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED, "appointmentId" to id),
                     )
                 }
+            }
+            runCatching {
+                val payment = paymentLookup.getPaymentByAppointmentId(id)
+                if (payment == null || payment.status != "COMPLETED") {
+                    log.info("No completed payment found for appointmentId=$id — skipping refund record")
+                    return@runCatching
+                }
+                refundLookup.create(
+                    RefundDoc(
+                        appointmentId = id,
+                        doctorId = entity.doctorId,
+                        patientId = entity.patientId,
+                        paymentId = payment.paymentId,
+                        amount = payment.amount,
+                        currency = payment.currency,
+                        reason = reason,
+                        cancelledBy = userId,
+                        cancelledByRole = role,
+                    )
+                )
             }
         }
         return result.toDefaultResponse { it?.toModel()?.toRes() }

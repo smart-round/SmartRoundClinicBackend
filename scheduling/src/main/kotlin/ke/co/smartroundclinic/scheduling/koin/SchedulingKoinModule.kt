@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.scheduling.koin
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
 import ke.co.smartroundclinic.scheduling.data.lookup.PaymentVerificationLookup
+import ke.co.smartroundclinic.scheduling.data.lookup.RefundLookup
 import ke.co.smartroundclinic.scheduling.data.repository.AppointmentRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.DoctorScheduleRepositoryImpl
 import ke.co.smartroundclinic.scheduling.data.repository.ServiceTierLookup
@@ -11,6 +12,7 @@ import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.DoctorScheduleRepository
 import ke.co.smartroundclinic.scheduling.domain.repository.SlotOverrideRepository
 import ke.co.smartroundclinic.scheduling.domain.service.AdminAppointmentService
+import ke.co.smartroundclinic.scheduling.domain.service.AdminRefundService
 import ke.co.smartroundclinic.scheduling.domain.service.AppointmentService
 import ke.co.smartroundclinic.scheduling.domain.service.CalendarService
 import ke.co.smartroundclinic.scheduling.domain.service.ScheduleService
@@ -31,6 +33,8 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetNextAppoi
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsForAdminUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.refund.GetAdminAllRefundsUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.refund.GetRefundByIdUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.DeactivateDayUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetAvailableSlotsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetCalendarRangeUseCase
@@ -47,6 +51,7 @@ val schedulingKoinModule = module {
     single { ServiceTierLookup(get(named("adminDb")), get(named("doctorDb"))) }
     single { AppointmentAdminLookup(get(named("authDb")), get(named("paymentsDb"))) }
     single { PaymentVerificationLookup(get(named("paymentsDb"))) }
+    single { RefundLookup(get(named("paymentsDb"))) }
 
     // Appointment use cases
     single { BookAppointmentUseCase(get(), get(), get(), get(), get(), getOrNull()) }
@@ -58,7 +63,7 @@ val schedulingKoinModule = module {
     single { GetDoctorAppointmentsUseCase(get()) }
     single { GetNextAppointmentUseCase(get()) }
     single { ConfirmAppointmentUseCase(get(), getOrNull()) }
-    single { CancelAppointmentUseCase(get(), getOrNull()) }
+    single { CancelAppointmentUseCase(get(), get(), get(), getOrNull()) }
     single { CompleteAppointmentUseCase(get(), getOrNull()) }
     single { MarkNoShowUseCase(get(), getOrNull()) }
 
@@ -74,6 +79,9 @@ val schedulingKoinModule = module {
     single { GetAdminAppointmentStatsUseCase(get(), get()) }
     single { GetAdminAllAppointmentsUseCase(get(), get()) }
     single { AdminAppointmentService(get(), get()) }
+    single { GetAdminAllRefundsUseCase(get(), get()) }
+    single { GetRefundByIdUseCase(get(), get()) }
+    single { AdminRefundService(get(), get()) }
 
     // Services
     single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
