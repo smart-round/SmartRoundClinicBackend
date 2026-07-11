@@ -16,6 +16,7 @@ import ke.co.smartroundclinic.infra.redis.RedisKeys
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
+import org.slf4j.LoggerFactory
 import ke.co.smartroundclinic.common.DefaultResponse
 
 /**
@@ -34,6 +35,7 @@ class InviteToCallUseCase(
     private val notificationSender: NotificationSender? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val logger = LoggerFactory.getLogger(InviteToCallUseCase::class.java)
 
     suspend operator fun invoke(
         doctorId: String,
@@ -110,7 +112,9 @@ class InviteToCallUseCase(
                     )
                 ),
             )
-        }
+        }.onFailure { logger.error("InviteToCallUseCase: socket send threw for callId=$callId calleeId=$calleeId", it) }
+
+        logger.info("InviteToCallUseCase: notificationSender is ${if (notificationSender == null) "NULL (no push will be sent)" else "present"} for callId=$callId calleeId=$calleeId")
         runCatching {
             notificationSender?.sendCallSignal(
                 event = PushNotificationEvents.CALL_INVITE,
@@ -125,7 +129,7 @@ class InviteToCallUseCase(
                     "ringTimeoutSeconds" to RedisKeys.CALL_INVITE_TTL_SECONDS.toString(),
                 ),
             )
-        }
+        }.onFailure { logger.error("InviteToCallUseCase: sendCallSignal threw for callId=$callId calleeId=$calleeId", it) }
 
         return DefaultResponse(
             httpStatusCode = HttpStatusCode.OK.value,

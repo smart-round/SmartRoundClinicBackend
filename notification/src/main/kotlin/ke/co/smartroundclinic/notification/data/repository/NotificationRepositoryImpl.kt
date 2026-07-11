@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import org.bson.types.ObjectId
+import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
 class NotificationRepositoryImpl(
@@ -32,6 +33,7 @@ class NotificationRepositoryImpl(
 ) : NotificationRepository, NotificationSender {
 
     private val collection = database.getCollection<NotificationEntity>(MongoDBConstants.NOTIFICATIONS)
+    private val logger = LoggerFactory.getLogger(NotificationRepositoryImpl::class.java)
 
     override suspend fun create(entity: NotificationEntity): Resource<NotificationEntity?> =
         withContext(Dispatchers.IO) {
@@ -192,11 +194,24 @@ class NotificationRepositoryImpl(
         recipientId: String,
         metadata: Map<String, String>,
     ) {
-        val tokens = (deviceTokenRepo.getByUser(recipientId) as? Resource.Success)?.data ?: emptyList()
+        val tokensResource = deviceTokenRepo.getByUser(recipientId)
+        val tokens = (tokensResource as? Resource.Success)?.data ?: emptyList()
         val (voipTokens, standardTokens) = tokens.partition { it.tokenType == TokenType.VOIP }
+        logger.info(
+            "sendCallSignal event=$event recipientId=$recipientId " +
+                "getByUser=${if (tokensResource is Resource.Error) "ERROR:${tokensResource.message}" else "OK"} " +
+                "totalTokens=${tokens.size} standard=${standardTokens.size} voip=${voipTokens.size} " +
+                "apnsVoipClientConfigured=${apnsVoipClient != null}"
+        )
 
         if (standardTokens.isNotEmpty()) {
             runCatching { pushRepo.sendDataOnly(standardTokens, event, metadata) }
+                .onFailure { logger.error("sendCallSignal: sendDataOnly threw for event=$event recipientId=$recipientId", it) }
+                .onSuccess { result ->
+                    if (result is Resource.Error) {
+                        logger.warn("sendCallSignal: sendDataOnly returned error for event=$event recipientId=$recipientId: ${result.message}")
+                    }
+                }
         }
         // VoIP tokens ring reliably via a direct APNs push even when the app is killed — the
         // reliable channel for iOS, on top of (not instead of) the FCM silent-push fallback above.
@@ -208,6 +223,7 @@ class NotificationRepositoryImpl(
                     UserType.PATIENT -> ApnsAppTarget.PATIENT
                 }
                 runCatching { voipClient.send(token.deviceToken, event, metadata, target) }
+                    .onFailure { logger.error("sendCallSignal: voipClient.send threw for event=$event recipientId=$recipientId", it) }
             }
         }
     }

@@ -147,6 +147,27 @@ class PushNotificationRepositoryImpl(
                 message = "Data-only push dispatched: $totalSent sent, $totalFailed failed out of ${tokens.size}",
             )
         } catch (e: Exception) {
+            // A whole-batch throw (e.g. malformed multicast) previously left zero rows in
+            // push_notification_logs — indistinguishable from "never attempted." Log one row per
+            // token so a batch-level failure is as diagnosable as a per-token one.
+            val failedAt = Clock.System.now().toString()
+            tokens.forEach { token ->
+                runCatching {
+                    logCollection.insertOne(
+                        PushNotificationLogEntity(
+                            id = ObjectId().toString(),
+                            title = event,
+                            body = "",
+                            deviceToken = token.deviceToken,
+                            userId = token.userId,
+                            userType = token.userType.name,
+                            status = PushNotificationLogStatus.FAILED.name,
+                            error = "Batch send threw: ${e.localizedMessage ?: e.toString()}",
+                            sentAt = failedAt,
+                        )
+                    )
+                }
+            }
             Resource.Error(e.localizedMessage ?: "Failed to send data-only push notifications")
         }
     }
