@@ -65,15 +65,16 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
         val now = Clock.System.now().toString()
         val entity = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull()
             ?: return Resource.Error("No compliance record found with id=$id")
-        if (entity.isApproved) return Resource.Error("Compliance record is already approved")
-        if (entity.approvedBy != null) return Resource.Error("Compliance record is already rejected")
+        if (!entity.isApproved && entity.approvedBy != null) return Resource.Error("Compliance record is already rejected")
 
         val updated = col.findOneAndUpdate(
             Filters.eq(ComplianceEntity::id.name, id),
             Updates.combine(
                 Updates.set(ComplianceEntity::isApproved.name, false),
+                Updates.set(ComplianceEntity::isMonetized.name, false),
                 Updates.set(ComplianceEntity::approvedBy.name, adminId),
                 Updates.set(ComplianceEntity::failedApprovalReason.name, reason),
+                Updates.unset(ComplianceEntity::approvedAt.name),
                 Updates.set(ComplianceEntity::updatedAt.name, now),
             ),
             FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
