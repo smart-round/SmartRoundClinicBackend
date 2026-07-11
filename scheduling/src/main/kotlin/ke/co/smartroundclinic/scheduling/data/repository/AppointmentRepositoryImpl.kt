@@ -22,6 +22,7 @@ import kotlinx.datetime.toInstant
 import org.bson.conversions.Bson
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 class AppointmentRepositoryImpl(
@@ -257,8 +258,8 @@ class AppointmentRepositoryImpl(
                         Filters.eq(AppointmentEntity::status.name, "CONFIRMED"),
                     )
                 ).toList().any { appointment ->
-                    val unlockInstant = parseSlotStart(appointment.date, appointment.slotStart)?.minus(10.minutes)
-                    unlockInstant != null && now >= unlockInstant
+                    val slotStartInstant = parseSlotStart(appointment.date, appointment.slotStart) ?: return@any false
+                    now >= slotStartInstant.minus(10.minutes) && now <= slotStartInstant.plus(24.hours)
                 }
             } catch (e: Exception) {
                 log.error("Failed to check joinable appointment doctorId=$doctorId patientId=$patientId — ${e.message}", e)
@@ -273,17 +274,22 @@ class AppointmentRepositoryImpl(
             .toInstant(TimeZone.of("Africa/Nairobi"))
     }.getOrNull()
 
-    override suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String, today: String): Resource<AppointmentEntity?> =
+    override suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String): Resource<AppointmentEntity?> =
         withContext(Dispatchers.IO) {
             try {
+                val now = kotlinx.datetime.Clock.System.now()
                 val next = col.find(
                     Filters.and(
                         Filters.eq(AppointmentEntity::doctorId.name, doctorId),
                         Filters.eq(AppointmentEntity::patientId.name, patientId),
                         Filters.eq(AppointmentEntity::status.name, "CONFIRMED"),
-                        Filters.gte(AppointmentEntity::date.name, today),
                     )
-                ).toList().minWithOrNull(compareBy({ it.date }, { it.slotStart }))
+                ).toList()
+                    .filter { appointment ->
+                        val slotStartInstant = parseSlotStart(appointment.date, appointment.slotStart) ?: return@filter false
+                        now <= slotStartInstant.plus(24.hours)
+                    }
+                    .minWithOrNull(compareBy({ it.date }, { it.slotStart }))
                 Resource.Success(data = next, message = "Next appointment retrieved successfully")
             } catch (e: Exception) {
                 log.error("Failed to fetch next appointment doctorId=$doctorId patientId=$patientId — ${e.message}", e)
