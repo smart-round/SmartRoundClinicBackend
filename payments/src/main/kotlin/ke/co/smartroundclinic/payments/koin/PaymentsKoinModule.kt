@@ -26,12 +26,6 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCas
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreateAppointmentPaymentLinkUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePaymentLinkUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.CreatePreBookingPaymentLinkUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.GetPaymentLinkUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.ListPaymentLinksUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.paymentlink.UpdatePaymentLinkUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionLogsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSummaryUseCase
@@ -69,16 +63,10 @@ val paymentsKoinModule = module {
     single { GetDoctorPaymentSummaryUseCase(get(), get()) }
     single { PaymentService(get(), get(), get(), get(), get(), get(), get(), get()) }
 
-    // IntaSend payment-link use cases
+    // Lookups shared with STK push use cases
     single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb")), get(named("adminDb"))) }
     single { DoctorPaymentDetailsLookup(get(named("doctorDb"))) }
     single { DoctorTierPriceLookup(get(named("adminDb")), get(named("doctorDb"))) }
-    single { CreatePaymentLinkUseCase(get(), AppConfig.intaSend) }
-    single { ListPaymentLinksUseCase(get()) }
-    single { GetPaymentLinkUseCase(get()) }
-    single { UpdatePaymentLinkUseCase(get(), AppConfig.intaSend) }
-    single { CreateAppointmentPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get()) }
-    single { CreatePreBookingPaymentLinkUseCase(get(), get(), AppConfig.intaSend, get(), get()) }
     single { HandleIntaSendWebhookUseCase(get(), get()) }
 
     // STK push use cases
@@ -94,7 +82,7 @@ val paymentsKoinModule = module {
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
 
-    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
     single { GetPlatformOverviewUseCase(get(), get(), get()) }

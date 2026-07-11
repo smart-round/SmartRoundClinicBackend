@@ -68,13 +68,9 @@ data class RedisConfig(
 data class IntaSendConfig(
     val secretKey: String = require("INTASEND_SECRET_KEY"),
     val baseUrl: String = EnvLoader.get("INTASEND_BASE_URL") ?: "https://api.intasend.com/api/v1",
-    val paymentBaseUrl: String = require("INTASEND_PAYMENT_BASE_URL"),
     val callBackBaseUrl: String = require("CALLBACK_URL"),
-    val mobileTarrif: String = EnvLoader.get("INTASEND_MOBILE_TARRIF") ?: "CUSTOMER-PAYS",
-    val cardTarrif: String = EnvLoader.get("INTASEND_CARD_TARRIF") ?: "CUSTOMER-PAYS",
     val webhookChallenge: String = require("INTASEND_WEBHOOK_CHALLENGE"),
 ) {
-    val callbackPaymentsUrl: String get() = "$callBackBaseUrl/payments/intasend/callback"
     val callBackWithdrawalUrl: String get() = "$callBackBaseUrl/payments/instasend/withdrawal/callback"
 }
 
