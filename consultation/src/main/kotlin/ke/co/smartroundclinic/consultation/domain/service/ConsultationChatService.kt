@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
+import org.slf4j.LoggerFactory
 
 private const val FILE_URL_TTL = 86400L  // 24 hours
 
@@ -27,6 +28,7 @@ class ConsultationChatService(
     private val socketRegistry: ConsultationSocketRegistry,
     private val redis: RedisRepository,
 ) {
+    private val log = LoggerFactory.getLogger(ConsultationChatService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun getUserName(userId: String): String? = repository.getUserName(userId)
@@ -95,6 +97,11 @@ class ConsultationChatService(
             "TYPING" -> {
                 val isTyping = msg.isTyping ?: return
                 val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
+                val recipientConnected = socketRegistry.hasOpenSession(threadKey, recipientId)
+                log.info(
+                    "TYPING relay: sender=$senderId recipient=$recipientId threadKey=$threadKey " +
+                        "isTyping=$isTyping recipientHasOpenSession=$recipientConnected",
+                )
                 socketRegistry.sendToUser(
                     threadKey,
                     recipientId,
