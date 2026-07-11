@@ -81,4 +81,40 @@ class AppointmentAdminLookup(
                 )
             }
     }
+
+    suspend fun getPaymentById(paymentId: String): AppointmentPaymentInfo? {
+        val doc = payments
+            .find(Filters.eq(PaymentDoc::id.name, paymentId))
+            .firstOrNull() ?: return null
+        val fee = doc.amount * (doc.commissionRate / 100.0)
+        return AppointmentPaymentInfo(
+            paymentId = doc.id,
+            amount = doc.amount,
+            currency = doc.currency,
+            status = doc.status,
+            commissionRate = doc.commissionRate,
+            platformFee = fee,
+            netAmount = doc.amount - fee,
+        )
+    }
+
+    /** Batch-fetches payments for a list of payment ids. Returns a map of paymentId → info. */
+    suspend fun getPaymentsByIds(paymentIds: Collection<String>): Map<String, AppointmentPaymentInfo> {
+        if (paymentIds.isEmpty()) return emptyMap()
+        return payments
+            .find(Filters.`in`(PaymentDoc::id.name, paymentIds))
+            .toList()
+            .associate { doc ->
+                val fee = doc.amount * (doc.commissionRate / 100.0)
+                doc.id to AppointmentPaymentInfo(
+                    paymentId = doc.id,
+                    amount = doc.amount,
+                    currency = doc.currency,
+                    status = doc.status,
+                    commissionRate = doc.commissionRate,
+                    platformFee = fee,
+                    netAmount = doc.amount - fee,
+                )
+            }
+    }
 }

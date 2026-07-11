@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.scheduling.presentation.dto.response
 
+import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentPaymentInfo
 import ke.co.smartroundclinic.scheduling.data.lookup.RefundDoc
 import kotlinx.serialization.Serializable
 
@@ -20,6 +21,7 @@ data class RefundRes(
     val status: String,
     val createdAt: String,
     val updatedAt: String?,
+    val payment: AdminAppointmentPaymentRes?,
 )
 
 @Serializable
@@ -31,7 +33,7 @@ data class RefundsPageRes(
     val pages: Long,
 )
 
-fun RefundDoc.toRes(names: Map<String, String> = emptyMap()) = RefundRes(
+fun RefundDoc.toRes(names: Map<String, String> = emptyMap(), payment: AppointmentPaymentInfo? = null) = RefundRes(
     id = id,
     appointmentId = appointmentId,
     doctorId = doctorId,
@@ -47,4 +49,15 @@ fun RefundDoc.toRes(names: Map<String, String> = emptyMap()) = RefundRes(
     status = status,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    payment = payment?.let {
+        AdminAppointmentPaymentRes(
+            paymentId = it.paymentId,
+            amount = it.amount,
+            currency = it.currency,
+            status = it.status,
+            commissionRate = it.commissionRate,
+            platformFee = it.platformFee,
+            netAmount = it.netAmount,
+        )
+    },
 )

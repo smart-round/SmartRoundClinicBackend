@@ -15,11 +15,12 @@ class GetRefundByIdUseCase(
         val refund = refundLookup.getById(id)
             ?: return DefaultResponse(HttpStatusCode.NotFound.value, false, "Refund record not found", null)
         val names = nameLookup.getUserNames(listOf(refund.doctorId, refund.patientId))
+        val payment = nameLookup.getPaymentById(refund.paymentId)
         return DefaultResponse(
             httpStatusCode = HttpStatusCode.OK.value,
             status = true,
             message = "Refund fetched successfully",
-            data = refund.toRes(names),
+            data = refund.toRes(names, payment),
         )
     }
 }

@@ -20,13 +20,15 @@ class GetAdminAllRefundsUseCase(
 
         val userIds = items.flatMap { listOf(it.doctorId, it.patientId) }.distinct()
         val names = if (userIds.isNotEmpty()) nameLookup.getUserNames(userIds) else emptyMap()
+        val paymentIds = items.map { it.paymentId }.distinct()
+        val payments = if (paymentIds.isNotEmpty()) nameLookup.getPaymentsByIds(paymentIds) else emptyMap()
 
         return DefaultResponse(
             httpStatusCode = HttpStatusCode.OK.value,
             status = true,
             message = "Refunds fetched successfully",
             data = RefundsPageRes(
-                items = items.map { it.toRes(names) },
+                items = items.map { it.toRes(names, payments[it.paymentId]) },
                 total = total,
                 page = safePage,
                 size = safeSize,
