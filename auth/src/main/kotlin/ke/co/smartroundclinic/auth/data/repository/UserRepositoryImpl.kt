@@ -294,6 +294,7 @@ class UserRepositoryImpl(
                 return@let Resource.Error(
                     message = "Account not verified. Please check your email for the OTP code.",
                     data = AuthToken(
+                        role = user.role.name,
                         accountStatus = user.accountStatus,
                         verificationStatus = user.verificationStatus,
                     )

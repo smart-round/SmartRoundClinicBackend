@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.auth.data.entity.UserEntity
 data class AuthToken(
     val accessToken: String? = null,
     val refreshToken: String? = null,
+    val role: String? = null,
     val accountStatus: UserEntity.AccountStatus = UserEntity.AccountStatus.INACTIVE,
     val verificationStatus: UserEntity.VerificationStatus = UserEntity.VerificationStatus.UNVERIFIED,
     val policyGroupIds: List<String> = emptyList(),

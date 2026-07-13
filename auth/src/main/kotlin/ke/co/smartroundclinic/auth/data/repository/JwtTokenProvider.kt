@@ -34,7 +34,7 @@ class JwtTokenProvider : TokenProvider {
             .withExpiresAt(Date(System.currentTimeMillis() + 3600000L * 24 * 30)) // 30 days
             .sign(Algorithm.HMAC256(refreshSecret))
 
-        return AuthToken(accessToken, refreshToken)
+        return AuthToken(accessToken, refreshToken, role = role)
     }
 
     override fun verifyRefreshToken(token: String): String? {
