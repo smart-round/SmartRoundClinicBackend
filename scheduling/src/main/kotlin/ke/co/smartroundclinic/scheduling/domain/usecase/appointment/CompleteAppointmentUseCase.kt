@@ -18,7 +18,7 @@ import kotlinx.datetime.toInstant
 private val APPOINTMENT_TIMEZONE = TimeZone.of("Africa/Nairobi")
 
 /**
- * The doctor manually marks a CONFIRMED appointment complete once its slot has passed.
+ * The doctor manually marks a CONFIRMED appointment complete once its slot has started.
  * No longer tied to call attendance — chat/calls are a permanent thread between doctor and
  * patient, independent of any single appointment, so there's nothing per-visit left to verify.
  */
@@ -34,10 +34,10 @@ class CompleteAppointmentUseCase(
         if (entity.doctorId != doctorId) return Resource.Error<Nothing>("Not authorized to complete this appointment")
             .toDefaultResponse(failedStatusCode = 403) { null }
 
-        // Appointment slot end must be in the past
-        val slotEndInstant = parseSlotEnd(entity.date, entity.slotEnd)
-        if (slotEndInstant != null && Clock.System.now() < slotEndInstant) {
-            return Resource.Error<Nothing>("Appointment cannot be completed before the scheduled end time")
+        // Appointment slot start must be in the past
+        val slotStartInstant = parseSlotTime(entity.date, entity.slotStart)
+        if (slotStartInstant != null && Clock.System.now() < slotStartInstant) {
+            return Resource.Error<Nothing>("Appointment cannot be completed before the scheduled start time")
                 .toDefaultResponse(failedStatusCode = 422) { null }
         }
 
@@ -57,8 +57,8 @@ class CompleteAppointmentUseCase(
         return result.toDefaultResponse { it?.toModel()?.toRes() }
     }
 
-    private fun parseSlotEnd(date: String, slotEnd: String): Instant? = runCatching {
-        val (h, m) = slotEnd.split(":").map { it.toInt() }
+    private fun parseSlotTime(date: String, time: String): Instant? = runCatching {
+        val (h, m) = time.split(":").map { it.toInt() }
         val dateParts = date.split("-").map { it.toInt() }
         LocalDateTime(dateParts[0], dateParts[1], dateParts[2], h, m, 0, 0)
             .toInstant(APPOINTMENT_TIMEZONE)
