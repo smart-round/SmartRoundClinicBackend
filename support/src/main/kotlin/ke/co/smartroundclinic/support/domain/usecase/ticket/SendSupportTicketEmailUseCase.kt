@@ -43,6 +43,7 @@ class SendSupportTicketEmailUseCase(
                         variables = mapOf(
                             "EVENT_TITLE" to eventTitle,
                             "EVENT_MESSAGE" to eventMessage,
+                            "EVENT_NUMBER" to entity.ticketNumber,
                             "TICKET_NUMBER" to entity.ticketNumber,
                             "TICKET_ID" to entity.id,
                             "STATUS" to entity.status.name,
