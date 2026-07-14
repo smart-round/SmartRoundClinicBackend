@@ -21,7 +21,7 @@ fun Application.paymentsModule() {
     routing {
         paymentController(paymentService)
         intaSendController(intaSendService, AppConfig.intaSend.webhookChallenge)
-        doctorPaymentsController(paymentService, intaSendService, AppConfig.intaSend.webhookChallenge)
+        doctorPaymentsController(paymentService, intaSendService)
         patientPaymentsController(paymentService)
         adminPaymentsController(adminPaymentsService)
         refundPayoutController(intaSendService, AppConfig.intaSend.webhookChallenge)

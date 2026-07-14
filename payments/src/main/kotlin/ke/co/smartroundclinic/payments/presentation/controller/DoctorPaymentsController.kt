@@ -31,10 +31,12 @@ private val withdrawalGson = GsonBuilder()
 fun Route.doctorPaymentsController(
     paymentService: PaymentService,
     intaSendService: IntaSendService,
-    webhookChallenge: String,
 ) {
     // Unauthenticated — IntaSend calls this server-to-server after every doctor withdrawal
-    // (send-money/PesaLink) disbursement state change.
+    // (send-money/PesaLink) disbursement state change. Unlike collection/chargeback webhooks,
+    // IntaSend's send-money event payload carries no "challenge" field to validate against
+    // (see developers.intasend.com/docs/send-money-events), so this endpoint relies on
+    // HTTPS + URL secrecy only.
     post("/payments/instasend/withdrawal/callback") {
         val raw = call.receiveText()
 
@@ -48,19 +50,8 @@ fun Route.doctorPaymentsController(
             return@post
         }
 
-        // Authenticate using the challenge shared secret configured in IntaSend dashboard.
-        if (payload.challenge != webhookChallenge) {
-            log.warn(
-                "Withdrawal webhook rejected — challenge mismatch " +
-                "(received=${payload.challenge}, expected=***)"
-            )
-            call.respond(HttpStatusCode.OK)
-            return@post
-        }
-
-        // Authenticated — log the payload now that we know it came from IntaSend.
         log.info(
-            "Withdrawal webhook authenticated — trackingId=${payload.trackingId} " +
+            "Withdrawal webhook received — trackingId=${payload.trackingId} " +
             "status=${payload.status} statusCode=${payload.statusCode} " +
             "totalAmount=${payload.totalAmount} topic=${payload.topic}"
         )

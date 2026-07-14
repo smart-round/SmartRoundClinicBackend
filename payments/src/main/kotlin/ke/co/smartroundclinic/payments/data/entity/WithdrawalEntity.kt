@@ -22,6 +22,14 @@ data class WithdrawalEntity(
     val transactions: List<WithdrawalTransactionRecord>,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
+    // Populated from the IntaSend webhook once the disbursement settles — kept separate from
+    // the request-time fields above so the audit trail shows what was actually charged/paid,
+    // not just what was requested.
+    val statusCode: String? = null,
+    val statusDescription: String? = null,
+    val actualCharge: String? = null,
+    val paidAmount: String? = null,
+    val providerReference: String? = null,
 ) {
     enum class WithdrawalStatus { PENDING, COMPLETED, FAILED }
 }

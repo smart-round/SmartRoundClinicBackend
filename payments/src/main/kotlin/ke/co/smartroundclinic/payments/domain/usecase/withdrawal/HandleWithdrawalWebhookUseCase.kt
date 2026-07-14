@@ -30,6 +30,18 @@ class HandleWithdrawalWebhookUseCase(private val repository: WithdrawalRepositor
             }
         }
 
-        repository.updateStatus(trackingId, newStatus)
+        // A withdrawal is a single send-money transaction, so the first (only) entry carries
+        // the settlement detail — provider reference and human-readable status description.
+        val transaction = payload.transactions?.firstOrNull()
+
+        repository.updateStatus(
+            trackingId = trackingId,
+            status = newStatus,
+            statusCode = payload.statusCode,
+            statusDescription = transaction?.statusDescription,
+            actualCharge = payload.actualCharges,
+            paidAmount = payload.paidAmount,
+            providerReference = transaction?.providerReference,
+        )
     }
 }

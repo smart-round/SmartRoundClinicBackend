@@ -11,6 +11,7 @@ data class WithdrawalWebhookTransaction(
     val account: String? = null,
     val amount: String? = null,
     val charge: String? = null,
+    val providerReference: String? = null,
     val currency: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
@@ -32,6 +33,5 @@ data class WithdrawalWebhookPayload(
     val transactionsCount: Int? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
-    val challenge: String? = null,
     val topic: String? = null,
 )

@@ -8,7 +8,15 @@ interface WithdrawalRepository {
     suspend fun getById(id: String): Resource<WithdrawalEntity?>
     suspend fun getByDoctorId(doctorId: String): Resource<List<WithdrawalEntity>>
     suspend fun getByDoctorIdPaginated(doctorId: String, page: Int, size: Int): Resource<Pair<List<WithdrawalEntity>, Long>>
-    suspend fun updateStatus(trackingId: String, status: String): Resource<Unit>
+    suspend fun updateStatus(
+        trackingId: String,
+        status: String,
+        statusCode: String? = null,
+        statusDescription: String? = null,
+        actualCharge: String? = null,
+        paidAmount: String? = null,
+        providerReference: String? = null,
+    ): Resource<Unit>
     suspend fun getAllForAdmin(status: String? = null): Resource<List<WithdrawalEntity>>
     suspend fun getAll(page: Int, size: Int, status: String? = null): Resource<Pair<List<WithdrawalEntity>, Long>>
 

@@ -107,15 +107,26 @@ class WithdrawalRepositoryImpl(database: MongoDatabase) : WithdrawalRepository {
         Resource.Error(e.message ?: "Failed to release withdrawal lock")
     }
 
-    override suspend fun updateStatus(trackingId: String, status: String): Resource<Unit> = try {
-        col.updateOne(
-            Filters.eq(WithdrawalEntity::trackingId.name, trackingId),
-            Updates.combine(
-                Updates.set(WithdrawalEntity::status.name, status),
-                Updates.set(WithdrawalEntity::updatedAt.name, Clock.System.now().toString()),
-            )
-        )
-        log.info("Withdrawal status updated trackingId=$trackingId status=$status")
+    override suspend fun updateStatus(
+        trackingId: String,
+        status: String,
+        statusCode: String?,
+        statusDescription: String?,
+        actualCharge: String?,
+        paidAmount: String?,
+        providerReference: String?,
+    ): Resource<Unit> = try {
+        val updates = buildList {
+            add(Updates.set(WithdrawalEntity::status.name, status))
+            add(Updates.set(WithdrawalEntity::updatedAt.name, Clock.System.now().toString()))
+            statusCode?.let { add(Updates.set(WithdrawalEntity::statusCode.name, it)) }
+            statusDescription?.let { add(Updates.set(WithdrawalEntity::statusDescription.name, it)) }
+            actualCharge?.let { add(Updates.set(WithdrawalEntity::actualCharge.name, it)) }
+            paidAmount?.let { add(Updates.set(WithdrawalEntity::paidAmount.name, it)) }
+            providerReference?.let { add(Updates.set(WithdrawalEntity::providerReference.name, it)) }
+        }
+        col.updateOne(Filters.eq(WithdrawalEntity::trackingId.name, trackingId), Updates.combine(updates))
+        log.info("Withdrawal status updated trackingId=$trackingId status=$status statusCode=$statusCode")
         Resource.Success(Unit)
     } catch (e: Exception) {
         log.error("Failed to update withdrawal status trackingId=$trackingId — ${e.message}", e)
