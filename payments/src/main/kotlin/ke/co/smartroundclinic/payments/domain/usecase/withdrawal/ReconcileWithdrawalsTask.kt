@@ -42,6 +42,17 @@ class ReconcileWithdrawalsTask(
         log.info("[ReconcileWithdrawals] Re-checking ${stale.size} stale pending withdrawal(s)")
         stale.forEach { withdrawal ->
             val statusResult = intaSendRepository.checkSendMoneyStatus(CheckSendMoneyStatusReq(withdrawal.trackingId))
+
+            if (statusResult is Resource.Error) {
+                // IntaSend has no record of this tracking_id at all — it will never resolve, so
+                // stop retrying it every cycle and mark it terminal instead.
+                if (statusResult.message?.contains("tracking_id", ignoreCase = true) == true) {
+                    withdrawalRepository.updateStatus(withdrawal.trackingId, WithdrawalEntity.WithdrawalStatus.FAILED.name)
+                    log.warn("[ReconcileWithdrawals] trackingId=${withdrawal.trackingId} unknown to IntaSend — marked FAILED, no longer retrying")
+                }
+                return@forEach
+            }
+
             val status = (statusResult as? Resource.Success)?.data ?: return@forEach
             val newStatus = when (status.statusCode) {
                 "BP200" -> WithdrawalEntity.WithdrawalStatus.COMPLETED.name
