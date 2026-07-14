@@ -120,10 +120,16 @@ class WithdrawalUseCase(
             )
 
             if (initiateResult !is Resource.Success) {
+                val providerMessage = (initiateResult as? Resource.Error)?.message
+                    ?: "Failed to initiate withdrawal with payment provider"
+                // IntaSend's own balance check (amount + its transfer fee vs. wallet balance) is a
+                // doctor-correctable input problem, not an upstream/system failure — surface it as
+                // a normal validation error (400) instead of a 502 that reads as "try again later".
+                val isInsufficientBalance = providerMessage.contains("insufficient balance", ignoreCase = true)
                 return DefaultResponse(
-                    httpStatusCode = HttpStatusCode.BadGateway.value,
+                    httpStatusCode = if (isInsufficientBalance) HttpStatusCode.BadRequest.value else HttpStatusCode.BadGateway.value,
                     status = false,
-                    message = (initiateResult as? Resource.Error)?.message ?: "Failed to initiate withdrawal with payment provider",
+                    message = providerMessage,
                     data = null,
                 )
             }
