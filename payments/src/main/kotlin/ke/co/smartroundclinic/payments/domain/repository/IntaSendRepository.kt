@@ -15,8 +15,11 @@ import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateCha
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.GetPaymentStatusRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.IntraTransferRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.SendMoneyTransactionItem
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.SendMoneyTransactionsRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.STKPushRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.Wallet
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.WalletTransactionsRes
 
 interface IntaSendRepository {
     suspend fun createSendMoneyRequest(idNumber:String,body: CreateSendMoneyRequestReq): Resource<CreateSendMoneyRequestRes>
@@ -36,4 +39,13 @@ interface IntaSendRepository {
 
     /** Wallet-to-wallet transfer, e.g. collections wallet -> doctor wallet / commission wallet. */
     suspend fun internalTransfer(originWalletId: String, body: IntraTransferReq): Resource<IntraTransferRes>
+
+    /** Live wallet ledger (credits + debits) — the authoritative "transactions" feed for a doctor's wallet. */
+    suspend fun getWalletTransactions(walletId: String, page: Int): Resource<WalletTransactionsRes>
+
+    /** Live withdrawal (send-money/PesaLink) history for a wallet — the authoritative withdrawal feed. */
+    suspend fun getSendMoneyTransactions(walletId: String, page: Int): Resource<SendMoneyTransactionsRes>
+
+    /** Live detail for a single send-money (withdrawal) transaction, by IntaSend's transaction_id. */
+    suspend fun getSendMoneyTransactionById(transactionId: String): Resource<SendMoneyTransactionItem>
 }

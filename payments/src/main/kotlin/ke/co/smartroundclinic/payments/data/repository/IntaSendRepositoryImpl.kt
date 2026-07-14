@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -30,8 +31,11 @@ import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateCha
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.GetPaymentStatusRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.IntraTransferRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.SendMoneyTransactionItem
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.SendMoneyTransactionsRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.STKPushRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.Wallet
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.WalletTransactionsRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import io.ktor.client.request.get
 import org.slf4j.LoggerFactory
@@ -221,5 +225,59 @@ class IntaSendRepositoryImpl(
     } catch (e: Exception) {
         log.error("internalTransfer origin=$originWalletId failed — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to perform internal transfer")
+    }
+
+    override suspend fun getWalletTransactions(walletId: String, page: Int): Resource<WalletTransactionsRes> = try {
+        val response = http.get("${config.baseUrl}/wallets/$walletId/transactions/") {
+            auth()
+            parameter("page", page)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<WalletTransactionsRes>(), "Wallet transactions fetched successfully")
+        } else {
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "Failed to fetch wallet transactions — HTTP ${response.status.value}" }
+            log.warn("getWalletTransactions walletId=$walletId — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    } catch (e: Exception) {
+        log.error("getWalletTransactions($walletId) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch wallet transactions")
+    }
+
+    override suspend fun getSendMoneyTransactions(walletId: String, page: Int): Resource<SendMoneyTransactionsRes> = try {
+        val response = http.get("${config.baseUrl}/send-money/transactions/") {
+            auth()
+            parameter("wallet_id", walletId)
+            parameter("page", page)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<SendMoneyTransactionsRes>(), "Withdrawal transactions fetched successfully")
+        } else {
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "Failed to fetch withdrawal transactions — HTTP ${response.status.value}" }
+            log.warn("getSendMoneyTransactions walletId=$walletId — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    } catch (e: Exception) {
+        log.error("getSendMoneyTransactions($walletId) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch withdrawal transactions")
+    }
+
+    override suspend fun getSendMoneyTransactionById(transactionId: String): Resource<SendMoneyTransactionItem> = try {
+        val response = http.get("${config.baseUrl}/send-money/transactions/$transactionId/") {
+            auth()
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<SendMoneyTransactionItem>(), "Withdrawal transaction fetched successfully")
+        } else {
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "Failed to fetch withdrawal transaction — HTTP ${response.status.value}" }
+            log.warn("getSendMoneyTransactionById transactionId=$transactionId — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    } catch (e: Exception) {
+        log.error("getSendMoneyTransactionById($transactionId) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch withdrawal transaction")
     }
 }

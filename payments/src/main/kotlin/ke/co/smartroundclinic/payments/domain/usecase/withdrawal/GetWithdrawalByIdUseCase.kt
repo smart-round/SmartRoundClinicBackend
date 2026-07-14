@@ -3,33 +3,33 @@ package ke.co.smartroundclinic.payments.domain.usecase.withdrawal
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
-import ke.co.smartroundclinic.payments.presentation.dto.response.WithdrawalItemRes
+import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
+import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
+import ke.co.smartroundclinic.payments.presentation.dto.response.DoctorWithdrawalItemRes
+import ke.co.smartroundclinic.payments.presentation.dto.response.toRes
 
+private const val MAX_OWNERSHIP_SCAN_PAGES = 20
+
+/**
+ * Withdrawal detail is read live from IntaSend by transaction_id. IntaSend's single-transaction
+ * response has no wallet_id field to check ownership against directly, so before returning detail
+ * we confirm the id appears somewhere in this doctor's own wallet-scoped withdrawal list — same
+ * 403-if-not-yours protection the old local-Mongo lookup had, just re-derived against IntaSend.
+ */
 class GetWithdrawalByIdUseCase(
-    private val withdrawalRepository: WithdrawalRepository,
+    private val intaSendRepository: IntaSendRepository,
+    private val walletResolver: DoctorWalletResolver,
 ) {
-    suspend operator fun invoke(id: String, doctorId: String): DefaultResponse<WithdrawalItemRes?> {
-        val result = withdrawalRepository.getById(id)
-
-        if (result is Resource.Error) {
-            return DefaultResponse(
-                httpStatusCode = HttpStatusCode.InternalServerError.value,
-                status = false,
-                message = result.message ?: "Failed to fetch withdrawal",
-                data = null,
-            )
-        }
-
-        val entity = (result as Resource.Success).data
+    suspend operator fun invoke(id: String, doctorId: String): DefaultResponse<DoctorWithdrawalItemRes?> {
+        val walletId = walletResolver.resolve(doctorId)
             ?: return DefaultResponse(
-                httpStatusCode = HttpStatusCode.NotFound.value,
+                httpStatusCode = HttpStatusCode.BadGateway.value,
                 status = false,
-                message = "Withdrawal not found",
+                message = "Unable to reach your wallet right now. Please try again shortly.",
                 data = null,
             )
 
-        if (entity.doctorId != doctorId) {
+        if (!ownsTransaction(walletId, id)) {
             return DefaultResponse(
                 httpStatusCode = HttpStatusCode.Forbidden.value,
                 status = false,
@@ -38,22 +38,31 @@ class GetWithdrawalByIdUseCase(
             )
         }
 
-        return DefaultResponse(
-            httpStatusCode = HttpStatusCode.OK.value,
-            status = true,
-            message = "Withdrawal fetched successfully",
-            data = WithdrawalItemRes(
-                id = entity.id,
-                doctorId = entity.doctorId,
-                amount = entity.amount,
-                currency = entity.currency,
-                trackingId = entity.trackingId,
-                status = entity.status,
-                provider = entity.provider,
-                platformCommission = entity.platformCommission,
-                createdAt = entity.createdAt,
-                updatedAt = entity.updatedAt,
-            ),
-        )
+        return when (val result = intaSendRepository.getSendMoneyTransactionById(id)) {
+            is Resource.Success -> DefaultResponse(
+                httpStatusCode = HttpStatusCode.OK.value,
+                status = true,
+                message = "Withdrawal fetched successfully",
+                data = result.data?.toRes(),
+            )
+            is Resource.Error -> DefaultResponse(
+                httpStatusCode = HttpStatusCode.NotFound.value,
+                status = false,
+                message = result.message ?: "Withdrawal not found",
+                data = null,
+            )
+        }
+    }
+
+    private suspend fun ownsTransaction(walletId: String, transactionId: String): Boolean {
+        var page = 1
+        while (page <= MAX_OWNERSHIP_SCAN_PAGES) {
+            val result = intaSendRepository.getSendMoneyTransactions(walletId, page)
+            val transactionsPage = (result as? Resource.Success)?.data ?: return false
+            if (transactionsPage.results.any { it.transactionId == transactionId }) return true
+            if (transactionsPage.next == null) return false
+            page++
+        }
+        return false
     }
 }

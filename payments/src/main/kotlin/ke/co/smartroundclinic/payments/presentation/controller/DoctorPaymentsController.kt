@@ -74,13 +74,14 @@ fun Route.doctorPaymentsController(
     authenticate("auth-jwt") {
         route("/doctor/payments") {
 
-            // GET /doctor/payments?page=1&size=20
+            // GET /doctor/payments?page=1
+            // Wallet transaction ledger — read live from IntaSend (credits from completed
+            // appointments and withdrawal debits, one unified feed), not our local PaymentEntity.
             get {
                 call.requireRole(DOCTOR) {
                     val doctorId = call.getUserId() ?: return@requireRole
                     val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                    val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                    val result = paymentService.getByDoctor(doctorId, page, size)
+                    val result = intaSendService.getWalletTransactions(doctorId, page)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
@@ -130,14 +131,14 @@ fun Route.doctorPaymentsController(
                     }
                 }
 
-                // GET /doctor/payments/withdraw/history?page=1&size=20
-                // Paginated withdrawal history for the authenticated doctor, newest first.
+                // GET /doctor/payments/withdraw/history?page=1
+                // Withdrawal history for the authenticated doctor, read live from IntaSend
+                // (send-money/transactions scoped to their wallet), newest first.
                 get("history") {
                     call.requireRole(DOCTOR) {
                         val doctorId = call.getUserId() ?: return@requireRole
                         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                        val result = intaSendService.getWithdrawalHistory(doctorId, page, size)
+                        val result = intaSendService.getWithdrawalHistory(doctorId, page)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }

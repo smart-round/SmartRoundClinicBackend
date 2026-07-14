@@ -45,6 +45,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewU
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.GetStkPushPaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushPreBookingUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetWalletTransactionsUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.CheckWithdrawalStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBalanceUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalByIdUseCase
@@ -100,18 +101,21 @@ val paymentsKoinModule = module {
     // Withdrawal use cases + background reconciliation task
     single { WithdrawalUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
     single { GetWithdrawalBalanceUseCase(get(), get(), get(), get()) }
-    single { GetWithdrawalHistoryUseCase(get()) }
-    single { GetWithdrawalByIdUseCase(get()) }
+    single { GetWithdrawalHistoryUseCase(get(), get()) }
+    single { GetWithdrawalByIdUseCase(get(), get()) }
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
     single { ReconcileWithdrawalsTask(get(), get()) }
+
+    // Doctor wallet transaction ledger — live IntaSend proxy
+    single { GetWalletTransactionsUseCase(get(), get()) }
 
     // Refund use cases + background payout task
     single { ProcessNextRefundUseCase(get(), get(), get()) }
     single { HandleRefundWebhookUseCase(get()) }
     single { ProcessRefundsTask(get()) }
 
-    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
     single { GetPlatformOverviewUseCase(get(), get(), get()) }

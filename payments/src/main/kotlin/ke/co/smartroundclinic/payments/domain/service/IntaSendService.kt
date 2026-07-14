@@ -8,6 +8,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.refund.HandleRefundWebhook
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.GetStkPushPaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushPreBookingUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetWalletTransactionsUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.CheckWithdrawalStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBalanceUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalByIdUseCase
@@ -24,6 +25,7 @@ class IntaSendService(
     private val handleWithdrawalWebhookUseCase: HandleWithdrawalWebhookUseCase,
     private val getWithdrawalHistoryUseCase: GetWithdrawalHistoryUseCase,
     private val getWithdrawalByIdUseCase: GetWithdrawalByIdUseCase,
+    private val getWalletTransactionsUseCase: GetWalletTransactionsUseCase,
     private val stkPushAppointmentUseCase: InitiateStkPushAppointmentUseCase,
     private val stkPushPreBookingUseCase: InitiateStkPushPreBookingUseCase,
     private val getStkPushStatusUseCase: GetStkPushPaymentStatusUseCase,
@@ -35,10 +37,12 @@ class IntaSendService(
     suspend fun checkWithdrawalStatus(trackingId: String) = checkWithdrawalStatusUseCase(trackingId)
     suspend fun handleWithdrawalWebhook(payload: WithdrawalWebhookPayload) = handleWithdrawalWebhookUseCase(payload)
     suspend fun handleRefundWebhook(payload: ChargebackWebhookPayload) = handleRefundWebhookUseCase(payload)
-    suspend fun getWithdrawalHistory(doctorId: String, page: Int, size: Int) =
-        getWithdrawalHistoryUseCase(doctorId, page, size)
+    suspend fun getWithdrawalHistory(doctorId: String, page: Int) =
+        getWithdrawalHistoryUseCase(doctorId, page)
     suspend fun getWithdrawalById(id: String, doctorId: String) =
         getWithdrawalByIdUseCase(id, doctorId)
+    suspend fun getWalletTransactions(doctorId: String, page: Int) =
+        getWalletTransactionsUseCase(doctorId, page)
 
     suspend fun stkPushForAppointment(appointmentId: String, phoneNumber: String, patientId: String) =
         stkPushAppointmentUseCase(appointmentId, phoneNumber, patientId)
