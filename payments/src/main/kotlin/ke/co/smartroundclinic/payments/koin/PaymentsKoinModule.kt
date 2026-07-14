@@ -72,7 +72,7 @@ val paymentsKoinModule = module {
 
     // Doctor wallet resolution — bound as both the concrete class (internal :payments use) and
     // the cross-module DoctorWalletProvisioner interface (consumed by :doctor's AddPaymentDetailsUseCase)
-    single { DoctorWalletResolver(get(), get()) }
+    single { DoctorWalletResolver(get(), get(), AppConfig.intaSend) }
     single<DoctorWalletProvisioner> { get<DoctorWalletResolver>() }
 
     // General payment use cases
