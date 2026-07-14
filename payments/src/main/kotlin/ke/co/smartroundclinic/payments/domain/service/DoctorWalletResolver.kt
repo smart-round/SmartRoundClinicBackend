@@ -9,11 +9,12 @@ import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import org.slf4j.LoggerFactory
 
 /**
- * Resolves/provisions a doctor's IntaSend wallet id. Implements [DoctorWalletProvisioner] so
- * `:doctor`'s AddPaymentDetailsUseCase can provision a wallet for a brand-new payment-details
- * record via the cross-module interface (no Gradle dependency on :payments), while [resolve] is
- * used internally within :payments to lazily backfill a wallet for doctors whose payment details
- * predate wallet support.
+ * Resolves/provisions a doctor's IntaSend wallet id — a doctor gets exactly one, ever.
+ * [provisionWallet] (via [DoctorWalletProvisioner], consumed by `:doctor`'s
+ * AddPaymentDetailsUseCase across the cross-module interface) and [resolve] (used internally
+ * within :payments to lazily backfill a wallet for doctors whose payment details predate wallet
+ * support) both reuse an existing valid walletId if one is on file before ever creating a new
+ * one — neither will mint a duplicate wallet for a doctor who already has one.
  */
 class DoctorWalletResolver(
     private val intaSendRepository: IntaSendRepository,
@@ -22,26 +23,31 @@ class DoctorWalletResolver(
 ) : DoctorWalletProvisioner {
     private val log = LoggerFactory.getLogger(DoctorWalletResolver::class.java)
 
-    override suspend fun provisionWallet(doctorId: String): String? = createWallet(doctorId)
+    override suspend fun provisionWallet(doctorId: String): String? =
+        validExistingWalletId(doctorId) ?: createWallet(doctorId)
 
     suspend fun resolve(doctorId: String): String? {
-        val existing = doctorPaymentDetailsLookup.getByDoctorId(doctorId)?.walletId
-        if (existing != null) {
-            if (existing == config.collectionsWalletId || existing == config.commissionWalletId) {
-                // Stale/bad data from before per-doctor wallets existed — never disburse a
-                // doctor's own money out of a shared platform wallet. Re-provision a real one.
-                log.error(
-                    "resolve doctorId=$doctorId — stored walletId=$existing is a shared " +
-                    "platform wallet (collections/commission), not a doctor wallet — re-provisioning"
-                )
-            } else {
-                return existing
-            }
-        }
-
+        validExistingWalletId(doctorId)?.let { return it }
         val walletId = createWallet(doctorId) ?: return null
         doctorPaymentDetailsLookup.setWalletId(doctorId, walletId)
         return walletId
+    }
+
+    /**
+     * Returns the doctor's stored walletId if it's a real, usable per-doctor wallet — null if
+     * there's no payment-details record yet, or if the stored value is stale data pointing at a
+     * shared platform wallet (never reuse that; a fresh one gets created and persisted instead).
+     */
+    private suspend fun validExistingWalletId(doctorId: String): String? {
+        val existing = doctorPaymentDetailsLookup.getByDoctorId(doctorId)?.walletId ?: return null
+        if (existing == config.collectionsWalletId || existing == config.commissionWalletId) {
+            log.error(
+                "doctorId=$doctorId — stored walletId=$existing is a shared platform wallet " +
+                "(collections/commission), not a doctor wallet — re-provisioning"
+            )
+            return null
+        }
+        return existing
     }
 
     private suspend fun createWallet(doctorId: String): String? {
