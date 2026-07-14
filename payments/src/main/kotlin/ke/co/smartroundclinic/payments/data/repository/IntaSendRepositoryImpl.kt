@@ -101,7 +101,7 @@ class IntaSendRepositoryImpl(
     override suspend fun checkSendMoneyStatus(
         body: CheckSendMoneyStatusReq,
     ): Resource<CheckSendMoneyStatusRes> = try {
-        val response = http.post("${config.baseUrl}/send-money/status") {
+        val response = http.post("${config.baseUrl}/send-money/status/") {
             auth()
             jsonBody(body)
         }

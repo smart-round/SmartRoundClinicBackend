@@ -9,8 +9,7 @@ import ke.co.smartroundclinic.payments.data.entity.WithdrawalTransactionRecord
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyRequestReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyTransaction
-import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.ApproveSendMoneyRequestRes
-import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.toApproveSendMoneyRequest
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
 import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
@@ -38,7 +37,7 @@ class WithdrawalUseCase(
 ) {
     private val log = LoggerFactory.getLogger(WithdrawalUseCase::class.java)
 
-    suspend operator fun invoke(doctorId: String, req: WithdrawInitiateReq): DefaultResponse<ApproveSendMoneyRequestRes?> {
+    suspend operator fun invoke(doctorId: String, req: WithdrawInitiateReq): DefaultResponse<CreateSendMoneyRequestRes?> {
         // 1. Fetch doctor's registered bank account details
         val paymentDetails = paymentDetailsLookup.getByDoctorId(doctorId)
             ?: return DefaultResponse(
@@ -135,20 +134,14 @@ class WithdrawalUseCase(
                 data = null,
             )
 
-            // 7. Auto-approve the disbursement
-            val approveResult = intaSendRepository.approveSendMoneyRequest(initiated.toApproveSendMoneyRequest())
-
-            // 8. Record the withdrawal regardless of approve outcome so failed ones are visible
-            val withdrawalSucceeded = approveResult is Resource.Success
+            // 7. IntaSend auto-approves send-money requests on this account — no separate
+            // /send-money/approve/ call needed; the initiate response is the final word.
             val withdrawalEntity = WithdrawalEntity(
                 doctorId = doctorId,
                 amount = req.amount,
                 currency = WITHDRAWAL_CURRENCY,
                 trackingId = initiated.trackingId,
-                status = if (withdrawalSucceeded)
-                    WithdrawalEntity.WithdrawalStatus.PENDING.name
-                else
-                    WithdrawalEntity.WithdrawalStatus.FAILED.name,
+                status = WithdrawalEntity.WithdrawalStatus.PENDING.name,
                 provider = WITHDRAWAL_PROVIDER,
                 platformCommission = 0.0,
                 transactions = listOf(
@@ -163,10 +156,12 @@ class WithdrawalUseCase(
             runCatching { withdrawalRepository.save(withdrawalEntity) }
                 .onFailure { log.error("Failed to persist withdrawal record doctorId=$doctorId — ${it.message}", it) }
 
-            return approveResult.toDefaultResponse(
-                successStatusCode = HttpStatusCode.Created.value,
-                failedStatusCode = HttpStatusCode.BadGateway.value,
-            ) { it }
+            return DefaultResponse(
+                httpStatusCode = HttpStatusCode.Created.value,
+                status = true,
+                message = "Withdrawal initiated successfully",
+                data = initiated,
+            )
         } finally {
             withdrawalRepository.releaseLock(doctorId)
         }

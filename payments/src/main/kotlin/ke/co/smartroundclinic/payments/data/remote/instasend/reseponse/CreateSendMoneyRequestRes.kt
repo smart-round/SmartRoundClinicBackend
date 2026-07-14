@@ -1,9 +1,6 @@
 package ke.co.smartroundclinic.payments.data.remote.instasend.reseponse
 
 
-import ke.co.smartroundclinic.payments.data.remote.instasend.request.ApproveSendMoneyRequestReq
-import ke.co.smartroundclinic.payments.data.remote.instasend.request.ApproveSendMoneyTransaction
-import ke.co.smartroundclinic.payments.data.remote.instasend.request.ApproveSendMoneyWallet
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -87,21 +84,4 @@ data class Wallet(
     val walletId: String,
     @SerialName("wallet_type")
     val walletType: String
-)
-
-fun CreateSendMoneyRequestRes.toApproveSendMoneyRequest(): ApproveSendMoneyRequestReq = ApproveSendMoneyRequestReq(
-    trackingId = trackingId,
-    transactions = transactions.map {
-        ApproveSendMoneyTransaction(
-            amount = it.amount.toString(),
-            account = it.account,
-            bankCode = it.bankCode,
-        )
-    },
-    wallet = ApproveSendMoneyWallet(
-        availableBalance = wallet.availableBalance.toString(),
-        currency = wallet.currency,
-        label = wallet.label,
-        walletType =  wallet.walletType
-    )
 )

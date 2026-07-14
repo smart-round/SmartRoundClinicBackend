@@ -17,6 +17,8 @@ data class CreateSendMoneyRequestReq(
     val transactions: List<CreateSendMoneyTransaction>,
     @SerialName("wallet_id")
     val walletId: String? = null,
+    @SerialName("requires_approval")
+    val requiresApproval: String = "NO",
 )
 
 @Serializable
