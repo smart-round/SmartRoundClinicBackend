@@ -12,6 +12,9 @@ import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
 import ke.co.smartroundclinic.payments.domain.usecase.retryResource
 import org.slf4j.LoggerFactory
 
+/** IntaSend rejects internal transfers below this amount ("amount: Ensure this value is greater than or equal to 0.01"). */
+private const val MIN_TRANSFERABLE_AMOUNT = 0.01
+
 /**
  * Credits a doctor's IntaSend wallet with their net share of a completed appointment payment,
  * and the platform's commission wallet with the remainder — only once BOTH the payment and the
@@ -99,6 +102,14 @@ class CreditDoctorEarningsUseCase(
         val claimed = (claim() as? Resource.Success)?.data
         if (claimed == null) {
             log.info("creditLeg paymentId=$paymentId leg=$legName — already claimed or payment missing, skipping")
+            return
+        }
+
+        if (amount < MIN_TRANSFERABLE_AMOUNT) {
+            // IntaSend rejects any transfer below its minimum unit — there's genuinely nothing to
+            // send (e.g. a 0% commission rate on this payment), so leave the claim in place as done
+            // rather than releasing it for a retry that would just fail the same way forever.
+            log.info("creditLeg paymentId=$paymentId leg=$legName — amount=$amount below minimum transferable unit, nothing to send")
             return
         }
 
