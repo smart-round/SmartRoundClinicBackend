@@ -4,7 +4,6 @@ import io.ktor.server.plugins.requestvalidation.RequestValidationConfig
 import io.ktor.server.plugins.requestvalidation.ValidationResult
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateCommissionRateReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateServiceTierReq
-import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateCommissionRateReq
 import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateServiceTierReq
 
 fun RequestValidationConfig.registerAdminValidators() {
@@ -12,14 +11,6 @@ fun RequestValidationConfig.registerAdminValidators() {
     validate<CreateCommissionRateReq> { req ->
         val errors = buildList {
             if (req.commissionRate < 0 || req.commissionRate > 100) add("commissionRate must be between 0 and 100")
-        }
-        if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
-    }
-
-    validate<UpdateCommissionRateReq> { req ->
-        if (req.commissionRate == null) return@validate ValidationResult.Invalid("commissionRate is required for update")
-        val errors = buildList {
-            req.commissionRate.let { if (it < 0 || it > 100) add("commissionRate must be between 0 and 100") }
         }
         if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)
     }

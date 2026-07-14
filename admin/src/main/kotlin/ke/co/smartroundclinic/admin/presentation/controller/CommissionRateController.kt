@@ -12,7 +12,6 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import ke.co.smartroundclinic.admin.domain.service.CommissionRateService
 import ke.co.smartroundclinic.admin.presentation.dto.request.CreateCommissionRateReq
-import ke.co.smartroundclinic.admin.presentation.dto.request.UpdateCommissionRateReq
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
@@ -39,12 +38,15 @@ fun Route.commissionRateController(service: CommissionRateService) {
                 }
             }
 
+            // Upsert — creates the platform-wide commission rate if none exists yet, otherwise
+            // updates it. Singleton resource, so no id is needed: the client can always call this
+            // with the desired rate regardless of whether one has been set up before.
             put {
                 call.requireRole(ADMIN) {
-                    val id = call.parameters["id"]
-                        ?: throw MissingParametersException("id path parameter is missing")
-                    val body = call.receive<UpdateCommissionRateReq>()
-                    val result = service.update(id, body)
+                    val adminId = call.getUserId()
+                        ?: throw MissingParametersException("Could not resolve admin id from token")
+                    val body = call.receive<CreateCommissionRateReq>()
+                    val result = service.upsert(body, adminId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }

@@ -14,5 +14,3 @@ data class CreateCommissionRateReq(val commissionRate: Double) {
         updatedAt = null,
     )
 }
-
-data class UpdateCommissionRateReq(val commissionRate: Double? = null)

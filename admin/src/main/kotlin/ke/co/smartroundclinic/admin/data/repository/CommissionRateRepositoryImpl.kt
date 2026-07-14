@@ -11,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
-import org.bson.conversions.Bson
 import java.time.Instant
 
 class CommissionRateRepositoryImpl(database: MongoDatabase) : CommissionRateRepository {
@@ -57,24 +56,31 @@ class CommissionRateRepositoryImpl(database: MongoDatabase) : CommissionRateRepo
             }
         }
 
-    override suspend fun update(id: String, commissionRate: Double?): Resource<CommissionRateEntity?> =
+    override suspend fun upsert(commissionRate: Double, adminId: String): Resource<CommissionRateEntity?> =
         withContext(Dispatchers.IO) {
             try {
-                val existing = collection.find(Filters.eq(CommissionRateEntity::id.name, id)).firstOrNull()
-                    ?: return@withContext Resource.Error("Commission rate not found")
+                val existing = collection.find().firstOrNull()
+                if (existing == null) {
+                    val entity = CommissionRateEntity(adminId = adminId, commissionRate = commissionRate)
+                    collection.insertOne(entity)
+                    return@withContext Resource.Success(data = entity, message = "Commission rate created successfully")
+                }
 
-                val updates = mutableListOf<Bson>()
-                commissionRate?.takeIf { it != existing.commissionRate }
-                    ?.let { updates.add(Updates.set(CommissionRateEntity::commissionRate.name, it)) }
+                if (commissionRate == existing.commissionRate) {
+                    return@withContext Resource.Success(data = existing, message = "No changes detected")
+                }
 
-                if (updates.isEmpty()) return@withContext Resource.Success(data = existing, message = "No changes detected")
-
-                updates.add(Updates.set(CommissionRateEntity::updatedAt.name, Instant.now().toString()))
-                collection.updateOne(Filters.eq(CommissionRateEntity::id.name, id), Updates.combine(updates))
-                val updated = collection.find(Filters.eq(CommissionRateEntity::id.name, id)).firstOrNull()
+                collection.updateOne(
+                    Filters.eq(CommissionRateEntity::id.name, existing.id),
+                    Updates.combine(
+                        Updates.set(CommissionRateEntity::commissionRate.name, commissionRate),
+                        Updates.set(CommissionRateEntity::updatedAt.name, Instant.now().toString()),
+                    ),
+                )
+                val updated = collection.find(Filters.eq(CommissionRateEntity::id.name, existing.id)).firstOrNull()
                 Resource.Success(data = updated, message = "Commission rate updated successfully")
             } catch (e: Exception) {
-                Resource.Error(e.localizedMessage ?: "Failed to update commission rate")
+                Resource.Error(e.localizedMessage ?: "Failed to save commission rate")
             }
         }
 

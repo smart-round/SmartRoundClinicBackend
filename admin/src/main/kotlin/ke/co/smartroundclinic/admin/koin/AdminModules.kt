@@ -24,7 +24,7 @@ import ke.co.smartroundclinic.admin.domain.service.SpecialityService
 import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.CreateCommissionRateUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.DeleteCommissionRateUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.GetCommissionRateByIdUseCase
-import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.UpdateCommissionRateUseCase
+import ke.co.smartroundclinic.admin.domain.usecase.commissionRate.UpsertCommissionRateUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.CreateServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.DeleteServiceTierUseCase
 import ke.co.smartroundclinic.admin.domain.usecase.serviceTier.GetAllServiceTiersUseCase
@@ -126,8 +126,8 @@ val adminModule = module {
     // Commission Rates
     single { CreateCommissionRateUseCase(get()) }
     single { GetCommissionRateByIdUseCase(get()) }
-    single { UpdateCommissionRateUseCase(get()) }
     single { DeleteCommissionRateUseCase(get()) }
+    single { UpsertCommissionRateUseCase(get()) }
     single { CommissionRateService(get(), get(), get(), get()) }
 
     // KMPDC
