@@ -9,5 +9,6 @@ data class WithdrawalBalanceRes(
     val totalPending: Double,
     val totalCompleted: Double,
     val availableBalance: Double,
+    val currentBalance: Double,
     val minimumWithdrawal: Double = 100.0,
 )

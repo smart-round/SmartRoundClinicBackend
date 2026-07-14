@@ -31,13 +31,15 @@ class GetWithdrawalBalanceUseCase(
                 data = null,
             )
         val walletResult = intaSendRepository.getWallet(walletId)
-        val availableBalance = (walletResult as? Resource.Success)?.data?.availableBalance
+        val wallet = (walletResult as? Resource.Success)?.data
             ?: return DefaultResponse(
                 httpStatusCode = HttpStatusCode.BadGateway.value,
                 status = false,
                 message = (walletResult as? Resource.Error)?.message ?: "Failed to fetch wallet balance",
                 data = null,
             )
+        val availableBalance = wallet.availableBalance
+        val currentBalance = wallet.currentBalance
 
         val payments = (paymentRepository.getAllByDoctorId(doctorId) as? Resource.Success)?.data ?: emptyList()
         val totalNetEarnings = payments
@@ -66,6 +68,7 @@ class GetWithdrawalBalanceUseCase(
                 totalPending = totalPending,
                 totalCompleted = totalCompleted,
                 availableBalance = availableBalance,
+                currentBalance = currentBalance,
             )
         )
     }
