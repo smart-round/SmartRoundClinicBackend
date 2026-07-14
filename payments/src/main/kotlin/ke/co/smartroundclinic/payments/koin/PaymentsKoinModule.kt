@@ -95,7 +95,7 @@ val paymentsKoinModule = module {
     // Earnings-credit use case (appointment COMPLETED -> doctor wallet + commission wallet) + background sweep
     single { CreditDoctorEarningsUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
     single<AppointmentEarningsCreditor> { get<CreditDoctorEarningsUseCase>() }
-    single { CreditPendingEarningsTask(get(), get()) }
+    single { CreditPendingEarningsTask(get(), get(), get()) }
 
     // Withdrawal use cases + background reconciliation task
     single { WithdrawalUseCase(get(), get(), get(), get(), AppConfig.intaSend) }

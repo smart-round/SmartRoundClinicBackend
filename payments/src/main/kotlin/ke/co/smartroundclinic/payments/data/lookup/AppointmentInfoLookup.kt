@@ -4,6 +4,7 @@ import com.mongodb.client.model.Filters
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 
@@ -77,6 +78,13 @@ class AppointmentInfoLookup(
 
     suspend fun getStatus(appointmentId: String): String? =
         appointments.find(Filters.eq("id", appointmentId)).firstOrNull()?.status
+
+    /** Batched status lookup for sweeps that would otherwise issue one query per appointmentId. */
+    suspend fun getStatuses(appointmentIds: Collection<String>): Map<String, String> {
+        if (appointmentIds.isEmpty()) return emptyMap()
+        return appointments.find(Filters.`in`("id", appointmentIds)).toList()
+            .associate { it.id to it.status }
+    }
 
     suspend fun getParticipants(appointmentId: String): AppointmentParticipants? {
         val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull()

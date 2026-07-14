@@ -29,21 +29,29 @@ class CreditDoctorEarningsUseCase(
 
     private val log = LoggerFactory.getLogger(CreditDoctorEarningsUseCase::class.java)
 
-    override suspend fun creditEarningsForAppointment(appointmentId: String, doctorId: String) {
+    override suspend fun creditEarningsForAppointment(appointmentId: String, doctorId: String) =
+        creditEarningsForAppointment(appointmentId, doctorId, knownStatus = null)
+
+    /**
+     * Same as [creditEarningsForAppointment], but takes an already-fetched appointment status so
+     * batch callers (CreditPendingEarningsTask) can look up statuses for many appointments in one
+     * query instead of one [AppointmentInfoLookup.getStatus] call per payment.
+     */
+    suspend fun creditEarningsForAppointment(appointmentId: String, doctorId: String, knownStatus: String?) {
         val payment = (paymentRepository.getByAppointmentId(appointmentId) as? Resource.Success)?.data
         if (payment == null || payment.status != PaymentEntity.PaymentStatus.COMPLETED) {
             log.info("creditEarningsForAppointment appointmentId=$appointmentId — no completed payment yet, skipping")
             return
         }
 
-        val appointmentStatus = appointmentInfoLookup.getStatus(appointmentId)
+        val appointmentStatus = knownStatus ?: appointmentInfoLookup.getStatus(appointmentId)
         if (appointmentStatus != "COMPLETED") {
             if (appointmentStatus == "CANCELLED" || appointmentStatus == "NO_SHOW") {
                 // Terminal state that will never become COMPLETED — stop retrying this payment.
                 paymentRepository.markCreditIneligible(payment.id)
                 log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, marked credit-ineligible")
             } else {
-                log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, skipping")
+                log.debug("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, not yet completed")
             }
             return
         }
