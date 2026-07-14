@@ -37,10 +37,4 @@ interface PaymentRepository {
 
     /** Releases a previously claimed commission-credit leg (resets commissionCreditedAt to null) so a later retry can re-attempt it. */
     suspend fun releaseCommissionCredit(paymentId: String): Resource<Unit>
-
-    /** Completed payments still missing one or both credit legs — feeds the CreditPendingEarningsTask sweep. */
-    suspend fun getCompletedUncredited(limit: Int): Resource<List<PaymentEntity>>
-
-    /** Marks a payment as permanently unable to be credited (appointment CANCELLED/NO_SHOW, or no appointmentId at all) so the sweep stops retrying it. */
-    suspend fun markCreditIneligible(paymentId: String): Resource<Unit>
 }

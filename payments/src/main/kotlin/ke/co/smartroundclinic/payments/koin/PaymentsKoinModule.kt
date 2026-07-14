@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.payments.koin
 
 import ke.co.smartroundclinic.common.AppointmentEarningsCreditor
 import ke.co.smartroundclinic.common.DoctorWalletProvisioner
+import ke.co.smartroundclinic.common.RefundProcessor
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
@@ -31,11 +32,9 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCas
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.earnings.CreditDoctorEarningsUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.earnings.CreditPendingEarningsTask
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.refund.HandleRefundWebhookUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessNextRefundUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessRefundsTask
+import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessRefundUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionLogsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSummaryUseCase
@@ -51,7 +50,6 @@ import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBa
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalByIdUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalHistoryUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.HandleWithdrawalWebhookUseCase
-import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.ReconcileWithdrawalsTask
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.WithdrawalUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -93,27 +91,28 @@ val paymentsKoinModule = module {
     single { InitiateStkPushPreBookingUseCase(get(), get(), AppConfig.intaSend, get(), get()) }
     single { GetStkPushPaymentStatusUseCase(get()) }
 
-    // Earnings-credit use case (appointment COMPLETED -> doctor wallet + commission wallet) + background sweep
+    // Earnings-credit use case — triggered once, immediately, from CompleteAppointmentUseCase
+    // when an appointment is marked COMPLETED. No background sweep; see CreditDoctorEarningsUseCase.
     single { CreditDoctorEarningsUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
     single<AppointmentEarningsCreditor> { get<CreditDoctorEarningsUseCase>() }
-    single { CreditPendingEarningsTask(get(), get(), get()) }
 
-    // Withdrawal use cases + background reconciliation task
+    // Withdrawal use cases — disbursement is trigger-only (doctor's POST /withdraw request);
+    // status updates come from the IntaSend webhook, no polling reconciliation task.
     single { WithdrawalUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
     single { GetWithdrawalBalanceUseCase(get(), get(), get(), get()) }
     single { GetWithdrawalHistoryUseCase(get(), get()) }
     single { GetWithdrawalByIdUseCase(get(), get()) }
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
-    single { ReconcileWithdrawalsTask(get(), get()) }
 
     // Doctor wallet transaction ledger — live IntaSend proxy
     single { GetWalletTransactionsUseCase(get(), get()) }
 
-    // Refund use cases + background payout task
-    single { ProcessNextRefundUseCase(get(), get(), get()) }
+    // Refund processing — triggered once, immediately, from CancelAppointmentUseCase right after
+    // the refund record is created. No background poller; see ProcessRefundUseCase.
+    single { ProcessRefundUseCase(get(), get(), get()) }
+    single<RefundProcessor> { get<ProcessRefundUseCase>() }
     single { HandleRefundWebhookUseCase(get()) }
-    single { ProcessRefundsTask(get()) }
 
     single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 

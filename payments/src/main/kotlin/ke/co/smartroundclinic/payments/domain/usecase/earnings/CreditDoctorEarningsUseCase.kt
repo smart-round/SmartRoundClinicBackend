@@ -9,15 +9,16 @@ import ke.co.smartroundclinic.payments.data.remote.instasend.request.IntraTransf
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
+import ke.co.smartroundclinic.payments.domain.usecase.retryResource
 import org.slf4j.LoggerFactory
 
 /**
  * Credits a doctor's IntaSend wallet with their net share of a completed appointment payment,
  * and the platform's commission wallet with the remainder — only once BOTH the payment and the
- * appointment have reached a terminal "done" state. Safe to call repeatedly (from the immediate
- * CompleteAppointmentUseCase hook, or from CreditPendingEarningsTask's sweep) — each of the two
- * transfer legs is claimed atomically on PaymentEntity so a retry never double-credits a leg that
- * already succeeded, and only resumes the leg that didn't.
+ * appointment have reached a terminal "done" state. Triggered exactly once, immediately, from
+ * CompleteAppointmentUseCase when an appointment is marked COMPLETED — there is no background
+ * retry sweep, so each transfer leg gets a short inline retry (see [retryResource]) for transient
+ * failures, then gives up and leaves the claim released for a future manual retry if needed.
  */
 class CreditDoctorEarningsUseCase(
     private val intaSendRepository: IntaSendRepository,
@@ -29,30 +30,16 @@ class CreditDoctorEarningsUseCase(
 
     private val log = LoggerFactory.getLogger(CreditDoctorEarningsUseCase::class.java)
 
-    override suspend fun creditEarningsForAppointment(appointmentId: String, doctorId: String) =
-        creditEarningsForAppointment(appointmentId, doctorId, knownStatus = null)
-
-    /**
-     * Same as [creditEarningsForAppointment], but takes an already-fetched appointment status so
-     * batch callers (CreditPendingEarningsTask) can look up statuses for many appointments in one
-     * query instead of one [AppointmentInfoLookup.getStatus] call per payment.
-     */
-    suspend fun creditEarningsForAppointment(appointmentId: String, doctorId: String, knownStatus: String?) {
+    override suspend fun creditEarningsForAppointment(appointmentId: String, doctorId: String) {
         val payment = (paymentRepository.getByAppointmentId(appointmentId) as? Resource.Success)?.data
         if (payment == null || payment.status != PaymentEntity.PaymentStatus.COMPLETED) {
             log.info("creditEarningsForAppointment appointmentId=$appointmentId — no completed payment yet, skipping")
             return
         }
 
-        val appointmentStatus = knownStatus ?: appointmentInfoLookup.getStatus(appointmentId)
+        val appointmentStatus = appointmentInfoLookup.getStatus(appointmentId)
         if (appointmentStatus != "COMPLETED") {
-            if (appointmentStatus == "CANCELLED" || appointmentStatus == "NO_SHOW") {
-                // Terminal state that will never become COMPLETED — stop retrying this payment.
-                paymentRepository.markCreditIneligible(payment.id)
-                log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, marked credit-ineligible")
-            } else {
-                log.debug("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, not yet completed")
-            }
+            log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, skipping")
             return
         }
 
@@ -115,17 +102,19 @@ class CreditDoctorEarningsUseCase(
             return
         }
 
-        val transferResult = intaSendRepository.internalTransfer(
-            originWalletId = config.collectionsWalletId,
-            body = IntraTransferReq(
-                destinationWalletId = destinationWalletId,
-                amount = "%.2f".format(amount),
-                narrative = narrative,
-            ),
-        )
+        val transferResult = retryResource {
+            intaSendRepository.internalTransfer(
+                originWalletId = config.collectionsWalletId,
+                body = IntraTransferReq(
+                    destinationWalletId = destinationWalletId,
+                    amount = "%.2f".format(amount),
+                    narrative = narrative,
+                ),
+            )
+        }
 
         if (transferResult !is Resource.Success) {
-            log.error("creditLeg paymentId=$paymentId leg=$legName — transfer failed: ${(transferResult as? Resource.Error)?.message}, releasing claim for retry")
+            log.error("creditLeg paymentId=$paymentId leg=$legName — transfer failed after retries: ${(transferResult as? Resource.Error)?.message}, releasing claim for retry")
             release()
             return
         }
