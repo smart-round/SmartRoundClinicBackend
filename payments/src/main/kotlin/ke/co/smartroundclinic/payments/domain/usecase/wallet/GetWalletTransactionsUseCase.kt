@@ -10,8 +10,9 @@ import ke.co.smartroundclinic.payments.presentation.dto.response.toRes
 
 /**
  * "Transactions" for a doctor is now IntaSend's own wallet ledger — it already carries both
- * earnings credited in (narrative "APT-...") and withdrawals debited out (narrative "Payout: #...")
- * as one feed, live from IntaSend, rather than our own locally-computed PaymentEntity history.
+ * earnings credited in (narrative "Consult fee - {patient} (APT-...)") and withdrawals debited out
+ * (narrative "Doctor withdrawal - {account name}") as one feed, live from IntaSend, rather than our
+ * own locally-computed PaymentEntity history.
  */
 class GetWalletTransactionsUseCase(
     private val intaSendRepository: IntaSendRepository,

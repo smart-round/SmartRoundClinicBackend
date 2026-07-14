@@ -66,6 +66,12 @@ class CreditDoctorEarningsUseCase(
         val commissionAmount = payment.amount - netAmount
         val shortRef = appointmentId.takeLast(6)
 
+        // Names make each wallet's transaction feed self-describing — especially the shared
+        // commission wallet, which aggregates cuts from every doctor's appointments in one feed.
+        val participants = appointmentInfoLookup.getParticipants(appointmentId)
+        val patientLabel = participants?.patientName?.truncateForNarrative() ?: "Patient"
+        val doctorLabel = participants?.doctorName?.truncateForNarrative() ?: "Doctor"
+
         if (payment.doctorCreditedAt == null) {
             creditLeg(
                 paymentId = payment.id,
@@ -73,7 +79,7 @@ class CreditDoctorEarningsUseCase(
                 release = { paymentRepository.releaseDoctorCredit(payment.id) },
                 destinationWalletId = walletId,
                 amount = netAmount,
-                narrative = "APT-$shortRef",
+                narrative = "Consult fee - $patientLabel (APT-$shortRef)",
                 legName = "doctor",
             )
         }
@@ -85,11 +91,14 @@ class CreditDoctorEarningsUseCase(
                 release = { paymentRepository.releaseCommissionCredit(payment.id) },
                 destinationWalletId = config.commissionWalletId,
                 amount = commissionAmount,
-                narrative = "COM-$shortRef",
+                narrative = "Commission - Dr $doctorLabel (APT-$shortRef)",
                 legName = "commission",
             )
         }
     }
+
+    private fun String.truncateForNarrative(maxLength: Int = 40): String =
+        if (length <= maxLength) this else take(maxLength - 1) + "…"
 
     private suspend fun creditLeg(
         paymentId: String,

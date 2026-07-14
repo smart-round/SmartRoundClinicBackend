@@ -32,7 +32,9 @@ data class CreateSendMoneyTransaction(
     @SerialName("id_number")
     val idNumber: String,
     @SerialName("name")
-    val name: String
+    val name: String,
+    @SerialName("narrative")
+    val narrative: String? = null,
 ){
     fun addIdNumber(idNumber: String): CreateSendMoneyTransaction  = this.copy(idNumber = idNumber)
 }

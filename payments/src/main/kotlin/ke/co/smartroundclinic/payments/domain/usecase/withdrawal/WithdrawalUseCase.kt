@@ -113,6 +113,7 @@ class WithdrawalUseCase(
                             bankCode = paymentDetails.bankCode,
                             idNumber = req.idNumber,
                             name = paymentDetails.accountName,
+                            narrative = "Doctor withdrawal - ${paymentDetails.accountName}",
                         )
                     ),
                 )
