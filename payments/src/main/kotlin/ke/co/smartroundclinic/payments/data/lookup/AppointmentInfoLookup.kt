@@ -75,6 +75,9 @@ class AppointmentInfoLookup(
     suspend fun getCommissionRate(): Double =
         commissionRates.find().firstOrNull()?.commissionRate ?: 0.0
 
+    suspend fun getStatus(appointmentId: String): String? =
+        appointments.find(Filters.eq("id", appointmentId)).firstOrNull()?.status
+
     suspend fun getParticipants(appointmentId: String): AppointmentParticipants? {
         val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull()
         if (appointment == null) {

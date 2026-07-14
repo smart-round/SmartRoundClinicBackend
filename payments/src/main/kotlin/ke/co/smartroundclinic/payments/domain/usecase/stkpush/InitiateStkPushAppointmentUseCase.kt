@@ -58,6 +58,7 @@ class InitiateStkPushAppointmentUseCase(
                 apiRef = appointmentId,
                 phoneNumber = phoneNumber,
                 signature = computeStkPushSignature(config.secretKey, phoneNumber, amount, appointmentId),
+                walletId = config.collectionsWalletId,
             )
         )
 

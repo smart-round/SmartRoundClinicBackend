@@ -11,4 +11,10 @@ interface WithdrawalRepository {
     suspend fun updateStatus(trackingId: String, status: String): Resource<Unit>
     suspend fun getAllForAdmin(status: String? = null): Resource<List<WithdrawalEntity>>
     suspend fun getAll(page: Int, size: Int, status: String? = null): Resource<Pair<List<WithdrawalEntity>, Long>>
+
+    /** Atomically reserves the "one in-flight withdrawal per doctor" lock. False if already held. */
+    suspend fun acquireLock(doctorId: String): Resource<Boolean>
+
+    /** Releases the in-flight lock once a withdrawal attempt has finished (success or failure). */
+    suspend fun releaseLock(doctorId: String): Resource<Unit>
 }

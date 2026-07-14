@@ -12,6 +12,7 @@ data class PaymentDetails(
     val branchCode: String,
     val accountNumber: String,
     val accountName: String,
+    val walletId: String? = null,
     val createdAt: String,
     val updatedAt: String?,
 ){
@@ -24,6 +25,7 @@ data class PaymentDetails(
         branchCode = branchCode,
         accountNumber = accountNumber,
         accountName = accountName,
+        walletId = walletId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

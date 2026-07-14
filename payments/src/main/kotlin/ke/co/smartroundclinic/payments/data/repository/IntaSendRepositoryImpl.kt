@@ -20,15 +20,20 @@ import ke.co.smartroundclinic.payments.data.remote.instasend.request.ApproveSend
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CheckSendMoneyStatusReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateChargebackRequestReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyRequestReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateWalletReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.GetPaymentStatusReq
+import ke.co.smartroundclinic.payments.data.remote.instasend.request.IntraTransferReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.STKPushReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.ApproveSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CheckSendMoneyStatusRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateChargebackRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.GetPaymentStatusRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.IntraTransferRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.STKPushRes
+import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.Wallet
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
+import io.ktor.client.request.get
 import org.slf4j.LoggerFactory
 
 class IntaSendRepositoryImpl(
@@ -163,5 +168,58 @@ class IntaSendRepositoryImpl(
     } catch (e: Exception) {
         log.error("createChargeback(${body.invoiceId}) failed — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to create chargeback")
+    }
+
+    override suspend fun createWallet(body: CreateWalletReq): Resource<Wallet> = try {
+        val response = http.post("${config.baseUrl}/wallets/") {
+            auth()
+            jsonBody(body)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<Wallet>(), "Wallet created successfully")
+        } else {
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "Wallet creation failed — HTTP ${response.status.value}" }
+            log.warn("createWallet label=${body.label} — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    } catch (e: Exception) {
+        log.error("createWallet(${body.label}) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to create wallet")
+    }
+
+    override suspend fun getWallet(walletId: String): Resource<Wallet> = try {
+        val response = http.get("${config.baseUrl}/wallets/$walletId/") {
+            auth()
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<Wallet>(), "Wallet fetched successfully")
+        } else {
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "Failed to fetch wallet — HTTP ${response.status.value}" }
+            log.warn("getWallet walletId=$walletId — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    } catch (e: Exception) {
+        log.error("getWallet($walletId) failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch wallet")
+    }
+
+    override suspend fun internalTransfer(originWalletId: String, body: IntraTransferReq): Resource<IntraTransferRes> = try {
+        val response = http.post("${config.baseUrl}/wallets/$originWalletId/intra_transfer/") {
+            auth()
+            jsonBody(body)
+        }
+        if (response.status.isSuccess()) {
+            Resource.Success(response.body<IntraTransferRes>(), "Internal transfer completed successfully")
+        } else {
+            val errorMessage = runCatching { response.body<IntaSendErrorRes>().message() }
+                .getOrElse { "Internal transfer failed — HTTP ${response.status.value}" }
+            log.warn("internalTransfer origin=$originWalletId destination=${body.destinationWalletId} — IntaSend error: $errorMessage")
+            Resource.Error(errorMessage)
+        }
+    } catch (e: Exception) {
+        log.error("internalTransfer origin=$originWalletId failed — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to perform internal transfer")
     }
 }

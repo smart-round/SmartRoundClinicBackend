@@ -162,7 +162,7 @@ val doctorModule = module {
     /**
      * Payment Details
      * */
-    single { AddPaymentDetailsUseCase(get()) }
+    single { AddPaymentDetailsUseCase(get(), getOrNull()) }
     single { GetPaymentDetailsUseCase(get()) }
     single { UpdatePaymentDetailsUseCase(get()) }
     single { DeletePaymentDetailsUseCase(get()) }

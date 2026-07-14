@@ -21,6 +21,8 @@ data class PaymentEntity(
     val account: String? = null,
     val notes: String? = null,
     val commissionRate: Double = 0.0,
+    val doctorCreditedAt: String? = null,
+    val commissionCreditedAt: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {

@@ -13,6 +13,7 @@ data class PractitionerPaymentDetailsEntity(
     val branchCode: String,
     val accountNumber: String,
     val accountName: String,
+    val walletId: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
 ) {
@@ -25,6 +26,7 @@ data class PractitionerPaymentDetailsEntity(
         branchCode = branchCode,
         accountNumber = accountNumber,
         accountName = accountName,
+        walletId = walletId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

@@ -15,7 +15,9 @@ data class STKPushReq(
     @SerialName("phone_number")
     val phoneNumber: String,
     @SerialName("signature")
-    val signature: String
+    val signature: String,
+    @SerialName("wallet_id")
+    val walletId: String? = null,
 )
 
 enum class STKPushMobileTarrif(val str: String) {

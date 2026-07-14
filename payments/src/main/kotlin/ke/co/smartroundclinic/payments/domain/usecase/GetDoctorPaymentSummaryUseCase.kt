@@ -5,13 +5,22 @@ import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.payments.data.entity.PaymentEntity
 import ke.co.smartroundclinic.payments.data.entity.WithdrawalEntity
+import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
+import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
 import ke.co.smartroundclinic.payments.presentation.dto.response.DoctorPaymentSummaryRes
 
+/**
+ * `availableBalance` is read live from the doctor's IntaSend wallet — the authoritative number
+ * for whether a withdrawal is actually allowed. The other fields are historical/informational,
+ * computed from our own DB, and are not used to gate withdrawals.
+ */
 class GetDoctorPaymentSummaryUseCase(
     private val paymentRepository: PaymentRepository,
     private val withdrawalRepository: WithdrawalRepository,
+    private val intaSendRepository: IntaSendRepository,
+    private val walletResolver: DoctorWalletResolver,
 ) {
     suspend operator fun invoke(doctorId: String): DefaultResponse<DoctorPaymentSummaryRes?> {
         val paymentsResult = paymentRepository.getAllByDoctorId(doctorId)
@@ -23,6 +32,22 @@ class GetDoctorPaymentSummaryUseCase(
                 data = null,
             )
         }
+
+        val walletId = walletResolver.resolve(doctorId)
+            ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = "Unable to reach your wallet right now. Please try again shortly.",
+                data = null,
+            )
+        val walletResult = intaSendRepository.getWallet(walletId)
+        val availableBalance = (walletResult as? Resource.Success)?.data?.availableBalance
+            ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = (walletResult as? Resource.Error)?.message ?: "Failed to fetch wallet balance",
+                data = null,
+            )
 
         val payments = (paymentsResult as Resource.Success).data ?: emptyList()
         val completed = payments.filter { it.status == PaymentEntity.PaymentStatus.COMPLETED }
@@ -56,7 +81,7 @@ class GetDoctorPaymentSummaryUseCase(
                 totalWithdrawn = totalWithdrawn,
                 totalPendingWithdrawals = totalPendingWithdrawals,
                 totalCompletedWithdrawals = totalCompletedWithdrawals,
-                availableBalance = totalNetEarnings - totalWithdrawn,
+                availableBalance = availableBalance,
             )
         )
     }

@@ -64,7 +64,7 @@ val schedulingKoinModule = module {
     single { GetNextAppointmentUseCase(get()) }
     single { ConfirmAppointmentUseCase(get(), getOrNull()) }
     single { CancelAppointmentUseCase(get(), get(), get(), getOrNull()) }
-    single { CompleteAppointmentUseCase(get(), getOrNull()) }
+    single { CompleteAppointmentUseCase(get(), getOrNull(), getOrNull()) }
     single { MarkNoShowUseCase(get(), getOrNull()) }
 
     // Schedule use cases

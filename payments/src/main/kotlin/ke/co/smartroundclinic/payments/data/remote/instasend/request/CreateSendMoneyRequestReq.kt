@@ -14,7 +14,9 @@ data class CreateSendMoneyRequestReq(
     @SerialName("provider")
     val provider: String = "PESALINK",
     @SerialName("transactions")
-    val transactions: List<CreateSendMoneyTransaction>
+    val transactions: List<CreateSendMoneyTransaction>,
+    @SerialName("wallet_id")
+    val walletId: String? = null,
 )
 
 @Serializable

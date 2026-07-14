@@ -150,6 +150,72 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
         Resource.Error(e.message ?: "Failed to update payment")
     }
 
+    override suspend fun claimDoctorCredit(paymentId: String): Resource<PaymentEntity?> = try {
+        val claimed = col.findOneAndUpdate(
+            Filters.and(
+                Filters.eq(PaymentEntity::id.name, paymentId),
+                Filters.eq(PaymentEntity::doctorCreditedAt.name, null),
+            ),
+            Updates.set(PaymentEntity::doctorCreditedAt.name, Clock.System.now().toString()),
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
+        )
+        Resource.Success(claimed)
+    } catch (e: Exception) {
+        log.error("Failed to claim doctor credit paymentId=$paymentId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to claim doctor credit")
+    }
+
+    override suspend fun claimCommissionCredit(paymentId: String): Resource<PaymentEntity?> = try {
+        val claimed = col.findOneAndUpdate(
+            Filters.and(
+                Filters.eq(PaymentEntity::id.name, paymentId),
+                Filters.eq(PaymentEntity::commissionCreditedAt.name, null),
+            ),
+            Updates.set(PaymentEntity::commissionCreditedAt.name, Clock.System.now().toString()),
+            FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
+        )
+        Resource.Success(claimed)
+    } catch (e: Exception) {
+        log.error("Failed to claim commission credit paymentId=$paymentId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to claim commission credit")
+    }
+
+    override suspend fun releaseDoctorCredit(paymentId: String): Resource<Unit> = try {
+        col.updateOne(
+            Filters.eq(PaymentEntity::id.name, paymentId),
+            Updates.set(PaymentEntity::doctorCreditedAt.name, null),
+        )
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        log.error("Failed to release doctor credit claim paymentId=$paymentId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to release doctor credit claim")
+    }
+
+    override suspend fun releaseCommissionCredit(paymentId: String): Resource<Unit> = try {
+        col.updateOne(
+            Filters.eq(PaymentEntity::id.name, paymentId),
+            Updates.set(PaymentEntity::commissionCreditedAt.name, null),
+        )
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        log.error("Failed to release commission credit claim paymentId=$paymentId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to release commission credit claim")
+    }
+
+    override suspend fun getCompletedUncredited(limit: Int): Resource<List<PaymentEntity>> = try {
+        val filter = Filters.and(
+            Filters.eq(PaymentEntity::status.name, PaymentEntity.PaymentStatus.COMPLETED.name),
+            Filters.or(
+                Filters.eq(PaymentEntity::doctorCreditedAt.name, null),
+                Filters.eq(PaymentEntity::commissionCreditedAt.name, null),
+            ),
+        )
+        Resource.Success(col.find(filter).limit(limit).toList())
+    } catch (e: Exception) {
+        log.error("Failed to fetch completed-uncredited payments — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch completed-uncredited payments")
+    }
+
     override suspend fun updateStatus(id: String, status: String, transactionRef: String?, paymentMethod: String?): Resource<PaymentEntity?> = try {
         val updates = mutableListOf(
             Updates.set(PaymentEntity::status.name, status.uppercase()),

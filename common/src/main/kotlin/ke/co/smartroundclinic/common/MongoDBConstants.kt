@@ -96,6 +96,7 @@ object MongoDBConstants {
     const val PAYMENTS = "payments"
     const val PAYMENT_LOGS = "payment_logs"
     const val WITHDRAWALS = "withdrawals"
+    const val WITHDRAWAL_LOCKS = "withdrawal_locks"
     const val PLATFORM_COMMISSION_LOGS = "platform_commission_logs"
     const val REFUNDS = "refunds"
 

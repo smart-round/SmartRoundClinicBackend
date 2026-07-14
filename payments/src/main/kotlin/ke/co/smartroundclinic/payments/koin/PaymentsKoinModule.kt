@@ -1,5 +1,7 @@
 package ke.co.smartroundclinic.payments.koin
 
+import ke.co.smartroundclinic.common.AppointmentEarningsCreditor
+import ke.co.smartroundclinic.common.DoctorWalletProvisioner
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
@@ -17,6 +19,7 @@ import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRe
 import ke.co.smartroundclinic.payments.domain.repository.RefundRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
 import ke.co.smartroundclinic.payments.domain.service.AdminPaymentsService
+import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
 import ke.co.smartroundclinic.payments.domain.service.IntaSendService
 import ke.co.smartroundclinic.payments.domain.service.PaymentService
 import ke.co.smartroundclinic.payments.domain.usecase.GetAllPaymentsUseCase
@@ -27,6 +30,8 @@ import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByDoctorUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.InitiatePaymentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.UpdatePaymentStatusUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.earnings.CreditDoctorEarningsUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.earnings.CreditPendingEarningsTask
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.refund.HandleRefundWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessNextRefundUseCase
@@ -45,6 +50,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalBa
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalByIdUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.GetWithdrawalHistoryUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.HandleWithdrawalWebhookUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.ReconcileWithdrawalsTask
 import ke.co.smartroundclinic.payments.domain.usecase.withdrawal.WithdrawalUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -58,6 +64,16 @@ val paymentsKoinModule = module {
     single<RefundRepository> { RefundRepositoryImpl(get(named("paymentsDb"))) }
     single<IntaSendRepository> { IntaSendRepositoryImpl(get(), AppConfig.intaSend) }
 
+    // Lookups shared with STK push / withdrawal / earnings-credit use cases
+    single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb")), get(named("adminDb"))) }
+    single { DoctorPaymentDetailsLookup(get(named("doctorDb"))) }
+    single { DoctorTierPriceLookup(get(named("adminDb")), get(named("doctorDb"))) }
+
+    // Doctor wallet resolution — bound as both the concrete class (internal :payments use) and
+    // the cross-module DoctorWalletProvisioner interface (consumed by :doctor's AddPaymentDetailsUseCase)
+    single { DoctorWalletResolver(get(), get()) }
+    single<DoctorWalletProvisioner> { get<DoctorWalletResolver>() }
+
     // General payment use cases
     single { InitiatePaymentUseCase(get(), get()) }
     single { GetPaymentByIdUseCase(get()) }
@@ -66,13 +82,9 @@ val paymentsKoinModule = module {
     single { GetPaymentsByDoctorUseCase(get()) }
     single { GetAllPaymentsUseCase(get()) }
     single { UpdatePaymentStatusUseCase(get()) }
-    single { GetDoctorPaymentSummaryUseCase(get(), get()) }
+    single { GetDoctorPaymentSummaryUseCase(get(), get(), get(), get()) }
     single { PaymentService(get(), get(), get(), get(), get(), get(), get(), get()) }
 
-    // Lookups shared with STK push use cases
-    single { AppointmentInfoLookup(get(named("schedulingDb")), get(named("authDb")), get(named("adminDb"))) }
-    single { DoctorPaymentDetailsLookup(get(named("doctorDb"))) }
-    single { DoctorTierPriceLookup(get(named("adminDb")), get(named("doctorDb"))) }
     single { HandleIntaSendWebhookUseCase(get(), get()) }
 
     // STK push use cases
@@ -80,13 +92,19 @@ val paymentsKoinModule = module {
     single { InitiateStkPushPreBookingUseCase(get(), get(), AppConfig.intaSend, get(), get()) }
     single { GetStkPushPaymentStatusUseCase(get()) }
 
-    // Withdrawal use cases
-    single { WithdrawalUseCase(get(), get(), get(), get(), get(), AppConfig.intaSend) }
-    single { GetWithdrawalBalanceUseCase(get(), get()) }
+    // Earnings-credit use case (appointment COMPLETED -> doctor wallet + commission wallet) + background sweep
+    single { CreditDoctorEarningsUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
+    single<AppointmentEarningsCreditor> { get<CreditDoctorEarningsUseCase>() }
+    single { CreditPendingEarningsTask(get(), get()) }
+
+    // Withdrawal use cases + background reconciliation task
+    single { WithdrawalUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
+    single { GetWithdrawalBalanceUseCase(get(), get(), get(), get()) }
     single { GetWithdrawalHistoryUseCase(get()) }
     single { GetWithdrawalByIdUseCase(get()) }
     single { CheckWithdrawalStatusUseCase(get()) }
     single { HandleWithdrawalWebhookUseCase(get()) }
+    single { ReconcileWithdrawalsTask(get(), get()) }
 
     // Refund use cases + background payout task
     single { ProcessNextRefundUseCase(get(), get(), get()) }

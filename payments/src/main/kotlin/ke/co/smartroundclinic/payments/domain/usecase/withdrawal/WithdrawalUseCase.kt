@@ -4,9 +4,6 @@ import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.IntaSendConfig
-import ke.co.smartroundclinic.payments.data.entity.CommissionPaymentEntry
-import ke.co.smartroundclinic.payments.data.entity.PaymentEntity
-import ke.co.smartroundclinic.payments.data.entity.PlatformCommissionLogEntity
 import ke.co.smartroundclinic.payments.data.entity.WithdrawalEntity
 import ke.co.smartroundclinic.payments.data.entity.WithdrawalTransactionRecord
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
@@ -15,9 +12,8 @@ import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendM
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.ApproveSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.toApproveSendMoneyRequest
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
-import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
-import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
+import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
 import ke.co.smartroundclinic.payments.presentation.dto.request.WithdrawInitiateReq
 import org.slf4j.LoggerFactory
 
@@ -25,11 +21,18 @@ private const val MIN_WITHDRAWAL_KES = 100.0
 private const val WITHDRAWAL_CURRENCY = "KES"
 private const val WITHDRAWAL_PROVIDER = "PESALINK"
 
+/**
+ * Balance authority lives entirely in IntaSend now: a doctor's wallet only ever holds money
+ * that's already been credited to them post-commission (see CreditDoctorEarningsUseCase), so
+ * "available balance" is read live from the wallet rather than recomputed from our own DB — this
+ * is what closes the check-then-act race that let concurrent/retried requests over-withdraw.
+ * An application-level per-doctor lock (WithdrawalRepository.acquireLock) additionally prevents
+ * two disbursement calls from ever being fired concurrently in the first place.
+ */
 class WithdrawalUseCase(
     private val intaSendRepository: IntaSendRepository,
     private val withdrawalRepository: WithdrawalRepository,
-    private val paymentRepository: PaymentRepository,
-    private val commissionLogRepository: PlatformCommissionLogRepository,
+    private val walletResolver: DoctorWalletResolver,
     private val paymentDetailsLookup: DoctorPaymentDetailsLookup,
     private val config: IntaSendConfig,
 ) {
@@ -45,22 +48,16 @@ class WithdrawalUseCase(
                 data = null,
             )
 
-        // 2. Compute gross, platform commission, and net earnings from completed payments
-        val payments = (paymentRepository.getAllByDoctorId(doctorId) as? Resource.Success)?.data ?: emptyList()
-        val completedPayments = payments.filter { it.status == PaymentEntity.PaymentStatus.COMPLETED }
-        val totalGross = completedPayments.sumOf { it.amount }
-        val totalPlatformCommission = completedPayments.sumOf { it.amount * (it.commissionRate / 100.0) }
-        val totalNetEarnings = totalGross - totalPlatformCommission
+        // 2. Resolve the doctor's IntaSend wallet (lazily provisioned if it predates wallet support)
+        val walletId = walletResolver.resolve(doctorId)
+            ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = "Unable to reach your wallet right now. Please try again shortly.",
+                data = null,
+            )
 
-        // 3. Compute total already withdrawn (PENDING + COMPLETED; exclude FAILED)
-        val withdrawals = (withdrawalRepository.getByDoctorId(doctorId) as? Resource.Success)?.data ?: emptyList()
-        val totalWithdrawn = withdrawals
-            .filter { it.status != WithdrawalEntity.WithdrawalStatus.FAILED.name }
-            .sumOf { it.amount }
-
-        val availableBalance = totalNetEarnings - totalWithdrawn
-
-        // 4. Minimum withdrawal limit
+        // 3. Minimum withdrawal limit
         if (req.amount < MIN_WITHDRAWAL_KES) {
             return DefaultResponse(
                 httpStatusCode = HttpStatusCode.BadRequest.value,
@@ -70,113 +67,108 @@ class WithdrawalUseCase(
             )
         }
 
-        // 5. Balance check
-        if (req.amount > availableBalance) {
+        // 4. Reserve the per-doctor in-flight lock before touching IntaSend at all
+        val lockAcquired = (withdrawalRepository.acquireLock(doctorId) as? Resource.Success)?.data ?: false
+        if (!lockAcquired) {
             return DefaultResponse(
-                httpStatusCode = HttpStatusCode.BadRequest.value,
+                httpStatusCode = HttpStatusCode.Conflict.value,
                 status = false,
-                message = "Insufficient balance. Available: KES ${"%.2f".format(availableBalance)}, requested: KES ${"%.2f".format(req.amount)}",
+                message = "A withdrawal is already in progress. Please wait for it to complete.",
                 data = null,
             )
         }
 
-        // 6. Initiate disbursement with IntaSend using the doctor's registered bank details
-        val initiateResult = intaSendRepository.createSendMoneyRequest(
-            idNumber = req.idNumber,
-            body = CreateSendMoneyRequestReq(
-                callbackUrl = "${config.callBackBaseUrl}/payments/instasend/withdrawal/callback",
+        try {
+            // 5. Live balance check — sourced from IntaSend's own ledger, not a local computation
+            val walletResult = intaSendRepository.getWallet(walletId)
+            val wallet = (walletResult as? Resource.Success)?.data
+                ?: return DefaultResponse(
+                    httpStatusCode = HttpStatusCode.BadGateway.value,
+                    status = false,
+                    message = (walletResult as? Resource.Error)?.message ?: "Failed to fetch wallet balance",
+                    data = null,
+                )
+
+            if (req.amount > wallet.availableBalance) {
+                return DefaultResponse(
+                    httpStatusCode = HttpStatusCode.BadRequest.value,
+                    status = false,
+                    message = "Insufficient balance. Available: KES ${"%.2f".format(wallet.availableBalance)}, requested: KES ${"%.2f".format(req.amount)}",
+                    data = null,
+                )
+            }
+
+            // 6. Initiate disbursement with IntaSend, scoped to the doctor's own wallet
+            val amountStr = "%.2f".format(req.amount)
+            val initiateResult = intaSendRepository.createSendMoneyRequest(
+                idNumber = req.idNumber,
+                body = CreateSendMoneyRequestReq(
+                    callbackUrl = "${config.callBackBaseUrl}/payments/instasend/withdrawal/callback",
+                    currency = WITHDRAWAL_CURRENCY,
+                    provider = WITHDRAWAL_PROVIDER,
+                    walletId = walletId,
+                    transactions = listOf(
+                        CreateSendMoneyTransaction(
+                            account = paymentDetails.accountNumber,
+                            amount = amountStr,
+                            bankCode = paymentDetails.bankCode,
+                            idNumber = req.idNumber,
+                            name = paymentDetails.accountName,
+                        )
+                    ),
+                )
+            )
+
+            if (initiateResult !is Resource.Success) {
+                return DefaultResponse(
+                    httpStatusCode = HttpStatusCode.BadGateway.value,
+                    status = false,
+                    message = (initiateResult as? Resource.Error)?.message ?: "Failed to initiate withdrawal with payment provider",
+                    data = null,
+                )
+            }
+
+            val initiated = initiateResult.data ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = "Payment provider returned an empty response",
+                data = null,
+            )
+
+            // 7. Auto-approve the disbursement
+            val approveResult = intaSendRepository.approveSendMoneyRequest(initiated.toApproveSendMoneyRequest())
+
+            // 8. Record the withdrawal regardless of approve outcome so failed ones are visible
+            val withdrawalSucceeded = approveResult is Resource.Success
+            val withdrawalEntity = WithdrawalEntity(
+                doctorId = doctorId,
+                amount = req.amount,
                 currency = WITHDRAWAL_CURRENCY,
+                trackingId = initiated.trackingId,
+                status = if (withdrawalSucceeded)
+                    WithdrawalEntity.WithdrawalStatus.PENDING.name
+                else
+                    WithdrawalEntity.WithdrawalStatus.FAILED.name,
                 provider = WITHDRAWAL_PROVIDER,
+                platformCommission = 0.0,
                 transactions = listOf(
-                    CreateSendMoneyTransaction(
+                    WithdrawalTransactionRecord(
                         account = paymentDetails.accountNumber,
-                        amount = req.amount.toInt().toString(),
+                        amount = amountStr,
                         bankCode = paymentDetails.bankCode,
-                        idNumber = req.idNumber,
                         name = paymentDetails.accountName,
                     )
                 ),
             )
-        )
+            runCatching { withdrawalRepository.save(withdrawalEntity) }
+                .onFailure { log.error("Failed to persist withdrawal record doctorId=$doctorId — ${it.message}", it) }
 
-        if (initiateResult !is Resource.Success) {
-            return DefaultResponse(
-                httpStatusCode = HttpStatusCode.BadGateway.value,
-                status = false,
-                message = (initiateResult as? Resource.Error)?.message ?: "Failed to initiate withdrawal with payment provider",
-                data = null,
-            )
+            return approveResult.toDefaultResponse(
+                successStatusCode = HttpStatusCode.Created.value,
+                failedStatusCode = HttpStatusCode.BadGateway.value,
+            ) { it }
+        } finally {
+            withdrawalRepository.releaseLock(doctorId)
         }
-
-        val initiated = initiateResult.data ?: return DefaultResponse(
-            httpStatusCode = HttpStatusCode.BadGateway.value,
-            status = false,
-            message = "Payment provider returned an empty response",
-            data = null,
-        )
-
-        // 7. Auto-approve the disbursement
-        val approveResult = intaSendRepository.approveSendMoneyRequest(initiated.toApproveSendMoneyRequest())
-
-        // 8. Record the withdrawal regardless of approve outcome so failed ones are visible
-        // Commission is proportional to the withdrawal amount, not the total gross.
-        val commissionOnWithdrawal = if (totalNetEarnings > 0)
-            (req.amount / totalNetEarnings) * totalPlatformCommission
-        else 0.0
-
-        val withdrawalSucceeded = approveResult is Resource.Success
-        val withdrawalEntity = WithdrawalEntity(
-            doctorId = doctorId,
-            amount = req.amount,
-            currency = WITHDRAWAL_CURRENCY,
-            trackingId = initiated.trackingId,
-            status = if (withdrawalSucceeded)
-                WithdrawalEntity.WithdrawalStatus.PENDING.name
-            else
-                WithdrawalEntity.WithdrawalStatus.FAILED.name,
-            provider = WITHDRAWAL_PROVIDER,
-            platformCommission = commissionOnWithdrawal,
-            transactions = listOf(
-                WithdrawalTransactionRecord(
-                    account = paymentDetails.accountNumber,
-                    amount = req.amount.toInt().toString(),
-                    bankCode = paymentDetails.bankCode,
-                    name = paymentDetails.accountName,
-                )
-            ),
-        )
-        runCatching { withdrawalRepository.save(withdrawalEntity) }
-            .onFailure { log.error("Failed to persist withdrawal record doctorId=$doctorId — ${it.message}", it) }
-
-        // 9. Write platform commission log on success — per-payment breakdown for audit
-        if (withdrawalSucceeded) {
-            runCatching {
-                commissionLogRepository.save(
-                    PlatformCommissionLogEntity(
-                        withdrawalId = withdrawalEntity.id,
-                        doctorId = doctorId,
-                        withdrawalAmount = req.amount,
-                        totalGross = totalGross,
-                        totalCommission = commissionOnWithdrawal,
-                        payments = completedPayments.map { p ->
-                            CommissionPaymentEntry(
-                                paymentId = p.id,
-                                appointmentId = p.appointmentId,
-                                doctorId = p.doctorId,
-                                amount = p.amount,
-                                commissionRate = p.commissionRate,
-                                commissionAmount = p.amount * (p.commissionRate / 100.0),
-                                paidAt = p.createdAt,
-                            )
-                        },
-                    )
-                )
-            }.onFailure { log.error("Failed to persist commission log withdrawalId=${withdrawalEntity.id} — ${it.message}", it) }
-        }
-
-        return approveResult.toDefaultResponse(
-            successStatusCode = HttpStatusCode.Created.value,
-            failedStatusCode = HttpStatusCode.BadGateway.value,
-        ) { it }
     }
 }

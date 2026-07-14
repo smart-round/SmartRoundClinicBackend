@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.payments.data.repository
 
+import com.mongodb.MongoWriteException
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
@@ -10,12 +11,16 @@ import ke.co.smartroundclinic.payments.data.entity.WithdrawalEntity
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import org.bson.Document
 import org.slf4j.LoggerFactory
+
+private const val DUPLICATE_KEY_ERROR_CODE = 11000
 
 class WithdrawalRepositoryImpl(database: MongoDatabase) : WithdrawalRepository {
 
     private val log = LoggerFactory.getLogger(WithdrawalRepositoryImpl::class.java)
     private val col = database.getCollection<WithdrawalEntity>(MongoDBConstants.WITHDRAWALS)
+    private val locks = database.getCollection<Document>(MongoDBConstants.WITHDRAWAL_LOCKS)
 
     override suspend fun save(entity: WithdrawalEntity): Resource<WithdrawalEntity> = try {
         col.insertOne(entity)
@@ -75,6 +80,31 @@ class WithdrawalRepositoryImpl(database: MongoDatabase) : WithdrawalRepository {
         Resource.Success(items to total)
     } catch (e: Exception) {
         Resource.Error(e.message ?: "Failed to fetch withdrawals")
+    }
+
+    override suspend fun acquireLock(doctorId: String): Resource<Boolean> = try {
+        // _id is uniquely indexed by MongoDB by default, so a same-_id insert race resolves to
+        // exactly one winner without needing a separate unique index.
+        locks.insertOne(Document("_id", doctorId).append("createdAt", Clock.System.now().toString()))
+        Resource.Success(true)
+    } catch (e: MongoWriteException) {
+        if (e.error.code == DUPLICATE_KEY_ERROR_CODE) {
+            Resource.Success(false)
+        } else {
+            log.error("Failed to acquire withdrawal lock doctorId=$doctorId — ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to acquire withdrawal lock")
+        }
+    } catch (e: Exception) {
+        log.error("Failed to acquire withdrawal lock doctorId=$doctorId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to acquire withdrawal lock")
+    }
+
+    override suspend fun releaseLock(doctorId: String): Resource<Unit> = try {
+        locks.deleteOne(Filters.eq("_id", doctorId))
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        log.error("Failed to release withdrawal lock doctorId=$doctorId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to release withdrawal lock")
     }
 
     override suspend fun updateStatus(trackingId: String, status: String): Resource<Unit> = try {

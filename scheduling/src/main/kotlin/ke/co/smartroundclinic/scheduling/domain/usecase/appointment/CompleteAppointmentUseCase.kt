@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
+import ke.co.smartroundclinic.common.AppointmentEarningsCreditor
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.PushNotificationEvents
@@ -25,6 +26,7 @@ private val APPOINTMENT_TIMEZONE = TimeZone.of("Africa/Nairobi")
 class CompleteAppointmentUseCase(
     private val repository: AppointmentRepository,
     private val notificationSender: NotificationSender? = null,
+    private val earningsCreditor: AppointmentEarningsCreditor? = null,
 ) {
     suspend operator fun invoke(id: String, doctorId: String): DefaultResponse<AppointmentRes?> {
         val existing = repository.getById(id)
@@ -52,6 +54,9 @@ class CompleteAppointmentUseCase(
                     recipientId = entity.patientId,
                     metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_COMPLETED, "appointmentId" to id),
                 )
+            }
+            runCatching {
+                earningsCreditor?.creditEarningsForAppointment(id, entity.doctorId)
             }
         }
         return result.toDefaultResponse { it?.toModel()?.toRes() }

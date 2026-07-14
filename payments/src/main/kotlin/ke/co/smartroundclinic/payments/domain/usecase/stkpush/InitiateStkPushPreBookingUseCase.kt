@@ -115,6 +115,7 @@ class InitiateStkPushPreBookingUseCase(
                 apiRef = apiRef,
                 phoneNumber = phoneNumber,
                 signature = computeStkPushSignature(config.secretKey, phoneNumber, amountStr, apiRef),
+                walletId = config.collectionsWalletId,
             )
         )
 

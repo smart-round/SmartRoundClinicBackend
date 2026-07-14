@@ -323,6 +323,12 @@ RESEND_PASSWORD_RESET_CONFIRMATION_TEMPLATE_ID
 
 # Cloudflare R2 (file storage)
 R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL
+
+# IntaSend (payments, payouts, wallets)
+INTASEND_SECRET_KEY, INTASEND_BASE_URL (default: https://api.intasend.com/api/v1)
+CALLBACK_URL, INTASEND_WEBHOOK_CHALLENGE
+INTASEND_COLLECTIONS_WALLET_ID   # platform WORKING wallet that STK-push collections fund
+INTASEND_COMMISSION_WALLET_ID    # platform's existing default SETTLEMENT wallet — commission lands here
 ```
 
 ## Key Libraries

@@ -5,15 +5,40 @@ import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.payments.data.entity.PaymentEntity
 import ke.co.smartroundclinic.payments.data.entity.WithdrawalEntity
+import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
+import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
 import ke.co.smartroundclinic.payments.presentation.dto.response.WithdrawalBalanceRes
 
+/**
+ * `availableBalance` is read live from the doctor's IntaSend wallet — the authoritative number
+ * for whether a withdrawal is actually allowed. The other fields are historical/informational,
+ * computed from our own DB, and are not used to gate withdrawals.
+ */
 class GetWithdrawalBalanceUseCase(
     private val paymentRepository: PaymentRepository,
     private val withdrawalRepository: WithdrawalRepository,
+    private val intaSendRepository: IntaSendRepository,
+    private val walletResolver: DoctorWalletResolver,
 ) {
     suspend operator fun invoke(doctorId: String): DefaultResponse<WithdrawalBalanceRes?> {
+        val walletId = walletResolver.resolve(doctorId)
+            ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = "Unable to reach your wallet right now. Please try again shortly.",
+                data = null,
+            )
+        val walletResult = intaSendRepository.getWallet(walletId)
+        val availableBalance = (walletResult as? Resource.Success)?.data?.availableBalance
+            ?: return DefaultResponse(
+                httpStatusCode = HttpStatusCode.BadGateway.value,
+                status = false,
+                message = (walletResult as? Resource.Error)?.message ?: "Failed to fetch wallet balance",
+                data = null,
+            )
+
         val payments = (paymentRepository.getAllByDoctorId(doctorId) as? Resource.Success)?.data ?: emptyList()
         val totalNetEarnings = payments
             .filter { it.status == PaymentEntity.PaymentStatus.COMPLETED }
@@ -29,8 +54,6 @@ class GetWithdrawalBalanceUseCase(
             .filter { it.status == WithdrawalEntity.WithdrawalStatus.COMPLETED.name }
             .sumOf { it.amount }
 
-        // Both PENDING and COMPLETED count against the available balance.
-        // PENDING = disbursement in-flight; funds are already committed.
         val totalWithdrawn = totalPending + totalCompleted
 
         return DefaultResponse(
@@ -42,7 +65,7 @@ class GetWithdrawalBalanceUseCase(
                 totalWithdrawn = totalWithdrawn,
                 totalPending = totalPending,
                 totalCompleted = totalCompleted,
-                availableBalance = totalNetEarnings - totalWithdrawn,
+                availableBalance = availableBalance,
             )
         )
     }

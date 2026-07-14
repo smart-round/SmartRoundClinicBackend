@@ -25,4 +25,19 @@ interface PaymentRepository {
         account: String?,
         paymentMethod: String?,
     ): Resource<PaymentEntity?>
+
+    /** Atomically claims the doctor-credit leg (sets doctorCreditedAt only if currently null). Null result means already claimed/not found. */
+    suspend fun claimDoctorCredit(paymentId: String): Resource<PaymentEntity?>
+
+    /** Atomically claims the commission-credit leg (sets commissionCreditedAt only if currently null). Null result means already claimed/not found. */
+    suspend fun claimCommissionCredit(paymentId: String): Resource<PaymentEntity?>
+
+    /** Releases a previously claimed doctor-credit leg (resets doctorCreditedAt to null) so a later retry can re-attempt it. */
+    suspend fun releaseDoctorCredit(paymentId: String): Resource<Unit>
+
+    /** Releases a previously claimed commission-credit leg (resets commissionCreditedAt to null) so a later retry can re-attempt it. */
+    suspend fun releaseCommissionCredit(paymentId: String): Resource<Unit>
+
+    /** Completed payments still missing one or both credit legs — feeds the CreditPendingEarningsTask sweep. */
+    suspend fun getCompletedUncredited(limit: Int): Resource<List<PaymentEntity>>
 }

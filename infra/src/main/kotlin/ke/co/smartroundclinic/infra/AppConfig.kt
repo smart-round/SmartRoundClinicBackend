@@ -70,6 +70,8 @@ data class IntaSendConfig(
     val baseUrl: String = EnvLoader.get("INTASEND_BASE_URL") ?: "https://api.intasend.com/api/v1",
     val callBackBaseUrl: String = require("CALLBACK_URL"),
     val webhookChallenge: String = require("INTASEND_WEBHOOK_CHALLENGE"),
+    val collectionsWalletId: String = require("INTASEND_COLLECTIONS_WALLET_ID"),
+    val commissionWalletId: String = require("INTASEND_COMMISSION_WALLET_ID"),
 ) {
     val callBackWithdrawalUrl: String get() = "$callBackBaseUrl/payments/instasend/withdrawal/callback"
 }
