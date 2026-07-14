@@ -9,16 +9,24 @@ import ke.co.smartroundclinic.payments.data.entity.WithdrawalTransactionRecord
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyRequestReq
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.CreateSendMoneyTransaction
-import ke.co.smartroundclinic.payments.data.remote.instasend.reseponse.CreateSendMoneyRequestRes
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
 import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
 import ke.co.smartroundclinic.payments.presentation.dto.request.WithdrawInitiateReq
+import ke.co.smartroundclinic.payments.presentation.dto.response.InsufficientBalanceRes
+import ke.co.smartroundclinic.payments.presentation.dto.response.WithdrawInitiateRes
 import org.slf4j.LoggerFactory
 
 private const val MIN_WITHDRAWAL_KES = 100.0
 private const val WITHDRAWAL_CURRENCY = "KES"
 private const val WITHDRAWAL_PROVIDER = "PESALINK"
+
+/** Matches the fee IntaSend embeds in its own insufficient-balance rejection text, e.g.
+ * "...Transaction charge estimate is KES 100.00. Your current balance is KES 124.40" */
+private val FEE_ESTIMATE_REGEX = Regex("""charge estimate is KES\s*([\d,]+\.?\d*)""", RegexOption.IGNORE_CASE)
+
+private fun parseFeeEstimate(message: String): Double? =
+    FEE_ESTIMATE_REGEX.find(message)?.groupValues?.get(1)?.replace(",", "")?.toDoubleOrNull()
 
 /**
  * Balance authority lives entirely in IntaSend now: a doctor's wallet only ever holds money
@@ -37,7 +45,7 @@ class WithdrawalUseCase(
 ) {
     private val log = LoggerFactory.getLogger(WithdrawalUseCase::class.java)
 
-    suspend operator fun invoke(doctorId: String, req: WithdrawInitiateReq): DefaultResponse<CreateSendMoneyRequestRes?> {
+    suspend operator fun invoke(doctorId: String, req: WithdrawInitiateReq): DefaultResponse<WithdrawInitiateRes?> {
         // 1. Fetch doctor's registered bank account details
         val paymentDetails = paymentDetailsLookup.getByDoctorId(doctorId)
             ?: return DefaultResponse(
@@ -126,11 +134,21 @@ class WithdrawalUseCase(
                 // doctor-correctable input problem, not an upstream/system failure — surface it as
                 // a normal validation error (400) instead of a 502 that reads as "try again later".
                 val isInsufficientBalance = providerMessage.contains("insufficient balance", ignoreCase = true)
+                val feeEstimate = if (isInsufficientBalance) parseFeeEstimate(providerMessage) else null
                 return DefaultResponse(
                     httpStatusCode = if (isInsufficientBalance) HttpStatusCode.BadRequest.value else HttpStatusCode.BadGateway.value,
                     status = false,
                     message = providerMessage,
-                    data = null,
+                    data = feeEstimate?.let {
+                        WithdrawInitiateRes(
+                            insufficientBalance = InsufficientBalanceRes(
+                                requestedAmount = req.amount,
+                                feeEstimate = it,
+                                totalRequired = req.amount + it,
+                                availableBalance = wallet.availableBalance,
+                            )
+                        )
+                    },
                 )
             }
 
@@ -167,7 +185,7 @@ class WithdrawalUseCase(
                 httpStatusCode = HttpStatusCode.Created.value,
                 status = true,
                 message = "Withdrawal initiated successfully",
-                data = initiated,
+                data = WithdrawInitiateRes(trackingId = initiated.trackingId, status = initiated.status),
             )
         } finally {
             withdrawalRepository.releaseLock(doctorId)
