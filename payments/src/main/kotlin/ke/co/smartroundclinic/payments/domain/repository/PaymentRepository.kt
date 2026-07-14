@@ -40,4 +40,7 @@ interface PaymentRepository {
 
     /** Completed payments still missing one or both credit legs — feeds the CreditPendingEarningsTask sweep. */
     suspend fun getCompletedUncredited(limit: Int): Resource<List<PaymentEntity>>
+
+    /** Marks a payment as permanently unable to be credited (appointment CANCELLED/NO_SHOW, or no appointmentId at all) so the sweep stops retrying it. */
+    suspend fun markCreditIneligible(paymentId: String): Resource<Unit>
 }

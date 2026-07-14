@@ -38,7 +38,13 @@ class CreditDoctorEarningsUseCase(
 
         val appointmentStatus = appointmentInfoLookup.getStatus(appointmentId)
         if (appointmentStatus != "COMPLETED") {
-            log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, skipping")
+            if (appointmentStatus == "CANCELLED" || appointmentStatus == "NO_SHOW") {
+                // Terminal state that will never become COMPLETED — stop retrying this payment.
+                paymentRepository.markCreditIneligible(payment.id)
+                log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, marked credit-ineligible")
+            } else {
+                log.info("creditEarningsForAppointment appointmentId=$appointmentId — appointment status=$appointmentStatus, skipping")
+            }
             return
         }
 

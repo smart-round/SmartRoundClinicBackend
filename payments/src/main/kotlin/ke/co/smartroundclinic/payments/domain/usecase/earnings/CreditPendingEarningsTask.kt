@@ -31,7 +31,9 @@ class CreditPendingEarningsTask(
         pending.forEach { payment ->
             val appointmentId = payment.appointmentId
             if (appointmentId == null) {
-                log.warn("[CreditPendingEarnings] paymentId=${payment.id} has no appointmentId, skipping")
+                // Can never be resolved via this path — stop retrying it every cycle.
+                paymentRepository.markCreditIneligible(payment.id)
+                log.warn("[CreditPendingEarnings] paymentId=${payment.id} has no appointmentId, marked credit-ineligible")
                 return@forEach
             }
             runCatching { creditDoctorEarnings.creditEarningsForAppointment(appointmentId, payment.doctorId) }

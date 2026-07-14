@@ -205,6 +205,7 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
     override suspend fun getCompletedUncredited(limit: Int): Resource<List<PaymentEntity>> = try {
         val filter = Filters.and(
             Filters.eq(PaymentEntity::status.name, PaymentEntity.PaymentStatus.COMPLETED.name),
+            Filters.ne(PaymentEntity::creditIneligible.name, true),
             Filters.or(
                 Filters.eq(PaymentEntity::doctorCreditedAt.name, null),
                 Filters.eq(PaymentEntity::commissionCreditedAt.name, null),
@@ -214,6 +215,17 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
     } catch (e: Exception) {
         log.error("Failed to fetch completed-uncredited payments — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to fetch completed-uncredited payments")
+    }
+
+    override suspend fun markCreditIneligible(paymentId: String): Resource<Unit> = try {
+        col.updateOne(
+            Filters.eq(PaymentEntity::id.name, paymentId),
+            Updates.set(PaymentEntity::creditIneligible.name, true),
+        )
+        Resource.Success(Unit)
+    } catch (e: Exception) {
+        log.error("Failed to mark payment id=$paymentId credit-ineligible — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to mark payment credit-ineligible")
     }
 
     override suspend fun updateStatus(id: String, status: String, transactionRef: String?, paymentMethod: String?): Resource<PaymentEntity?> = try {
