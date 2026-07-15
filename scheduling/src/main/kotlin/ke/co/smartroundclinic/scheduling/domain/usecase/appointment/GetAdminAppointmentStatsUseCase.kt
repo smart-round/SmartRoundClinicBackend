@@ -35,7 +35,6 @@ class GetAdminAppointmentStatsUseCase(
                 confirmed = byStatus["CONFIRMED"]?.size ?: 0,
                 completed = byStatus["COMPLETED"]?.size ?: 0,
                 cancelled = byStatus["CANCELLED"]?.size ?: 0,
-                noShow = byStatus["NO_SHOW"]?.size ?: 0,
                 todayCount = appointments.count { it.date == today },
                 totalRevenue = totalRevenue,
                 totalCommission = totalCommission,

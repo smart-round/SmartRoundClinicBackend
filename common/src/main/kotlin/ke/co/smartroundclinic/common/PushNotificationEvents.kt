@@ -8,7 +8,6 @@ object PushNotificationEvents {
     const val APPOINTMENT_CONFIRMED = "Appointment Confirmed"
     const val APPOINTMENT_CANCELLED = "Appointment Cancelled"
     const val APPOINTMENT_COMPLETED = "Appointment Completed"
-    const val APPOINTMENT_NO_SHOW   = "Missed Appointment"
 
     // ── Doctor onboarding ───────────────────────────────────────────────────────
     const val DOCTOR_APPLICATION_APPROVED = "Application Approved"

@@ -9,7 +9,6 @@ data class AppointmentStatsRes(
     val confirmed: Int,
     val completed: Int,
     val cancelled: Int,
-    val noShow: Int,
     val todayCount: Int,
     val totalRevenue: Double,
     val totalCommission: Double,

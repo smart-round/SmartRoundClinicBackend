@@ -24,7 +24,7 @@ fun Route.adminAppointmentController(service: AdminAppointmentService) {
                 }
             }
 
-            // GET /scheduling/admin/appointments?page=1&size=20&status=BOOKED|CONFIRMED|COMPLETED|CANCELLED|NO_SHOW
+            // GET /scheduling/admin/appointments?page=1&size=20&status=BOOKED|CONFIRMED|COMPLETED|CANCELLED
             // All appointments enriched with doctor name, patient name, and linked payment info.
             // Status filter is case-insensitive. Sorted newest first.
             get("appointments") {

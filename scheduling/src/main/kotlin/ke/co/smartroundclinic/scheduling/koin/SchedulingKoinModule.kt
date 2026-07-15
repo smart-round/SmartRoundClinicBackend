@@ -32,9 +32,9 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorApp
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetNextAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsForAdminUseCase
-import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.refund.GetAdminAllRefundsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.refund.GetRefundByIdUseCase
+import ke.co.smartroundclinic.scheduling.domain.usecase.refund.TriggerRefundProcessingUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.DeactivateDayUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetAvailableSlotsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.schedule.GetCalendarRangeUseCase
@@ -63,9 +63,8 @@ val schedulingKoinModule = module {
     single { GetDoctorAppointmentsUseCase(get()) }
     single { GetNextAppointmentUseCase(get()) }
     single { ConfirmAppointmentUseCase(get(), getOrNull()) }
-    single { CancelAppointmentUseCase(get(), get(), get(), getOrNull(), getOrNull()) }
+    single { CancelAppointmentUseCase(get(), get(), get(), getOrNull()) }
     single { CompleteAppointmentUseCase(get(), getOrNull(), getOrNull()) }
-    single { MarkNoShowUseCase(get(), getOrNull()) }
 
     // Schedule use cases
     single { UpsertScheduleUseCase(get()) }
@@ -81,10 +80,11 @@ val schedulingKoinModule = module {
     single { AdminAppointmentService(get(), get()) }
     single { GetAdminAllRefundsUseCase(get(), get()) }
     single { GetRefundByIdUseCase(get(), get()) }
-    single { AdminRefundService(get(), get()) }
+    single { TriggerRefundProcessingUseCase(getOrNull()) }
+    single { AdminRefundService(get(), get(), get()) }
 
     // Services
-    single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { AppointmentService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single { ScheduleService(get(), get(), get(), get(), get()) }
     single { CalendarService(get(), get()) }
 }

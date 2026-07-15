@@ -138,15 +138,6 @@ fun Route.appointmentController(appointmentService: AppointmentService) {
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }
-
-            patch("no-show") {
-                call.requireRole(DOCTOR) {
-                    val doctorId = call.getUserId() ?: return@requireRole
-                    val id = call.parameters["id"] ?: throw  MissingParametersException("id is required")
-                    val result = appointmentService.markNoShow(id, doctorId)
-                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
-                }
-            }
         }
     }
 }

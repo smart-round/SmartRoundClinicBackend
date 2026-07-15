@@ -207,7 +207,7 @@ Available permissions (defined in `common/Permission.kt`): `VIEW_PATIENTS`, `MAN
 | GET | `/scheduling/appointments/{id}` | JWT |
 | GET | `/scheduling/appointments/patient/{patientId}` | JWT |
 | GET | `/scheduling/appointments/doctor/{doctorId}` | JWT |
-| PATCH | `/scheduling/appointments/{id}/confirm\|cancel\|complete\|no-show` | JWT |
+| PATCH | `/scheduling/appointments/{id}/confirm\|cancel\|complete` | JWT |
 | POST | `/scheduling/availability` | DOCTOR — create/replace full weekly schedule |
 | GET | `/scheduling/availability/schedule` | DOCTOR/ADMIN — full weekly schedule config |
 | GET | `/scheduling/availability?doctorId=X&date=YYYY-MM-DD` | DOCTOR/PATIENT — available slot start times |

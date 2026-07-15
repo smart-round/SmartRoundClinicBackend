@@ -11,7 +11,6 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetDoctorApp
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetNextAppointmentUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetPatientAppointmentsForAdminUseCase
-import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.MarkNoShowUseCase
 import ke.co.smartroundclinic.scheduling.presentation.dto.request.BookAppointmentReq
 import ke.co.smartroundclinic.scheduling.presentation.dto.request.CancelAppointmentReq
 
@@ -27,7 +26,6 @@ class AppointmentService(
     private val confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private val cancelAppointmentUseCase: CancelAppointmentUseCase,
     private val completeAppointmentUseCase: CompleteAppointmentUseCase,
-    private val markNoShowUseCase: MarkNoShowUseCase,
 ) {
     suspend fun book(req: BookAppointmentReq, patientId: String) = bookAppointmentUseCase(req, patientId)
     suspend fun getById(id: String) = getAppointmentByIdUseCase(id)
@@ -41,5 +39,4 @@ class AppointmentService(
     suspend fun cancel(id: String, userId: String, role: String, req: CancelAppointmentReq) =
         cancelAppointmentUseCase(id, userId, role, req.reason)
     suspend fun complete(id: String, doctorId: String) = completeAppointmentUseCase(id, doctorId)
-    suspend fun markNoShow(id: String, doctorId: String) = markNoShowUseCase(id, doctorId)
 }
