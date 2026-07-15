@@ -14,7 +14,15 @@ import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toAppointmentRefundRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.slf4j.LoggerFactory
+
+private val APPOINTMENT_TIMEZONE = TimeZone.of("Africa/Nairobi")
+private val CANCELLABLE_STATUSES = setOf("BOOKED", "CONFIRMED")
 
 class CancelAppointmentUseCase(
     private val repository: AppointmentRepository,
@@ -40,6 +48,17 @@ class CancelAppointmentUseCase(
                 (role == "DOCTOR" && entity.doctorId == userId)
         if (!authorized) return Resource.Error<Nothing>("Not authorized to cancel this appointment")
             .toDefaultResponse(failedStatusCode = 403) { null }
+
+        if (entity.status !in CANCELLABLE_STATUSES) {
+            return Resource.Error<Nothing>("Only BOOKED or CONFIRMED appointments can be cancelled — this one is ${entity.status}")
+                .toDefaultResponse(failedStatusCode = 422) { null }
+        }
+
+        val slotStartInstant = parseSlotTime(entity.date, entity.slotStart)
+        if (slotStartInstant != null && Clock.System.now() >= slotStartInstant) {
+            return Resource.Error<Nothing>("Appointment cannot be cancelled after its scheduled start time")
+                .toDefaultResponse(failedStatusCode = 422) { null }
+        }
 
         var createdRefund: RefundDoc? = null
         val result = repository.updateStatus(id, "CANCELLED", cancellationReason = reason, cancelledBy = userId)
@@ -90,4 +109,11 @@ class CancelAppointmentUseCase(
         }
         return result.toDefaultResponse { it?.toModel()?.toRes(refund = createdRefund?.toAppointmentRefundRes()) }
     }
+
+    private fun parseSlotTime(date: String, time: String): Instant? = runCatching {
+        val (h, m) = time.split(":").map { it.toInt() }
+        val dateParts = date.split("-").map { it.toInt() }
+        LocalDateTime(dateParts[0], dateParts[1], dateParts[2], h, m, 0, 0)
+            .toInstant(APPOINTMENT_TIMEZONE)
+    }.getOrNull()
 }
