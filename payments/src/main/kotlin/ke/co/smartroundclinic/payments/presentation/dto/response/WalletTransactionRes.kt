@@ -27,7 +27,7 @@ data class WalletTransactionsPageRes(
 
 fun WalletTransactionItem.toRes(): WalletTransactionItemRes = WalletTransactionItemRes(
     transactionId = transactionId,
-    invoice = invoice,
+    invoice = invoice?.invoiceId,
     currency = currency,
     value = value,
     runningBalance = runningBalance,
