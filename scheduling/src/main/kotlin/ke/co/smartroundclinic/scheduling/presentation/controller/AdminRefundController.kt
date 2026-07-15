@@ -5,6 +5,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.requireRole
@@ -33,6 +34,17 @@ fun Route.adminRefundController(service: AdminRefundService) {
                 call.requireRole(ADMIN) {
                     val id = call.parameters["id"] ?: throw MissingParametersException("id query parameter is required")
                     val result = service.getById(id)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
+            // POST /scheduling/admin/refunds/process?id=X
+            // Admin-triggered — submits a specific PENDING refund to the payment provider. Refunds
+            // are no longer auto-submitted on cancellation; this is the only way one gets processed.
+            post("process") {
+                call.requireRole(ADMIN) {
+                    val id = call.parameters["id"] ?: throw MissingParametersException("id query parameter is required")
+                    val result = service.process(id)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }

@@ -1,5 +1,6 @@
 package ke.co.smartroundclinic.payments.domain.service
 
+import ke.co.smartroundclinic.infra.IntaSendConfig
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentByIdUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
@@ -8,6 +9,8 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSum
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetEarningsChartUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetDoctorPaymentBreakdownUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletBalanceUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletStatementUseCase
 
 class AdminPaymentsService(
     private val overviewUseCase: GetPlatformOverviewUseCase,
@@ -18,6 +21,9 @@ class AdminPaymentsService(
     private val earningsChartUseCase: GetEarningsChartUseCase,
     private val getByPatientUseCase: GetPaymentsByPatientUseCase,
     private val getByIdUseCase: GetPaymentByIdUseCase,
+    private val getWalletBalanceUseCase: GetPlatformWalletBalanceUseCase,
+    private val getWalletStatementUseCase: GetPlatformWalletStatementUseCase,
+    private val config: IntaSendConfig,
 ) {
     suspend fun getOverview() = overviewUseCase()
     suspend fun getAllDoctorBreakdowns() = breakdownUseCase.forAll()
@@ -30,4 +36,8 @@ class AdminPaymentsService(
     suspend fun getEarningsChart(from: String?, to: String?) = earningsChartUseCase(from, to)
     suspend fun getByPatient(patientId: String, page: Int, size: Int) = getByPatientUseCase(patientId, page, size)
     suspend fun getById(id: String) = getByIdUseCase(id)
+    suspend fun getCollectionsWalletBalance() = getWalletBalanceUseCase(config.collectionsWalletId)
+    suspend fun getCollectionsWalletStatement(page: Int) = getWalletStatementUseCase(config.collectionsWalletId, page)
+    suspend fun getCommissionWalletBalance() = getWalletBalanceUseCase(config.commissionWalletId)
+    suspend fun getCommissionWalletStatement(page: Int) = getWalletStatementUseCase(config.commissionWalletId, page)
 }

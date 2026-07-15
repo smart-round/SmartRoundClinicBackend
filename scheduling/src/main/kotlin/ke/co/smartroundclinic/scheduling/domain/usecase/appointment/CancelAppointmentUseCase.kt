@@ -5,7 +5,6 @@ import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
-import ke.co.smartroundclinic.common.RefundProcessor
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
 import ke.co.smartroundclinic.scheduling.data.lookup.RefundDoc
@@ -29,7 +28,6 @@ class CancelAppointmentUseCase(
     private val paymentLookup: AppointmentAdminLookup,
     private val refundLookup: RefundLookup,
     private val notificationSender: NotificationSender? = null,
-    private val refundProcessor: RefundProcessor? = null,
 ) {
     private val log = LoggerFactory.getLogger(CancelAppointmentUseCase::class.java)
 
@@ -90,6 +88,8 @@ class CancelAppointmentUseCase(
                     log.info("No completed payment found for appointmentId=$id — skipping refund record")
                     return@runCatching
                 }
+                // Logged as PENDING for an admin to review and trigger — refunds are no longer
+                // auto-submitted on cancellation (see AdminRefundController's process endpoint).
                 val refund = RefundDoc(
                     appointmentId = id,
                     doctorId = entity.doctorId,
@@ -103,8 +103,6 @@ class CancelAppointmentUseCase(
                 )
                 refundLookup.create(refund)
                 createdRefund = refund
-                runCatching { refundProcessor?.processRefund(refund.id) }
-                    .onFailure { log.error("Refund processing failed for refundId=${refund.id} appointmentId=$id — ${it.message}", it) }
             }
         }
         return result.toDefaultResponse { it?.toModel()?.toRes(refund = createdRefund?.toAppointmentRefundRes()) }

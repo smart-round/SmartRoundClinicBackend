@@ -147,6 +147,49 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
                     }
                 }
             }
+
+            route("wallets") {
+
+                route("collections") {
+
+                    // GET /admin/payments/wallets/collections/balance
+                    get("balance") {
+                        call.requireRole(ADMIN) {
+                            val result = service.getCollectionsWalletBalance()
+                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                        }
+                    }
+
+                    // GET /admin/payments/wallets/collections/statement?page=1
+                    get("statement") {
+                        call.requireRole(ADMIN) {
+                            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                            val result = service.getCollectionsWalletStatement(page)
+                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                        }
+                    }
+                }
+
+                route("commission") {
+
+                    // GET /admin/payments/wallets/commission/balance
+                    get("balance") {
+                        call.requireRole(ADMIN) {
+                            val result = service.getCommissionWalletBalance()
+                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                        }
+                    }
+
+                    // GET /admin/payments/wallets/commission/statement?page=1
+                    get("statement") {
+                        call.requireRole(ADMIN) {
+                            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                            val result = service.getCommissionWalletStatement(page)
+                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                        }
+                    }
+                }
+            }
         }
     }
 }

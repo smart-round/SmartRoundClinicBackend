@@ -33,6 +33,14 @@ data class RefundsPageRes(
     val pages: Long,
 )
 
+@Serializable
+data class RefundProcessRes(
+    val status: String,
+    val trackingId: String? = null,
+    val requiredAmount: Double? = null,
+    val availableBalance: Double? = null,
+)
+
 fun RefundDoc.toRes(names: Map<String, String> = emptyMap(), payment: AppointmentPaymentInfo? = null) = RefundRes(
     id = id,
     appointmentId = appointmentId,
