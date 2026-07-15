@@ -9,6 +9,8 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSum
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetEarningsChartUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetDoctorPaymentBreakdownUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletBalanceAdminUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletStatementAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletBalanceUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletStatementUseCase
 
@@ -23,6 +25,8 @@ class AdminPaymentsService(
     private val getByIdUseCase: GetPaymentByIdUseCase,
     private val getWalletBalanceUseCase: GetPlatformWalletBalanceUseCase,
     private val getWalletStatementUseCase: GetPlatformWalletStatementUseCase,
+    private val getDoctorWalletBalanceUseCase: GetDoctorWalletBalanceAdminUseCase,
+    private val getDoctorWalletStatementUseCase: GetDoctorWalletStatementAdminUseCase,
     private val config: IntaSendConfig,
 ) {
     suspend fun getOverview() = overviewUseCase()
@@ -40,4 +44,6 @@ class AdminPaymentsService(
     suspend fun getCollectionsWalletStatement(page: Int) = getWalletStatementUseCase(config.collectionsWalletId, page)
     suspend fun getCommissionWalletBalance() = getWalletBalanceUseCase(config.commissionWalletId)
     suspend fun getCommissionWalletStatement(page: Int) = getWalletStatementUseCase(config.commissionWalletId, page)
+    suspend fun getDoctorWalletBalance(doctorId: String) = getDoctorWalletBalanceUseCase(doctorId)
+    suspend fun getDoctorWalletStatement(doctorId: String, page: Int) = getDoctorWalletStatementUseCase(doctorId, page)
 }

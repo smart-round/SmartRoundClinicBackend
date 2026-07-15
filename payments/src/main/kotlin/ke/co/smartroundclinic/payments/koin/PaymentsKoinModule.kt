@@ -44,6 +44,8 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewU
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.GetStkPushPaymentStatusUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.stkpush.InitiateStkPushPreBookingUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletBalanceAdminUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletStatementAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletBalanceUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletStatementUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetWalletTransactionsUseCase
@@ -122,10 +124,12 @@ val paymentsKoinModule = module {
     single { GetPlatformOverviewUseCase(get(), get(), get()) }
     single { GetPlatformWalletBalanceUseCase(get()) }
     single { GetPlatformWalletStatementUseCase(get()) }
+    single { GetDoctorWalletBalanceAdminUseCase(get(), get()) }
+    single { GetDoctorWalletStatementAdminUseCase(get(), get()) }
     single { GetDoctorPaymentBreakdownUseCase(get(), get()) }
     single { GetAllWithdrawalsAdminUseCase(get()) }
     single { GetCommissionLogsAdminUseCase(get()) }
     single { GetCommissionTimeSummaryUseCase(get()) }
     single { GetEarningsChartUseCase(get()) }
-    single { AdminPaymentsService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), AppConfig.intaSend) }
+    single { AdminPaymentsService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), AppConfig.intaSend) }
 }

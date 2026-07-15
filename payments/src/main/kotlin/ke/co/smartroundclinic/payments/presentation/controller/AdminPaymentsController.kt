@@ -189,6 +189,30 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
                         }
                     }
                 }
+
+                route("doctor") {
+
+                    // GET /admin/payments/wallets/doctor/balance?doctorId=X
+                    get("balance") {
+                        call.requireRole(ADMIN) {
+                            val doctorId = call.parameters["doctorId"]
+                                ?: throw MissingParametersException("doctorId is required")
+                            val result = service.getDoctorWalletBalance(doctorId)
+                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                        }
+                    }
+
+                    // GET /admin/payments/wallets/doctor/statement?doctorId=X&page=1
+                    get("statement") {
+                        call.requireRole(ADMIN) {
+                            val doctorId = call.parameters["doctorId"]
+                                ?: throw MissingParametersException("doctorId is required")
+                            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                            val result = service.getDoctorWalletStatement(doctorId, page)
+                            call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                        }
+                    }
+                }
             }
         }
     }
