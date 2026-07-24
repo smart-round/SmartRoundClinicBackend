@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.admin.presentation.dto.request
 import ke.co.smartroundclinic.admin.domain.model.Speciality
 import ke.co.smartroundclinic.admin.domain.model.Subspecialty
 import org.bson.types.ObjectId
+import kotlin.time.Clock
 
 data class CreateSpecialityReq(
     val serviceTierId: String? = null,
@@ -17,6 +18,7 @@ data class CreateSpecialityReq(
         description = description,
         color = color,
         iconUrl = iconUrl,
+        createdAt = Clock.System.now().toString(),
     )
 }
 

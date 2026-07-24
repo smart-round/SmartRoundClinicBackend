@@ -274,7 +274,12 @@ class SpecialityRepositoryImpl(
             try {
                 val now = Clock.System.now().toString()
                 val result = specialities.updateMany(
-                    Filters.exists(SpecialityEntity::createdAt.name, false),
+                    // A prior bug in CreateSpecialityReq.toModel() persisted createdAt as "" rather
+                    // than omitting it, so both the missing-field and empty-string cases need catching.
+                    Filters.or(
+                        Filters.exists(SpecialityEntity::createdAt.name, false),
+                        Filters.eq(SpecialityEntity::createdAt.name, ""),
+                    ),
                     Updates.combine(
                         Updates.set(SpecialityEntity::createdAt.name, now),
                         Updates.set(SpecialityEntity::updatedAt.name, now),
