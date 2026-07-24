@@ -3,18 +3,18 @@ package ke.co.smartroundclinic.payments.domain.usecase.admin
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.payments.data.entity.PlatformCommissionLogEntity
-import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRepository
+import ke.co.smartroundclinic.payments.data.entity.EarningsLedgerEntity
+import ke.co.smartroundclinic.payments.domain.repository.EarningsLedgerRepository
 import ke.co.smartroundclinic.payments.presentation.dto.response.CommissionLogItemRes
 import ke.co.smartroundclinic.payments.presentation.dto.response.CommissionLogsPageRes
 import kotlin.math.ceil
 
-class GetCommissionLogsAdminUseCase(private val repository: PlatformCommissionLogRepository) {
+class GetCommissionLogsAdminUseCase(private val repository: EarningsLedgerRepository) {
 
     suspend fun getAll(page: Int, size: Int): DefaultResponse<CommissionLogsPageRes?> =
         when (val result = repository.getAll(page, size)) {
             is Resource.Success -> {
-                val (items, total) = result.data ?: (emptyList<PlatformCommissionLogEntity>() to 0L)
+                val (items, total) = result.data ?: (emptyList<EarningsLedgerEntity>() to 0L)
                 DefaultResponse(
                     httpStatusCode = HttpStatusCode.OK.value,
                     status = true,
@@ -61,14 +61,17 @@ class GetCommissionLogsAdminUseCase(private val repository: PlatformCommissionLo
             )
         }
 
-    private fun PlatformCommissionLogEntity.toRes() = CommissionLogItemRes(
+    private fun EarningsLedgerEntity.toRes() = CommissionLogItemRes(
         id = id,
-        withdrawalId = withdrawalId,
+        paymentId = paymentId,
+        appointmentId = appointmentId,
         doctorId = doctorId,
-        withdrawalAmount = withdrawalAmount,
-        totalGross = totalGross,
-        totalCommission = totalCommission,
-        paymentsCount = payments.size,
+        grossAmount = grossAmount,
+        commissionRate = commissionRate,
+        commissionAmount = commissionAmount,
+        netAmount = netAmount,
+        doctorCreditedAt = doctorCreditedAt,
+        commissionCreditedAt = commissionCreditedAt,
         createdAt = createdAt,
     )
 }

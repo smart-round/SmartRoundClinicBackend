@@ -9,6 +9,10 @@ data class PlatformOverviewRes(
     val payments: PaymentOverview,
     val withdrawals: WithdrawalOverview,
     val commission: CommissionOverview,
+    /** Live IntaSend balance for the collections wallet — null if the live call failed. */
+    val collectionsWalletBalance: PlatformWalletBalanceRes?,
+    /** Live IntaSend balance for the commission wallet — null if the live call failed. */
+    val commissionWalletBalance: PlatformWalletBalanceRes?,
 )
 
 @Serializable
@@ -40,7 +44,7 @@ data class WithdrawalOverview(
 @Serializable
 data class CommissionOverview(
     val totalEarned: Double,
-    val totalAuditLogs: Int,
+    val entriesCount: Int,
 )
 
 // ── Per-doctor breakdown ──────────────────────────────────────────────────────
@@ -133,12 +137,15 @@ data class CommissionPeriodStats(
 @Serializable
 data class CommissionLogItemRes(
     val id: String,
-    val withdrawalId: String,
+    val paymentId: String,
+    val appointmentId: String?,
     val doctorId: String,
-    val withdrawalAmount: Double,
-    val totalGross: Double,
-    val totalCommission: Double,
-    val paymentsCount: Int,
+    val grossAmount: Double,
+    val commissionRate: Double,
+    val commissionAmount: Double,
+    val netAmount: Double,
+    val doctorCreditedAt: String?,
+    val commissionCreditedAt: String?,
     val createdAt: String,
 )
 

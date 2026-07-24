@@ -3,8 +3,8 @@ package ke.co.smartroundclinic.payments.domain.usecase.admin
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.payments.data.entity.PlatformCommissionLogEntity
-import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRepository
+import ke.co.smartroundclinic.payments.data.entity.EarningsLedgerEntity
+import ke.co.smartroundclinic.payments.domain.repository.EarningsLedgerRepository
 import ke.co.smartroundclinic.payments.presentation.dto.response.CommissionPeriodStats
 import ke.co.smartroundclinic.payments.presentation.dto.response.EarningsChartRes
 import ke.co.smartroundclinic.payments.presentation.dto.response.EarningsDataPoint
@@ -13,7 +13,9 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-class GetEarningsChartUseCase(private val repository: PlatformCommissionLogRepository) {
+/** Buckets by [EarningsLedgerEntity.commissionCreditedAt] — the real date commission was confirmed
+ *  credited, not a payment or withdrawal timestamp. */
+class GetEarningsChartUseCase(private val repository: EarningsLedgerRepository) {
 
     // date format accepted/returned: yyyy-MM-dd
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -33,13 +35,14 @@ class GetEarningsChartUseCase(private val repository: PlatformCommissionLogRepos
             )
         }
 
-        val logs = (repository.getAllForAdmin() as? Resource.Success)?.data ?: emptyList()
+        val logs = (repository.getAllForAdmin() as? Resource.Success)?.data
+            ?.filter { it.commissionCreditedAt != null } ?: emptyList()
 
         // Build a map keyed by date string for fast lookup
-        val byDate: Map<String, List<PlatformCommissionLogEntity>> = logs
+        val byDate: Map<String, List<EarningsLedgerEntity>> = logs
             .mapNotNull { log ->
                 val date = runCatching {
-                    Instant.parse(log.createdAt)
+                    Instant.parse(log.commissionCreditedAt)
                         .atOffset(ZoneOffset.UTC)
                         .toLocalDate()
                 }.getOrNull() ?: return@mapNotNull null
@@ -56,9 +59,9 @@ class GetEarningsChartUseCase(private val repository: PlatformCommissionLogRepos
                 val entries = byDate[key] ?: emptyList()
                 EarningsDataPoint(
                     date = key,
-                    commission = entries.sumOf { it.totalCommission },
-                    gross = entries.sumOf { it.totalGross },
-                    disbursed = entries.sumOf { it.withdrawalAmount },
+                    commission = entries.sumOf { it.commissionAmount },
+                    gross = entries.sumOf { it.grossAmount },
+                    disbursed = entries.filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
                     transactionCount = entries.size,
                 )
             }
@@ -66,9 +69,9 @@ class GetEarningsChartUseCase(private val repository: PlatformCommissionLogRepos
 
         val inRange = byDate.values.flatten()
         val totals = CommissionPeriodStats(
-            totalCommission = inRange.sumOf { it.totalCommission },
-            totalGross = inRange.sumOf { it.totalGross },
-            totalDisbursed = inRange.sumOf { it.withdrawalAmount },
+            totalCommission = inRange.sumOf { it.commissionAmount },
+            totalGross = inRange.sumOf { it.grossAmount },
+            totalDisbursed = inRange.filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
             transactionCount = inRange.size,
         )
 

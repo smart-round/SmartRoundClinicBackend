@@ -3,18 +3,21 @@ package ke.co.smartroundclinic.payments.domain.usecase.admin
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
-import ke.co.smartroundclinic.payments.data.entity.PlatformCommissionLogEntity
-import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRepository
+import ke.co.smartroundclinic.payments.data.entity.EarningsLedgerEntity
+import ke.co.smartroundclinic.payments.domain.repository.EarningsLedgerRepository
 import ke.co.smartroundclinic.payments.presentation.dto.response.CommissionPeriodStats
 import ke.co.smartroundclinic.payments.presentation.dto.response.CommissionTimeSummaryRes
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
-class GetCommissionTimeSummaryUseCase(private val repository: PlatformCommissionLogRepository) {
+/** Buckets commission entries by [EarningsLedgerEntity.commissionCreditedAt] — the real date the
+ *  commission was confirmed credited to the platform's IntaSend wallet, not when the row was created. */
+class GetCommissionTimeSummaryUseCase(private val repository: EarningsLedgerRepository) {
 
     suspend operator fun invoke(): DefaultResponse<CommissionTimeSummaryRes?> {
-        val logs = (repository.getAllForAdmin() as? Resource.Success)?.data ?: emptyList()
+        val logs = (repository.getAllForAdmin() as? Resource.Success)?.data
+            ?.filter { it.commissionCreditedAt != null } ?: emptyList()
 
         val now = Instant.now()
         val startOfToday = now.atOffset(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).toInstant()
@@ -30,20 +33,20 @@ class GetCommissionTimeSummaryUseCase(private val repository: PlatformCommission
             message = "Commission time summary fetched successfully",
             data = CommissionTimeSummaryRes(
                 total = logs.toStats(),
-                monthly = logs.filter { it.createdAfter(startOfMonth) }.toStats(),
-                weekly = logs.filter { it.createdAfter(startOfWeek) }.toStats(),
-                daily = logs.filter { it.createdAfter(startOfToday) }.toStats(),
+                monthly = logs.filter { it.creditedAfter(startOfMonth) }.toStats(),
+                weekly = logs.filter { it.creditedAfter(startOfWeek) }.toStats(),
+                daily = logs.filter { it.creditedAfter(startOfToday) }.toStats(),
             )
         )
     }
 
-    private fun PlatformCommissionLogEntity.createdAfter(boundary: Instant): Boolean =
-        runCatching { Instant.parse(createdAt).isAfter(boundary) }.getOrDefault(false)
+    private fun EarningsLedgerEntity.creditedAfter(boundary: Instant): Boolean =
+        runCatching { Instant.parse(commissionCreditedAt).isAfter(boundary) }.getOrDefault(false)
 
-    private fun List<PlatformCommissionLogEntity>.toStats() = CommissionPeriodStats(
-        totalCommission = sumOf { it.totalCommission },
-        totalGross = sumOf { it.totalGross },
-        totalDisbursed = sumOf { it.withdrawalAmount },
+    private fun List<EarningsLedgerEntity>.toStats() = CommissionPeriodStats(
+        totalCommission = sumOf { it.commissionAmount },
+        totalGross = sumOf { it.grossAmount },
+        totalDisbursed = filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
         transactionCount = size,
     )
 }

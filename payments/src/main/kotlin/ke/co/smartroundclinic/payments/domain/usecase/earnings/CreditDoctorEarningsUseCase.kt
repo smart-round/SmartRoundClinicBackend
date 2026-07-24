@@ -3,9 +3,11 @@ package ke.co.smartroundclinic.payments.domain.usecase.earnings
 import ke.co.smartroundclinic.common.AppointmentEarningsCreditor
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.IntaSendConfig
+import ke.co.smartroundclinic.payments.data.entity.EarningsLedgerLeg
 import ke.co.smartroundclinic.payments.data.entity.PaymentEntity
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.remote.instasend.request.IntraTransferReq
+import ke.co.smartroundclinic.payments.domain.repository.EarningsLedgerRepository
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
 import ke.co.smartroundclinic.payments.domain.service.DoctorWalletResolver
@@ -26,6 +28,7 @@ private const val MIN_TRANSFERABLE_AMOUNT = 0.01
 class CreditDoctorEarningsUseCase(
     private val intaSendRepository: IntaSendRepository,
     private val paymentRepository: PaymentRepository,
+    private val earningsLedgerRepository: EarningsLedgerRepository,
     private val walletResolver: DoctorWalletResolver,
     private val appointmentInfoLookup: AppointmentInfoLookup,
     private val config: IntaSendConfig,
@@ -64,7 +67,11 @@ class CreditDoctorEarningsUseCase(
 
         if (payment.doctorCreditedAt == null) {
             creditLeg(
-                paymentId = payment.id,
+                leg = EarningsLedgerLeg.DOCTOR,
+                payment = payment,
+                doctorId = doctorId,
+                netAmount = netAmount,
+                commissionAmount = commissionAmount,
                 claim = { paymentRepository.claimDoctorCredit(payment.id) },
                 release = { paymentRepository.releaseDoctorCredit(payment.id) },
                 destinationWalletId = walletId,
@@ -76,7 +83,11 @@ class CreditDoctorEarningsUseCase(
 
         if (payment.commissionCreditedAt == null) {
             creditLeg(
-                paymentId = payment.id,
+                leg = EarningsLedgerLeg.COMMISSION,
+                payment = payment,
+                doctorId = doctorId,
+                netAmount = netAmount,
+                commissionAmount = commissionAmount,
                 claim = { paymentRepository.claimCommissionCredit(payment.id) },
                 release = { paymentRepository.releaseCommissionCredit(payment.id) },
                 destinationWalletId = config.commissionWalletId,
@@ -91,7 +102,11 @@ class CreditDoctorEarningsUseCase(
         if (length <= maxLength) this else take(maxLength - 1) + "…"
 
     private suspend fun creditLeg(
-        paymentId: String,
+        leg: EarningsLedgerLeg,
+        payment: PaymentEntity,
+        doctorId: String,
+        netAmount: Double,
+        commissionAmount: Double,
         claim: suspend () -> Resource<PaymentEntity?>,
         release: suspend () -> Unit,
         destinationWalletId: String,
@@ -99,6 +114,7 @@ class CreditDoctorEarningsUseCase(
         narrative: String,
         legName: String,
     ) {
+        val paymentId = payment.id
         val claimed = (claim() as? Resource.Success)?.data
         if (claimed == null) {
             log.info("creditLeg paymentId=$paymentId leg=$legName — already claimed or payment missing, skipping")
@@ -110,6 +126,7 @@ class CreditDoctorEarningsUseCase(
             // send (e.g. a 0% commission rate on this payment), so leave the claim in place as done
             // rather than releasing it for a retry that would just fail the same way forever.
             log.info("creditLeg paymentId=$paymentId leg=$legName — amount=$amount below minimum transferable unit, nothing to send")
+            recordLedgerEntry(leg, payment, doctorId, netAmount, commissionAmount)
             return
         }
 
@@ -131,5 +148,28 @@ class CreditDoctorEarningsUseCase(
         }
 
         log.info("creditLeg paymentId=$paymentId leg=$legName — credited $amount to wallet=$destinationWalletId")
+        recordLedgerEntry(leg, payment, doctorId, netAmount, commissionAmount)
+    }
+
+    private suspend fun recordLedgerEntry(
+        leg: EarningsLedgerLeg,
+        payment: PaymentEntity,
+        doctorId: String,
+        netAmount: Double,
+        commissionAmount: Double,
+    ) {
+        val result = earningsLedgerRepository.recordLegCredited(
+            leg = leg,
+            paymentId = payment.id,
+            appointmentId = payment.appointmentId,
+            doctorId = doctorId,
+            grossAmount = payment.amount,
+            commissionRate = payment.commissionRate,
+            commissionAmount = commissionAmount,
+            netAmount = netAmount,
+        )
+        if (result !is Resource.Success) {
+            log.error("recordLedgerEntry paymentId=${payment.id} leg=$leg — failed to write earnings ledger: ${(result as? Resource.Error)?.message}")
+        }
     }
 }

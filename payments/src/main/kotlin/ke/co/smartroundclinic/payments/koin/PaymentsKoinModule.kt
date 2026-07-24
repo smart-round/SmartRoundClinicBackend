@@ -7,16 +7,16 @@ import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.payments.data.lookup.AppointmentInfoLookup
 import ke.co.smartroundclinic.payments.data.lookup.DoctorPaymentDetailsLookup
 import ke.co.smartroundclinic.payments.data.lookup.DoctorTierPriceLookup
+import ke.co.smartroundclinic.payments.data.repository.EarningsLedgerRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.IntaSendRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentLogRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.PaymentRepositoryImpl
-import ke.co.smartroundclinic.payments.data.repository.PlatformCommissionLogRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.RefundRepositoryImpl
 import ke.co.smartroundclinic.payments.data.repository.WithdrawalRepositoryImpl
+import ke.co.smartroundclinic.payments.domain.repository.EarningsLedgerRepository
 import ke.co.smartroundclinic.payments.domain.repository.IntaSendRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentLogRepository
 import ke.co.smartroundclinic.payments.domain.repository.PaymentRepository
-import ke.co.smartroundclinic.payments.domain.repository.PlatformCommissionLogRepository
 import ke.co.smartroundclinic.payments.domain.repository.RefundRepository
 import ke.co.smartroundclinic.payments.domain.repository.WithdrawalRepository
 import ke.co.smartroundclinic.payments.domain.service.AdminPaymentsService
@@ -63,7 +63,7 @@ val paymentsKoinModule = module {
     single<PaymentRepository> { PaymentRepositoryImpl(get(named("paymentsDb"))) }
     single<PaymentLogRepository> { PaymentLogRepositoryImpl(get(named("paymentsDb"))) }
     single<WithdrawalRepository> { WithdrawalRepositoryImpl(get(named("paymentsDb"))) }
-    single<PlatformCommissionLogRepository> { PlatformCommissionLogRepositoryImpl(get(named("paymentsDb"))) }
+    single<EarningsLedgerRepository> { EarningsLedgerRepositoryImpl(get(named("paymentsDb"))) }
     single<RefundRepository> { RefundRepositoryImpl(get(named("paymentsDb"))) }
     single<IntaSendRepository> { IntaSendRepositoryImpl(get(), AppConfig.intaSend) }
 
@@ -97,7 +97,7 @@ val paymentsKoinModule = module {
 
     // Earnings-credit use case — triggered once, immediately, from CompleteAppointmentUseCase
     // when an appointment is marked COMPLETED. No background sweep; see CreditDoctorEarningsUseCase.
-    single { CreditDoctorEarningsUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
+    single { CreditDoctorEarningsUseCase(get(), get(), get(), get(), get(), AppConfig.intaSend) }
     single<AppointmentEarningsCreditor> { get<CreditDoctorEarningsUseCase>() }
 
     // Withdrawal use cases — disbursement is trigger-only (doctor's POST /withdraw request);
@@ -121,12 +121,12 @@ val paymentsKoinModule = module {
     single { IntaSendService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin use cases + service
-    single { GetPlatformOverviewUseCase(get(), get(), get()) }
+    single { GetPlatformOverviewUseCase(get(), get(), get(), get(), AppConfig.intaSend) }
     single { GetPlatformWalletBalanceUseCase(get()) }
     single { GetPlatformWalletStatementUseCase(get()) }
     single { GetDoctorWalletBalanceAdminUseCase(get(), get()) }
     single { GetDoctorWalletStatementAdminUseCase(get(), get()) }
-    single { GetDoctorPaymentBreakdownUseCase(get(), get()) }
+    single { GetDoctorPaymentBreakdownUseCase(get(), get(), get()) }
     single { GetAllWithdrawalsAdminUseCase(get()) }
     single { GetCommissionLogsAdminUseCase(get()) }
     single { GetCommissionTimeSummaryUseCase(get()) }
