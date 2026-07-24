@@ -118,6 +118,12 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
         Resource.Error(e.message ?: "Failed to fetch payment")
     }
 
+    override suspend fun getByInvoiceId(invoiceId: String): Resource<PaymentEntity?> = try {
+        Resource.Success(col.find(Filters.eq(PaymentEntity::invoiceId.name, invoiceId)).firstOrNull())
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch payment")
+    }
+
     override suspend fun updateFromWebhook(
         id: String,
         status: String,

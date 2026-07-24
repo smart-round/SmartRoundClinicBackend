@@ -59,6 +59,19 @@ data class AppointmentParticipants(
     val commissionRate: Double,
 )
 
+data class AppointmentSummary(
+    val id: String,
+    val doctorId: String,
+    val doctorName: String,
+    val patientId: String,
+    val patientName: String,
+    val status: String,
+    val date: String,
+    val serviceTierId: String?,
+    val tierPrice: Double,
+    val followUpFee: Double,
+)
+
 // ── Lookup ─────────────────────────────────────────────────────────────────────
 
 class AppointmentInfoLookup(
@@ -107,6 +120,39 @@ class AppointmentInfoLookup(
             commissionRate = commissionRate,
         )
     }
+
+    /** Full-precision appointment lookup by id — used e.g. to resolve a wallet-transaction narrative
+     *  suffix match down to a displayable appointment for admin support tooling. */
+    suspend fun getSummary(appointmentId: String): AppointmentSummary? {
+        val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull() ?: return null
+
+        val doctorName = users.find(Filters.eq("id", appointment.doctorId)).firstOrNull()
+            ?.fullName ?: "Unknown Doctor"
+        val patientName = users.find(Filters.eq("id", appointment.patientId)).firstOrNull()
+            ?.fullName ?: "Unknown Patient"
+        val tier = appointment.serviceTierId?.let { tierId ->
+            serviceTiers.find(Filters.eq("id", tierId)).firstOrNull()
+        }
+
+        return AppointmentSummary(
+            id = appointment.id,
+            doctorId = appointment.doctorId,
+            doctorName = doctorName,
+            patientId = appointment.patientId,
+            patientName = patientName,
+            status = appointment.status,
+            date = appointment.date,
+            serviceTierId = appointment.serviceTierId,
+            tierPrice = tier?.tierPrice ?: 0.0,
+            followUpFee = tier?.followUpFee ?: 0.0,
+        )
+    }
+
+    /** Finds an appointment whose id ends with [suffix] — the 6-hex-char form IntaSend wallet-transfer
+     *  narratives embed as "(APT-xxxxxx)" (see CreditDoctorEarningsUseCase). Not a unique key by
+     *  construction, but collisions are vanishingly unlikely for a 6-hex-char suffix of a Mongo ObjectId. */
+    suspend fun findIdBySuffix(suffix: String): String? =
+        appointments.find(Filters.regex("id", "$suffix$")).firstOrNull()?.id
 
     suspend fun getForRebooking(appointmentId: String): RebookingAppointmentInfo? {
         val appointment = appointments.find(Filters.eq("id", appointmentId)).firstOrNull()

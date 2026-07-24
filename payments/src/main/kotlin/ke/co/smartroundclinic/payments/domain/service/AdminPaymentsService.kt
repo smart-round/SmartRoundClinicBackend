@@ -11,6 +11,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetEarningsChartUseC
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetDoctorPaymentBreakdownUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetRevenueBreakdownUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.admin.ResolveTransactionAppointmentUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletBalanceAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletStatementAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletBalanceUseCase
@@ -25,6 +26,7 @@ class AdminPaymentsService(
     private val earningsChartUseCase: GetEarningsChartUseCase,
     private val revenueBreakdownUseCase: GetRevenueBreakdownUseCase,
     private val backfillEarningsLedgerUseCase: BackfillEarningsLedgerUseCase,
+    private val resolveTransactionAppointmentUseCase: ResolveTransactionAppointmentUseCase,
     private val getByPatientUseCase: GetPaymentsByPatientUseCase,
     private val getByIdUseCase: GetPaymentByIdUseCase,
     private val getWalletBalanceUseCase: GetPlatformWalletBalanceUseCase,
@@ -44,6 +46,8 @@ class AdminPaymentsService(
     suspend fun getEarningsChart(range: String?) = earningsChartUseCase(range)
     suspend fun getRevenueBreakdown(range: String?) = revenueBreakdownUseCase(range)
     suspend fun backfillEarningsLedger() = backfillEarningsLedgerUseCase()
+    suspend fun resolveTransactionAppointment(transactionId: String, wallet: String?, doctorId: String?) =
+        resolveTransactionAppointmentUseCase(transactionId, wallet, doctorId)
     suspend fun getByPatient(patientId: String, page: Int, size: Int) = getByPatientUseCase(patientId, page, size)
     suspend fun getById(id: String) = getByIdUseCase(id)
     suspend fun getCollectionsWalletBalance() = getWalletBalanceUseCase(config.collectionsWalletId)

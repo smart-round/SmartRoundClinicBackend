@@ -172,6 +172,24 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
                 }
             }
 
+            route("transactions") {
+
+                // GET /admin/payments/transactions?transactionId=X&wallet=collections|commission|doctor&doctorId=Y
+                // Resolves an IntaSend wallet transaction id (as seen in a wallet statement) back to
+                // the appointment it belongs to. wallet defaults to "collections"; doctorId is required
+                // only when wallet=doctor.
+                get {
+                    call.requireRole(ADMIN) {
+                        val transactionId = call.parameters["transactionId"]
+                            ?: throw MissingParametersException("transactionId is required")
+                        val wallet = call.parameters["wallet"]
+                        val doctorId = call.parameters["doctorId"]
+                        val result = service.resolveTransactionAppointment(transactionId, wallet, doctorId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+            }
+
             route("wallets") {
 
                 route("collections") {

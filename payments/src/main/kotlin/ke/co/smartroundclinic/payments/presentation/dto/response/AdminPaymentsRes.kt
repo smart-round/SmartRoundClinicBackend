@@ -118,6 +118,35 @@ data class CommissionPeriodStats(
     val transactionCount: Int,
 )
 
+// ── Transaction -> appointment resolution ──────────────────────────────────────
+
+@Serializable
+data class TransactionAppointmentRes(
+    val transactionId: String,
+    val transType: String,
+    val narrative: String?,
+    val value: Double,
+    /** "invoice" (SALE transaction matched to a payment's invoiceId) | "narrative" (APT- suffix
+     *  parsed out of a PAYOUT/etc narrative) | null if the transaction couldn't be linked to any appointment. */
+    val matchedVia: String?,
+    val paymentId: String?,
+    val appointment: AppointmentSummaryRes?,
+)
+
+@Serializable
+data class AppointmentSummaryRes(
+    val id: String,
+    val doctorId: String,
+    val doctorName: String,
+    val patientId: String,
+    val patientName: String,
+    val status: String,
+    val date: String,
+    val serviceTierId: String?,
+    val tierPrice: Double,
+    val followUpFee: Double,
+)
+
 // ── Earnings ledger backfill (one-time, admin-triggered) ──────────────────────
 
 @Serializable
