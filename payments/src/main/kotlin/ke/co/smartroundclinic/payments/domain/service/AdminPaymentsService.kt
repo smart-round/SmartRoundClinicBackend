@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.payments.domain.service
 import ke.co.smartroundclinic.infra.IntaSendConfig
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentByIdUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.GetPaymentsByPatientUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.admin.BackfillEarningsLedgerUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionLogsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSummaryUseCase
@@ -23,6 +24,7 @@ class AdminPaymentsService(
     private val commissionTimeSummaryUseCase: GetCommissionTimeSummaryUseCase,
     private val earningsChartUseCase: GetEarningsChartUseCase,
     private val revenueBreakdownUseCase: GetRevenueBreakdownUseCase,
+    private val backfillEarningsLedgerUseCase: BackfillEarningsLedgerUseCase,
     private val getByPatientUseCase: GetPaymentsByPatientUseCase,
     private val getByIdUseCase: GetPaymentByIdUseCase,
     private val getWalletBalanceUseCase: GetPlatformWalletBalanceUseCase,
@@ -41,6 +43,7 @@ class AdminPaymentsService(
     suspend fun getCommissionTimeSummary() = commissionTimeSummaryUseCase()
     suspend fun getEarningsChart(range: String?) = earningsChartUseCase(range)
     suspend fun getRevenueBreakdown(range: String?) = revenueBreakdownUseCase(range)
+    suspend fun backfillEarningsLedger() = backfillEarningsLedgerUseCase()
     suspend fun getByPatient(patientId: String, page: Int, size: Int) = getByPatientUseCase(patientId, page, size)
     suspend fun getById(id: String) = getByIdUseCase(id)
     suspend fun getCollectionsWalletBalance() = getWalletBalanceUseCase(config.collectionsWalletId)

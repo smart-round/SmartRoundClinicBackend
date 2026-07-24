@@ -5,12 +5,14 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.requireRole
 import ke.co.smartroundclinic.payments.domain.service.AdminPaymentsService
 
 private const val ADMIN = "ADMIN"
+private const val SUPER_ADMIN = "SUPER_ADMIN"
 
 fun Route.adminPaymentsController(service: AdminPaymentsService) {
     authenticate("auth-jwt") {
@@ -154,6 +156,17 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
                         val doctorId = call.parameters["doctorId"]
                             ?: throw MissingParametersException("doctorId is required")
                         val result = service.getCommissionLogsByDoctor(doctorId)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                // POST /admin/payments/commissions/backfill
+                // One-time, idempotent: writes earnings-ledger rows for payments that were already
+                // credited before the ledger existed, using their existing doctorCreditedAt/
+                // commissionCreditedAt timestamps. Safe to re-run. SUPER_ADMIN only.
+                post("backfill") {
+                    call.requireRole(SUPER_ADMIN) {
+                        val result = service.backfillEarningsLedger()
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }

@@ -35,6 +35,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.earnings.CreditDoctorEarni
 import ke.co.smartroundclinic.payments.domain.usecase.payment.HandleIntaSendWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.refund.HandleRefundWebhookUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.refund.ProcessRefundUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.admin.BackfillEarningsLedgerUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetAllWithdrawalsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionLogsAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSummaryUseCase
@@ -133,5 +134,6 @@ val paymentsKoinModule = module {
     single { GetCommissionTimeSummaryUseCase(get()) }
     single { GetEarningsChartUseCase(get()) }
     single { GetRevenueBreakdownUseCase(get()) }
-    single { AdminPaymentsService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), AppConfig.intaSend) }
+    single { BackfillEarningsLedgerUseCase(get(), get()) }
+    single { AdminPaymentsService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), AppConfig.intaSend) }
 }

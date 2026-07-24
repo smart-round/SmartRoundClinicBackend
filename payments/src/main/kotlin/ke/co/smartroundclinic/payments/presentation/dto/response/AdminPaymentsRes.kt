@@ -118,6 +118,16 @@ data class CommissionPeriodStats(
     val transactionCount: Int,
 )
 
+// ── Earnings ledger backfill (one-time, admin-triggered) ──────────────────────
+
+@Serializable
+data class EarningsLedgerBackfillRes(
+    val paymentsScanned: Int,
+    val doctorLegsWritten: Int,
+    val commissionLegsWritten: Int,
+    val failures: Int,
+)
+
 // ── Commission audit log list ─────────────────────────────────────────────────
 
 @Serializable

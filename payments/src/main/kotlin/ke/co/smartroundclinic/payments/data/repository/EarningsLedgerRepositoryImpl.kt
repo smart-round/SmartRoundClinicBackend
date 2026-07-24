@@ -28,6 +28,36 @@ class EarningsLedgerRepositoryImpl(database: MongoDatabase) : EarningsLedgerRepo
         commissionRate: Double,
         commissionAmount: Double,
         netAmount: Double,
+    ): Resource<EarningsLedgerEntity> = upsertLeg(
+        leg, paymentId, appointmentId, doctorId, grossAmount, commissionRate, commissionAmount, netAmount,
+        creditedAt = Clock.System.now().toString(),
+    )
+
+    override suspend fun backfillLegCredited(
+        leg: EarningsLedgerLeg,
+        paymentId: String,
+        appointmentId: String?,
+        doctorId: String,
+        grossAmount: Double,
+        commissionRate: Double,
+        commissionAmount: Double,
+        netAmount: Double,
+        creditedAt: String,
+    ): Resource<EarningsLedgerEntity> = upsertLeg(
+        leg, paymentId, appointmentId, doctorId, grossAmount, commissionRate, commissionAmount, netAmount,
+        creditedAt = creditedAt,
+    )
+
+    private suspend fun upsertLeg(
+        leg: EarningsLedgerLeg,
+        paymentId: String,
+        appointmentId: String?,
+        doctorId: String,
+        grossAmount: Double,
+        commissionRate: Double,
+        commissionAmount: Double,
+        netAmount: Double,
+        creditedAt: String,
     ): Resource<EarningsLedgerEntity> = try {
         val creditedAtField = when (leg) {
             EarningsLedgerLeg.DOCTOR -> EarningsLedgerEntity::doctorCreditedAt.name
@@ -36,7 +66,7 @@ class EarningsLedgerRepositoryImpl(database: MongoDatabase) : EarningsLedgerRepo
         val updated = col.findOneAndUpdate(
             Filters.eq(EarningsLedgerEntity::id.name, paymentId),
             Updates.combine(
-                Updates.set(creditedAtField, Clock.System.now().toString()),
+                Updates.set(creditedAtField, creditedAt),
                 Updates.setOnInsert(EarningsLedgerEntity::id.name, paymentId),
                 Updates.setOnInsert(EarningsLedgerEntity::paymentId.name, paymentId),
                 Updates.setOnInsert(EarningsLedgerEntity::appointmentId.name, appointmentId),
@@ -49,7 +79,7 @@ class EarningsLedgerRepositoryImpl(database: MongoDatabase) : EarningsLedgerRepo
             ),
             FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER),
         ) ?: return Resource.Error("Failed to record earnings ledger entry")
-        log.info("Earnings ledger leg=$leg recorded paymentId=$paymentId doctorId=$doctorId")
+        log.info("Earnings ledger leg=$leg recorded paymentId=$paymentId doctorId=$doctorId creditedAt=$creditedAt")
         Resource.Success(updated)
     } catch (e: Exception) {
         log.error("Failed to record earnings ledger leg=$leg paymentId=$paymentId — ${e.message}", e)
