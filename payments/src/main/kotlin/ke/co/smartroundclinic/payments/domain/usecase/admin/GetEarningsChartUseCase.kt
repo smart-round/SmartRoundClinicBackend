@@ -9,70 +9,57 @@ import ke.co.smartroundclinic.payments.presentation.dto.response.CommissionPerio
 import ke.co.smartroundclinic.payments.presentation.dto.response.EarningsChartRes
 import ke.co.smartroundclinic.payments.presentation.dto.response.EarningsDataPoint
 import java.time.Instant
-import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
-/** Buckets by [EarningsLedgerEntity.commissionCreditedAt] — the real date commission was confirmed
- *  credited, not a payment or withdrawal timestamp. */
+/**
+ * Revenue-vs-commission time series for admin charts (line or bar), bucketed by
+ * [EarningsLedgerEntity.commissionCreditedAt] — the date commission was confirmed credited, i.e.
+ * real confirmed activity, not payment-initiation time. `range` sets both the lookback window and
+ * the bucket granularity: day -> hourly points, week/month -> daily points, year -> monthly points.
+ * Every bucket in the window is present in the output, zero-filled, so charts render without gaps.
+ */
 class GetEarningsChartUseCase(private val repository: EarningsLedgerRepository) {
 
-    // date format accepted/returned: yyyy-MM-dd
-    private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val hourFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:00").withZone(ZoneOffset.UTC)
+    private val dayFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC)
+    private val monthFmt = DateTimeFormatter.ofPattern("yyyy-MM")
 
-    suspend operator fun invoke(fromParam: String?, toParam: String?): DefaultResponse<EarningsChartRes?> {
-        val toDate = toParam?.let { runCatching { LocalDate.parse(it, fmt) }.getOrNull() }
-            ?: LocalDate.now(ZoneOffset.UTC)
-        val fromDate = fromParam?.let { runCatching { LocalDate.parse(it, fmt) }.getOrNull() }
-            ?: toDate.minusMonths(1)
+    suspend operator fun invoke(rangeParam: String?): DefaultResponse<EarningsChartRes?> {
+        val range = ChartRange.parse(rangeParam)
+        val now = Instant.now()
+        val from = range.windowStart(now)
 
-        if (fromDate.isAfter(toDate)) {
-            return DefaultResponse(
-                httpStatusCode = HttpStatusCode.BadRequest.value,
-                status = false,
-                message = "from must be before or equal to to",
-                data = null,
+        val datedLogs: List<Pair<Instant, EarningsLedgerEntity>> = (repository.getAllForAdmin() as? Resource.Success)?.data
+            ?.filter { it.commissionCreditedAt != null }
+            ?.mapNotNull { entry ->
+                val creditedAt = runCatching { Instant.parse(entry.commissionCreditedAt) }.getOrNull()
+                    ?: return@mapNotNull null
+                if (creditedAt.isBefore(from) || creditedAt.isAfter(now)) null else creditedAt to entry
+            } ?: emptyList()
+
+        val byBucket: Map<String, List<EarningsLedgerEntity>> = datedLogs
+            .groupBy({ (instant, _) -> bucketKey(range, instant) }, { (_, entry) -> entry })
+
+        val points = bucketSequence(range, from, now).map { key ->
+            val entries = byBucket[key] ?: emptyList()
+            EarningsDataPoint(
+                label = key,
+                commission = entries.sumOf { it.commissionAmount },
+                revenue = entries.sumOf { it.grossAmount },
+                disbursed = entries.filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
+                transactionCount = entries.size,
             )
         }
 
-        val logs = (repository.getAllForAdmin() as? Resource.Success)?.data
-            ?.filter { it.commissionCreditedAt != null } ?: emptyList()
-
-        // Build a map keyed by date string for fast lookup
-        val byDate: Map<String, List<EarningsLedgerEntity>> = logs
-            .mapNotNull { log ->
-                val date = runCatching {
-                    Instant.parse(log.commissionCreditedAt)
-                        .atOffset(ZoneOffset.UTC)
-                        .toLocalDate()
-                }.getOrNull() ?: return@mapNotNull null
-                date to log
-            }
-            .filter { (date, _) -> !date.isBefore(fromDate) && !date.isAfter(toDate) }
-            .groupBy({ (date, _) -> date.format(fmt) }, { (_, log) -> log })
-
-        // Generate one data point per calendar day in the range
-        val points = generateSequence(fromDate) { it.plusDays(1) }
-            .takeWhile { !it.isAfter(toDate) }
-            .map { day ->
-                val key = day.format(fmt)
-                val entries = byDate[key] ?: emptyList()
-                EarningsDataPoint(
-                    date = key,
-                    commission = entries.sumOf { it.commissionAmount },
-                    gross = entries.sumOf { it.grossAmount },
-                    disbursed = entries.filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
-                    transactionCount = entries.size,
-                )
-            }
-            .toList()
-
-        val inRange = byDate.values.flatten()
+        val logs = datedLogs.map { it.second }
         val totals = CommissionPeriodStats(
-            totalCommission = inRange.sumOf { it.commissionAmount },
-            totalGross = inRange.sumOf { it.grossAmount },
-            totalDisbursed = inRange.filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
-            transactionCount = inRange.size,
+            totalCommission = logs.sumOf { it.commissionAmount },
+            totalRevenue = logs.sumOf { it.grossAmount },
+            totalDisbursed = logs.filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
+            transactionCount = logs.size,
         )
 
         return DefaultResponse(
@@ -80,11 +67,27 @@ class GetEarningsChartUseCase(private val repository: EarningsLedgerRepository) 
             status = true,
             message = "Earnings chart fetched successfully",
             data = EarningsChartRes(
-                from = fromDate.format(fmt),
-                to = toDate.format(fmt),
+                range = range.name.lowercase(),
+                from = dayFmt.format(from),
+                to = dayFmt.format(now),
                 points = points,
                 totals = totals,
             )
         )
+    }
+
+    private fun bucketKey(range: ChartRange, instant: Instant): String = when (range) {
+        ChartRange.DAY -> hourFmt.format(instant)
+        ChartRange.WEEK, ChartRange.MONTH -> dayFmt.format(instant)
+        ChartRange.YEAR -> monthFmt.format(YearMonth.from(instant.atOffset(ZoneOffset.UTC)))
+    }
+
+    private fun bucketSequence(range: ChartRange, from: Instant, to: Instant): List<String> = when (range) {
+        ChartRange.DAY -> generateSequence(from.truncatedTo(ChronoUnit.HOURS)) { it.plus(1, ChronoUnit.HOURS) }
+            .takeWhile { !it.isAfter(to) }.map(hourFmt::format).toList()
+        ChartRange.WEEK, ChartRange.MONTH -> generateSequence(from.truncatedTo(ChronoUnit.DAYS)) { it.plus(1, ChronoUnit.DAYS) }
+            .takeWhile { !it.isAfter(to) }.map(dayFmt::format).toList()
+        ChartRange.YEAR -> generateSequence(YearMonth.from(from.atOffset(ZoneOffset.UTC))) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.from(to.atOffset(ZoneOffset.UTC))) }.map(monthFmt::format).toList()
     }
 }

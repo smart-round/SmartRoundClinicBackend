@@ -6,45 +6,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PlatformOverviewRes(
-    val payments: PaymentOverview,
-    val withdrawals: WithdrawalOverview,
-    val commission: CommissionOverview,
-    /** Live IntaSend balance for the collections wallet — null if the live call failed. */
-    val collectionsWalletBalance: PlatformWalletBalanceRes?,
-    /** Live IntaSend balance for the commission wallet — null if the live call failed. */
-    val commissionWalletBalance: PlatformWalletBalanceRes?,
-)
-
-@Serializable
-data class PaymentOverview(
-    val total: Int,
-    val completedCount: Int,
-    val pendingCount: Int,
-    val failedCount: Int,
-    val totalGross: Double,
-    val totalCompletedAmount: Double,
-    val totalPendingAmount: Double,
-    val totalCommissionEarned: Double,
-    val totalNetToDoctor: Double,
-    val uniqueDoctors: Int,
-)
-
-@Serializable
-data class WithdrawalOverview(
-    val total: Int,
-    val pendingCount: Int,
-    val completedCount: Int,
-    val failedCount: Int,
-    val pendingAmount: Double,
-    val completedAmount: Double,
-    val totalDisbursed: Double,
-    val uniqueDoctors: Int,
-)
-
-@Serializable
-data class CommissionOverview(
-    val totalEarned: Double,
-    val entriesCount: Int,
+    /** Count of successfully completed payments, all-time. */
+    val transactionsProcessed: Int,
+    /** The live platform-wide commission rate (percent), from admin_commission_rates. */
+    val currentCommissionRate: Double,
+    /** Live IntaSend commission wallet balance — the platform's running commission total. */
+    val commission: Double,
+    /** Cumulative gross amount collected from patients, all-time (sum of completed payments). */
+    val collected: Double,
 )
 
 // ── Per-doctor breakdown ──────────────────────────────────────────────────────
@@ -95,10 +64,12 @@ data class WithdrawalsPageRes(
     val pages: Long,
 )
 
-// ── Earnings chart ────────────────────────────────────────────────────────────
+// ── Earnings chart — revenue vs commission over time, for a line/bar chart ────
 
 @Serializable
 data class EarningsChartRes(
+    /** "day" | "week" | "month" | "year" — echoes the requested range. */
+    val range: String,
     val from: String,
     val to: String,
     val points: List<EarningsDataPoint>,
@@ -107,10 +78,25 @@ data class EarningsChartRes(
 
 @Serializable
 data class EarningsDataPoint(
-    val date: String,
+    /** Bucket key: hourly ("yyyy-MM-ddTHH:00") for range=day, daily for week/month, monthly for year. */
+    val label: String,
     val commission: Double,
-    val gross: Double,
+    val revenue: Double,
     val disbursed: Double,
+    val transactionCount: Int,
+)
+
+// ── Revenue breakdown — composition of confirmed revenue, for a pie/donut chart ─
+
+@Serializable
+data class RevenueBreakdownRes(
+    /** "day" | "week" | "month" | "year" — echoes the requested range. */
+    val range: String,
+    val collected: Double,
+    val commission: Double,
+    val netToDoctor: Double,
+    /** Collected with commission confirmed but the doctor's leg not yet credited (rare — a leg lagging or retrying). */
+    val doctorPayoutPending: Double,
     val transactionCount: Int,
 )
 
@@ -127,7 +113,7 @@ data class CommissionTimeSummaryRes(
 @Serializable
 data class CommissionPeriodStats(
     val totalCommission: Double,
-    val totalGross: Double,
+    val totalRevenue: Double,
     val totalDisbursed: Double,
     val transactionCount: Int,
 )

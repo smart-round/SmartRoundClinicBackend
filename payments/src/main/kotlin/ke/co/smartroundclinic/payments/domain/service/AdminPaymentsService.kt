@@ -9,6 +9,7 @@ import ke.co.smartroundclinic.payments.domain.usecase.admin.GetCommissionTimeSum
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetEarningsChartUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetDoctorPaymentBreakdownUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.admin.GetPlatformOverviewUseCase
+import ke.co.smartroundclinic.payments.domain.usecase.admin.GetRevenueBreakdownUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletBalanceAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetDoctorWalletStatementAdminUseCase
 import ke.co.smartroundclinic.payments.domain.usecase.wallet.GetPlatformWalletBalanceUseCase
@@ -21,6 +22,7 @@ class AdminPaymentsService(
     private val commissionLogsUseCase: GetCommissionLogsAdminUseCase,
     private val commissionTimeSummaryUseCase: GetCommissionTimeSummaryUseCase,
     private val earningsChartUseCase: GetEarningsChartUseCase,
+    private val revenueBreakdownUseCase: GetRevenueBreakdownUseCase,
     private val getByPatientUseCase: GetPaymentsByPatientUseCase,
     private val getByIdUseCase: GetPaymentByIdUseCase,
     private val getWalletBalanceUseCase: GetPlatformWalletBalanceUseCase,
@@ -37,7 +39,8 @@ class AdminPaymentsService(
     suspend fun getAllCommissionLogs(page: Int, size: Int) = commissionLogsUseCase.getAll(page, size)
     suspend fun getCommissionLogsByDoctor(doctorId: String) = commissionLogsUseCase.getByDoctor(doctorId)
     suspend fun getCommissionTimeSummary() = commissionTimeSummaryUseCase()
-    suspend fun getEarningsChart(from: String?, to: String?) = earningsChartUseCase(from, to)
+    suspend fun getEarningsChart(range: String?) = earningsChartUseCase(range)
+    suspend fun getRevenueBreakdown(range: String?) = revenueBreakdownUseCase(range)
     suspend fun getByPatient(patientId: String, page: Int, size: Int) = getByPatientUseCase(patientId, page, size)
     suspend fun getById(id: String) = getByIdUseCase(id)
     suspend fun getCollectionsWalletBalance() = getWalletBalanceUseCase(config.collectionsWalletId)

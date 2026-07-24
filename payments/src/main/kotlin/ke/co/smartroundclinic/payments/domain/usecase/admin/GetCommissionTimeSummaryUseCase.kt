@@ -45,7 +45,7 @@ class GetCommissionTimeSummaryUseCase(private val repository: EarningsLedgerRepo
 
     private fun List<EarningsLedgerEntity>.toStats() = CommissionPeriodStats(
         totalCommission = sumOf { it.commissionAmount },
-        totalGross = sumOf { it.grossAmount },
+        totalRevenue = sumOf { it.grossAmount },
         totalDisbursed = filter { it.doctorCreditedAt != null }.sumOf { it.netAmount },
         transactionCount = size,
     )

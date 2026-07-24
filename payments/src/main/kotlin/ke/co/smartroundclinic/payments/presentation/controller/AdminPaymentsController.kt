@@ -103,14 +103,25 @@ fun Route.adminPaymentsController(service: AdminPaymentsService) {
 
             route("commissions") {
 
-                // GET /admin/payments/commissions/chart?from=2026-01-01&to=2026-01-31
-                // Daily earnings data points for charting. Defaults to today minus 30 days → today.
-                // Each point: { date, commission, gross, disbursed, transactionCount }.
+                // GET /admin/payments/commissions/chart?range=day|week|month|year (default week)
+                // Revenue-vs-commission time series for a line/bar chart: hourly points for "day",
+                // daily points for "week"/"month", monthly points for "year".
+                // Each point: { label, commission, revenue, disbursed, transactionCount }.
                 get("chart") {
                     call.requireRole(ADMIN) {
-                        val from = call.request.queryParameters["from"]
-                        val to = call.request.queryParameters["to"]
-                        val result = service.getEarningsChart(from, to)
+                        val range = call.request.queryParameters["range"]
+                        val result = service.getEarningsChart(range)
+                        call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                    }
+                }
+
+                // GET /admin/payments/commissions/breakdown?range=day|week|month|year (default week)
+                // Composition of confirmed revenue within range, for a pie/donut chart:
+                // { range, collected, commission, netToDoctor, doctorPayoutPending, transactionCount }.
+                get("breakdown") {
+                    call.requireRole(ADMIN) {
+                        val range = call.request.queryParameters["range"]
+                        val result = service.getRevenueBreakdown(range)
                         call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                     }
                 }
