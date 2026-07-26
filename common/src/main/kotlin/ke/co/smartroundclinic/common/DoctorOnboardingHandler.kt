@@ -6,7 +6,7 @@ interface DoctorOnboardingHandler {
         email: String,
         password: String,
         gender: String,
-        kraPin: String,
+        kraPin: String?,
         phoneNumber: String?,
         dateOfBirth: String?,
         profilePictureBytes: ByteArray?,

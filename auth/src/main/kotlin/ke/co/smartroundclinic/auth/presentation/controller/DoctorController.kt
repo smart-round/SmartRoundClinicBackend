@@ -111,7 +111,6 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
             val missingFields = buildList {
                 if (fullName.isNullOrBlank()) add("fullName")
                 if (email.isNullOrBlank()) add("email")
-                if (kraPin.isNullOrBlank()) add("kraPin")
                 if (password.isNullOrBlank()) add("password")
                 if (specializationId.isNullOrBlank()) add("specializationId")
                 if (licenceName.isNullOrBlank()) add("licenceName")
@@ -139,7 +138,7 @@ fun Route.doctorController(userService: UserService, onboardingHandler: DoctorOn
                 email = email!!,
                 password = password!!,
                 gender = gender ?: "NON_BINARY",
-                kraPin = kraPin!!,
+                kraPin = kraPin?.takeIf { it.isNotBlank() },
                 phoneNumber = phoneNumber?.takeIf { it.isNotBlank() },
                 dateOfBirth = dateOfBirth?.takeIf { it.isNotBlank() },
                 profilePictureBytes = profilePictureBytes,
