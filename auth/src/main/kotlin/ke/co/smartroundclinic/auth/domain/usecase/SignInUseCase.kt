@@ -14,7 +14,13 @@ class SignInUseCase(
         is Resource.Success -> {
             result.toDefaultResponse(HttpStatusCode.OK.value){it}
         }
-        is Resource.Error -> result.toDefaultResponse(HttpStatusCode.Unauthorized.value){it}
+        is Resource.Error -> {
+            // Credentials were valid and the account exists (data carries its status) but access
+            // is restricted — suspended/inactive/unverified — so 403 fits better than 401, which
+            // is reserved for unknown email or wrong password (no data).
+            val statusCode = if (result.data != null) HttpStatusCode.Forbidden.value else HttpStatusCode.Unauthorized.value
+            result.toDefaultResponse(statusCode){it}
+        }
     }
 
 }

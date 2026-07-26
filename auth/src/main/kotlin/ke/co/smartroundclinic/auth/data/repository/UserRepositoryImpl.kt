@@ -285,11 +285,18 @@ class UserRepositoryImpl(
             if (!isPasswordValid) return@let Resource.Error(message = "Invalid email or password")
 
             if (user.accountStatus == UserEntity.AccountStatus.SUSPENDED)
-                return@let Resource.Error(message = "Your account has been suspended. Please contact support.")
+                return@let Resource.Error(
+                    message = "Your account has been suspended. Please contact support.",
+                    data = AuthToken(
+                        role = user.role.name,
+                        accountStatus = user.accountStatus,
+                        verificationStatus = user.verificationStatus,
+                    )
+                )
 
-            if (user.accountStatus == UserEntity.AccountStatus.INACTIVE)
-                return@let Resource.Error(message = "Your account is inactive. Please contact support.")
-
+            // Checked before the blanket INACTIVE case below: a freshly signed-up account is
+            // both INACTIVE and UNVERIFIED, and should route to OTP verification, not a dead-end
+            // "contact support" message.
             if (user.verificationStatus == UserEntity.VerificationStatus.UNVERIFIED) {
                 return@let Resource.Error(
                     message = "Account not verified. Please check your email for the OTP code.",
@@ -300,6 +307,16 @@ class UserRepositoryImpl(
                     )
                 )
             }
+
+            if (user.accountStatus == UserEntity.AccountStatus.INACTIVE)
+                return@let Resource.Error(
+                    message = "Your account is inactive. Please contact support.",
+                    data = AuthToken(
+                        role = user.role.name,
+                        accountStatus = user.accountStatus,
+                        verificationStatus = user.verificationStatus,
+                    )
+                )
 
             val groupIds = user.policyGroupIds?.takeIf { it.isNotEmpty() } ?: emptyList()
             val permissions = if (user.role == Role.ADMIN && groupIds.isNotEmpty()) {
