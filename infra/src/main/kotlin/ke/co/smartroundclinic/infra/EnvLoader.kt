@@ -27,10 +27,18 @@ object EnvLoader {
             .associate { line ->
                 val idx = line.indexOf("=")
                 val key = line.substring(0, idx).trim()
-                val value = line.substring(idx + 1).trim().trimEnd(';')
+                val value = line.substring(idx + 1).trim().trimEnd(';').unquote()
                 key to value
             }
     }
+
+    /** Strips a single matching pair of surrounding double or single quotes, if present. */
+    private fun String.unquote(): String =
+        if (length >= 2 && ((startsWith("\"") && endsWith("\"")) || (startsWith("'") && endsWith("'")))) {
+            substring(1, length - 1)
+        } else {
+            this
+        }
 
     /** System environment variables take priority over the .env file. */
     fun get(key: String): String? = systemEnv[key]?.ifBlank { null } ?: fileEnv[key]
