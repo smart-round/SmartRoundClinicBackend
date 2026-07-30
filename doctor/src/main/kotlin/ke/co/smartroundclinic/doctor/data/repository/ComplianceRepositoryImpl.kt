@@ -65,7 +65,6 @@ ComplianceRepositoryImpl(database: MongoDatabase) : ComplianceRepository {
         val now = Clock.System.now().toString()
         val entity = col.find(Filters.eq(ComplianceEntity::id.name, id)).firstOrNull()
             ?: return Resource.Error("No compliance record found with id=$id")
-        if (!entity.isApproved && entity.approvedBy != null) return Resource.Error("Compliance record is already rejected")
 
         val updated = col.findOneAndUpdate(
             Filters.eq(ComplianceEntity::id.name, id),
