@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":payments"))
     implementation(project(":medical-records"))
     implementation(project(":referral"))
+    implementation(project(":doctor-chat"))
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

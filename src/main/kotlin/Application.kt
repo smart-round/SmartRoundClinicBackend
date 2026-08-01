@@ -47,6 +47,9 @@ import ke.co.smartroundclinic.medicalrecords.medicalRecordsModule
 import ke.co.smartroundclinic.medicalrecords.koin.medicalRecordsKoinModule
 import ke.co.smartroundclinic.referral.referralModule
 import ke.co.smartroundclinic.referral.koin.referralKoinModule
+import ke.co.smartroundclinic.doctorchat.doctorChatModule
+import ke.co.smartroundclinic.doctorchat.koin.doctorChatKoinModule
+import ke.co.smartroundclinic.doctorchat.domain.usecase.call.StaleDoctorCallCleanupTask
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -56,7 +59,7 @@ fun main() {
 
 fun Application.module() {
     configureInfraModule(
-        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, redisModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule, paymentsKoinModule, medicalRecordsKoinModule, referralKoinModule),
+        appModules = listOf(appConfigModule, databaseModule, httpModule, storageModule, redisModule, authKoinModule, adminKoinModule, doctorKoinModule, notificationKoinModule, schedulingKoinModule, supportKoinModule, patientKoinModule, articleKoinModule, consultationKoinModule, paymentsKoinModule, medicalRecordsKoinModule, referralKoinModule, doctorChatKoinModule),
         validators = {
             registerDoctorValidators()
             registerAdminValidators()
@@ -69,7 +72,8 @@ fun Application.module() {
         },
         backgroundTasks = {
             val staleCallCleanup: StaleCallCleanupTask by inject()
-            listOf(staleCallCleanup)
+            val staleDoctorCallCleanup: StaleDoctorCallCleanupTask by inject()
+            listOf(staleCallCleanup, staleDoctorCallCleanup)
         },
     )
     authModule()
@@ -84,6 +88,7 @@ fun Application.module() {
     paymentsModule()
     medicalRecordsModule()
     referralModule()
+    doctorChatModule()
     val root = routing {
         get("/") {
             call.respondText("Hello World!")
