@@ -83,18 +83,20 @@ class DoctorChatService(
                         message = text,
                     )
                 )
-                runCatching {
-                    notificationSender?.send(
-                        title = PushNotificationEvents.newChatMessage(senderName),
-                        message = text.take(100),
-                        channel = NotificationChannel.PUSH_NOTIFICATION,
-                        destination = NotificationDestination.DOCTOR,
-                        recipientId = recipientId,
-                        metadata = mapOf(
-                            "event" to PushNotificationEvents.NEW_CHAT_MESSAGE,
-                            "threadId" to threadId,
-                        ),
-                    )
+                if (!isOnline(recipientId)) {
+                    runCatching {
+                        notificationSender?.send(
+                            title = PushNotificationEvents.newChatMessage(senderName),
+                            message = text.take(100),
+                            channel = NotificationChannel.PUSH_NOTIFICATION,
+                            destination = NotificationDestination.DOCTOR,
+                            recipientId = recipientId,
+                            metadata = mapOf(
+                                "event" to PushNotificationEvents.NEW_CHAT_MESSAGE,
+                                "threadId" to threadId,
+                            ),
+                        )
+                    }
                 }
             }
             "TYPING" -> {
@@ -144,15 +146,17 @@ class DoctorChatService(
             is Resource.Success -> Resource.Success(resolveEntityFiles(saveResult.data ?: entity))
             is Resource.Error -> Resource.Error(saveResult.message ?: "Failed to save file message")
         }
-        runCatching {
-            notificationSender?.send(
-                title = PushNotificationEvents.newChatMessage(senderName),
-                message = safeName,
-                channel = NotificationChannel.PUSH_NOTIFICATION,
-                destination = NotificationDestination.DOCTOR,
-                recipientId = recipientId,
-                metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE, "threadId" to threadId),
-            )
+        if (!isOnline(recipientId)) {
+            runCatching {
+                notificationSender?.send(
+                    title = PushNotificationEvents.newChatMessage(senderName),
+                    message = safeName,
+                    channel = NotificationChannel.PUSH_NOTIFICATION,
+                    destination = NotificationDestination.DOCTOR,
+                    recipientId = recipientId,
+                    metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE, "threadId" to threadId),
+                )
+            }
         }
         return result
     }

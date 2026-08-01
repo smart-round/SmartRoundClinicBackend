@@ -24,8 +24,11 @@ import kotlinx.serialization.json.Json
 /**
  * Resolves (or lazily provisions) the Cloudflare RealtimeKit meeting for a doctor-chat thread and
  * returns this doctor's join token — mirrors [ke.co.smartroundclinic.consultation.domain.usecase.call.JoinThreadCallUseCase],
- * with both sides always using the same "doctor" preset (there's no patient side here) and the
- * "doctors_lounge"-style meeting title requested for this feature: `"DoctorsLounge {threadId}"`.
+ * with both sides always using the same "doctor" preset (there's no patient side here). The meeting
+ * title is a per-thread "doctors-lounge" room (private to the two doctors on that thread, never
+ * shared with other doctor pairs), prefixed per environment via AppConfig.realtimeKit.roomPrefix
+ * (e.g. "dev-doctors-lounge-{threadId}" on sandbox) so rooms are identifiable in the Cloudflare
+ * dashboard without leaking across environments.
  */
 class JoinDoctorCallUseCase(
     private val threads: DoctorChatThreadRepository,
@@ -37,7 +40,11 @@ class JoinDoctorCallUseCase(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun meetingTitle(threadId: String) = "DoctorsLounge $threadId"
+    private fun meetingTitle(threadId: String): String {
+        val prefix = AppConfig.realtimeKit.roomPrefix
+        val base = if (prefix.isNullOrBlank()) "doctors-lounge" else "$prefix-doctors-lounge"
+        return "$base-$threadId"
+    }
 
     private suspend fun signalAnsweredIfRinging(threadId: String, joiningUserId: String) {
         if (redis == null || socketRegistry == null) return

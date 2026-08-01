@@ -39,7 +39,7 @@ class StaleDoctorCallCleanupTask(
         val threshold = Clock.System.now().minus(STALE_THRESHOLD_HOURS.hours)
         val staleMeetings = activeMeetings.filter { meeting ->
             val createdAt = meeting.createdAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
-            createdAt != null && createdAt < threshold && meeting.title?.startsWith("DoctorsLounge ") == true
+            createdAt != null && createdAt < threshold && meeting.title?.contains("doctors-lounge", ignoreCase = true) == true
         }
         if (staleMeetings.isEmpty()) return
 
