@@ -16,4 +16,6 @@ interface DoctorChatMessageRepository {
 
     /** Display name + presigned profile picture URL. */
     suspend fun getUserInfo(userId: String): Pair<String, String?>?
+
+    suspend fun getLastSeenAt(userId: String): String?
 }

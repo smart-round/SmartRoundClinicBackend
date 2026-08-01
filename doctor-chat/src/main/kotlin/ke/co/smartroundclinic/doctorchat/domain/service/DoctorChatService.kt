@@ -4,34 +4,48 @@ import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.PushNotificationEvents
+import ke.co.smartroundclinic.common.RedisRepository
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctorchat.data.entity.DoctorChatFile
 import ke.co.smartroundclinic.doctorchat.data.entity.DoctorChatMessageEntity
 import ke.co.smartroundclinic.doctorchat.data.entity.DoctorChatMessageType
 import ke.co.smartroundclinic.doctorchat.domain.repository.DoctorChatMessageRepository
 import ke.co.smartroundclinic.doctorchat.presentation.dto.request.DoctorChatWsMessage
+import ke.co.smartroundclinic.doctorchat.presentation.dto.response.DoctorTypingEventRes
 import ke.co.smartroundclinic.infra.AppConfig
+import ke.co.smartroundclinic.infra.redis.RedisKeys
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.bson.types.ObjectId
+import org.slf4j.LoggerFactory
 
 private const val FILE_URL_TTL = 86400L  // 24 hours
 
 /**
- * Mirrors [ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService], simplified:
- * no presence/typing relay (doctor-doctor chat doesn't surface online status or typing indicators
- * this round — a deliberate scope trim, not a technical constraint) and no offline-push special
- * case since it uses the same NEW_CHAT_MESSAGE-style notification unconditionally on every message.
+ * Mirrors [ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService], including
+ * presence/typing relay — presence reuses the same global `/auth/user/presence` heartbeat (Redis
+ * key is user-scoped, not doctor/patient-scoped, so no new infra is needed here).
  */
 class DoctorChatService(
     private val repository: DoctorChatMessageRepository,
     private val storageRepository: StorageRepository,
+    private val socketRegistry: DoctorChatSocketRegistry,
+    private val redis: RedisRepository,
     private val notificationSender: NotificationSender? = null,
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val log = LoggerFactory.getLogger(DoctorChatService::class.java)
+    // encodeDefaults = true — the "type" discriminator on DoctorTypingEventRes defaults to "TYPING",
+    // so without this it's always equal to its default and gets omitted from the wire payload,
+    // leaving clients with no "type" field to dispatch on.
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     suspend fun getUserName(userId: String): String? = repository.getUserName(userId)
+
+    suspend fun isOnline(userId: String): Boolean = redis.get(RedisKeys.presence(userId)) == "true"
+
+    suspend fun getLastSeenAt(userId: String): String? = repository.getLastSeenAt(userId)
 
     fun watchMessagesForThread(threadId: String): Flow<DoctorChatMessageEntity> =
         repository.watchMessagesForThread(threadId)
@@ -48,7 +62,7 @@ class DoctorChatService(
         return entity.copy(files = resolved)
     }
 
-    /** WebSocket-only handler for incoming TEXT frames. File uploads go through the REST endpoint instead. */
+    /** WebSocket-only handler for incoming TEXT/TYPING frames. File uploads go through the REST endpoint instead. */
     suspend fun handleIncomingMessage(
         threadId: String,
         senderId: String,
@@ -57,30 +71,42 @@ class DoctorChatService(
         recipientId: String,
     ) {
         val msg = json.decodeFromString<DoctorChatWsMessage>(rawJson)
-        if (msg.type != DoctorChatMessageType.TEXT.name) return
-        val text = msg.message?.takeIf { it.isNotBlank() } ?: return
-
-        repository.save(
-            DoctorChatMessageEntity(
-                threadId = threadId,
-                senderId = senderId,
-                senderName = senderName,
-                messageType = DoctorChatMessageType.TEXT,
-                message = text,
-            )
-        )
-        runCatching {
-            notificationSender?.send(
-                title = PushNotificationEvents.newChatMessage(senderName),
-                message = text.take(100),
-                channel = NotificationChannel.PUSH_NOTIFICATION,
-                destination = NotificationDestination.DOCTOR,
-                recipientId = recipientId,
-                metadata = mapOf(
-                    "event" to PushNotificationEvents.NEW_CHAT_MESSAGE,
-                    "threadId" to threadId,
-                ),
-            )
+        when (msg.type) {
+            DoctorChatMessageType.TEXT.name -> {
+                val text = msg.message?.takeIf { it.isNotBlank() } ?: return
+                repository.save(
+                    DoctorChatMessageEntity(
+                        threadId = threadId,
+                        senderId = senderId,
+                        senderName = senderName,
+                        messageType = DoctorChatMessageType.TEXT,
+                        message = text,
+                    )
+                )
+                runCatching {
+                    notificationSender?.send(
+                        title = PushNotificationEvents.newChatMessage(senderName),
+                        message = text.take(100),
+                        channel = NotificationChannel.PUSH_NOTIFICATION,
+                        destination = NotificationDestination.DOCTOR,
+                        recipientId = recipientId,
+                        metadata = mapOf(
+                            "event" to PushNotificationEvents.NEW_CHAT_MESSAGE,
+                            "threadId" to threadId,
+                        ),
+                    )
+                }
+            }
+            "TYPING" -> {
+                val isTyping = msg.isTyping ?: return
+                val recipientConnected = socketRegistry.hasOpenSession(threadId, recipientId)
+                log.debug("TYPING relay: sender=$senderId recipient=$recipientId threadId=$threadId isTyping=$isTyping recipientHasOpenSession=$recipientConnected")
+                socketRegistry.sendToUser(
+                    threadId, recipientId,
+                    json.encodeToString(DoctorTypingEventRes(senderId = senderId, isTyping = isTyping)),
+                )
+            }
+            else -> return
         }
     }
 

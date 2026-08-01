@@ -41,4 +41,7 @@ class DoctorChatSocketRegistry {
             }
         }
     }
+
+    fun hasOpenSession(threadId: String, userId: String): Boolean =
+        byThread[threadId]?.get(userId)?.isNotEmpty() == true
 }

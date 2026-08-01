@@ -121,4 +121,12 @@ class DoctorChatMessageRepositoryImpl(
             null
         }
     }
+
+    override suspend fun getLastSeenAt(userId: String): String? = withContext(Dispatchers.IO) {
+        try {
+            users.find(Filters.eq("id", userId)).firstOrNull()?.getString("lastSeenAt")
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

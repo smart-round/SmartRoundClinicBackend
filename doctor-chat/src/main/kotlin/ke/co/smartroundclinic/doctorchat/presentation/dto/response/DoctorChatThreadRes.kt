@@ -10,4 +10,6 @@ data class DoctorChatThreadRes(
     val counterpartPicture: String?,
     val lastMessagePreview: String?,
     val lastMessageAt: String?,
+    val isOnline: Boolean = false,
+    val lastSeenAt: String? = null,
 )

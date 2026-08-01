@@ -34,11 +34,14 @@ import ke.co.smartroundclinic.doctorchat.domain.usecase.call.JoinDoctorCallUseCa
 import ke.co.smartroundclinic.doctorchat.presentation.dto.request.DoctorCallActionReq
 import ke.co.smartroundclinic.doctorchat.presentation.dto.request.InitiateDoctorChatReq
 import ke.co.smartroundclinic.doctorchat.presentation.dto.request.InviteToDoctorCallReq
+import ke.co.smartroundclinic.doctorchat.presentation.dto.response.DoctorPresenceEventRes
 import ke.co.smartroundclinic.doctorchat.presentation.dto.response.toRes
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireRole
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -217,6 +220,7 @@ fun Route.doctorChatController(
 
             socketRegistry.register(threadId, userId, this)
             var watchJob: Job? = null
+            var presenceJob: Job? = null
             try {
                 watchJob = launch {
                     try {
@@ -226,6 +230,27 @@ fun Route.doctorChatController(
                         }
                     } catch (_: Exception) {
                         // change stream interrupted — client reconnects
+                    }
+                }
+
+                // Poll the counterpart's global presence and relay changes over this socket — presence
+                // itself is tracked by the separate /auth/user/presence heartbeat, this just surfaces it here.
+                presenceJob = launch {
+                    var lastKnownOnline: Boolean? = null
+                    while (isActive) {
+                        try {
+                            val online = chatService.isOnline(otherDoctorId)
+                            if (online != lastKnownOnline) {
+                                lastKnownOnline = online
+                                val lastSeenAt = if (!online) chatService.getLastSeenAt(otherDoctorId) else null
+                                send(Frame.Text(json.encodeToString(
+                                    DoctorPresenceEventRes(userId = otherDoctorId, isOnline = online, lastSeenAt = lastSeenAt)
+                                )))
+                            }
+                        } catch (_: Exception) {
+                            // transient Redis/Mongo hiccup — try again next tick
+                        }
+                        delay(9_000L)
                     }
                 }
 
@@ -246,6 +271,7 @@ fun Route.doctorChatController(
                 }
             } finally {
                 watchJob?.cancel()
+                presenceJob?.cancel()
                 socketRegistry.unregister(threadId, userId, this)
             }
         }

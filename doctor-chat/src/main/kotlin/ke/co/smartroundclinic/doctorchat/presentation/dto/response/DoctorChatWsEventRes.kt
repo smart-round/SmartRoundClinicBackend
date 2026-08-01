@@ -2,10 +2,22 @@ package ke.co.smartroundclinic.doctorchat.presentation.dto.response
 
 import kotlinx.serialization.Serializable
 
-/**
- * Transient (non-persisted) WS events, mirroring consultation's typed-event family minus
- * TYPING/PRESENCE (not surfaced for doctor-doctor chat this round).
- */
+/** Transient (non-persisted) WS events, mirroring consultation's typed-event family. */
+@Serializable
+data class DoctorTypingEventRes(
+    val type: String = "TYPING",
+    val senderId: String,
+    val isTyping: Boolean,
+)
+
+@Serializable
+data class DoctorPresenceEventRes(
+    val type: String = "PRESENCE",
+    val userId: String,
+    val isOnline: Boolean,
+    val lastSeenAt: String? = null,
+)
+
 @Serializable
 data class DoctorCallInviteEventRes(
     val type: String = "CALL_INVITE",

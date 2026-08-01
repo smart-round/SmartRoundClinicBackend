@@ -41,6 +41,7 @@ class InitiateDoctorChatUseCaseTest {
         override suspend fun getLatestForThread(threadId: String): DoctorChatMessageEntity? = null
         override suspend fun getUserName(userId: String): String? = users[userId]?.first
         override suspend fun getUserInfo(userId: String): Pair<String, String?>? = users[userId]
+        override suspend fun getLastSeenAt(userId: String): String? = null
     }
 
     private class FakeVerifiedDoctorResolver(private val verified: Set<String>) : VerifiedDoctorResolver {

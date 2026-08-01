@@ -34,13 +34,13 @@ val doctorChatKoinModule = module {
      * Real-time infra
      */
     single { DoctorChatSocketRegistry() }
-    single { DoctorChatService(get(), get<StorageRepository>(), getOrNull()) }
+    single { DoctorChatService(get(), get<StorageRepository>(), get(), get<RedisRepository>(), getOrNull()) }
 
     /**
      * Chat use cases
      */
     single { InitiateDoctorChatUseCase(get(), get(), getOrNull<VerifiedDoctorResolver>()) }
-    single { GetMyDoctorChatThreadsUseCase(get(), get()) }
+    single { GetMyDoctorChatThreadsUseCase(get(), get(), get<RedisRepository>()) }
     single { GetDoctorChatHistoryUseCase(get(), get()) }
 
     /**
