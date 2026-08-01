@@ -18,12 +18,17 @@ data class DoctorAppointmentDetailRes(
     val cancellationReason: String?,
     val cancelledBy: String?,
     val updatedAt: String?,
+    val referralId: String? = null,
+    val referredByDoctorName: String? = null,
+    val referredByDoctorPicture: String? = null,
 )
 
 fun Appointment.toDetailRes(
     patientName: String?,
     patientProfilePicture: String?,
     doctorSpecialities: List<String>,
+    referredByDoctorName: String? = null,
+    referredByDoctorPicture: String? = null,
 ) = DoctorAppointmentDetailRes(
     id = id,
     doctorId = doctorId,
@@ -40,4 +45,7 @@ fun Appointment.toDetailRes(
     cancellationReason = cancellationReason,
     cancelledBy = cancelledBy,
     updatedAt = updatedAt,
+    referralId = referralId,
+    referredByDoctorName = referredByDoctorName,
+    referredByDoctorPicture = referredByDoctorPicture,
 )

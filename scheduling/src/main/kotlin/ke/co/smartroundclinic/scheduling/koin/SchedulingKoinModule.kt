@@ -22,6 +22,7 @@ import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.CompleteAppo
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.ConfirmAppointmentUseCase
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.common.PatientNameResolver
+import ke.co.smartroundclinic.common.ReferralDisplayResolver
 import ke.co.smartroundclinic.common.UserProfilePictureResolver
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAdminAllAppointmentsUseCase
 import ke.co.smartroundclinic.scheduling.domain.usecase.appointment.GetAdminAppointmentStatsUseCase
@@ -54,9 +55,9 @@ val schedulingKoinModule = module {
     single { RefundLookup(get(named("paymentsDb"))) }
 
     // Appointment use cases
-    single { BookAppointmentUseCase(get(), get(), get(), get(), get(), getOrNull()) }
+    single { BookAppointmentUseCase(get(), get(), get(), get(), get(), getOrNull(), getOrNull()) }
     single { GetAllAppointmentsUseCase(get()) }
-    single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>(), getOrNull<UserProfilePictureResolver>()) }
+    single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>(), getOrNull<UserProfilePictureResolver>(), getOrNull<ReferralDisplayResolver>()) }
     single { GetAppointmentByIdUseCase(get(), get()) }
     single { GetPatientAppointmentsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<UserProfilePictureResolver>(), getOrNull<DoctorSpecialitiesResolver>(), get()) }
     single { GetPatientAppointmentsForAdminUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }
@@ -76,7 +77,7 @@ val schedulingKoinModule = module {
 
     // Admin use cases + service
     single { GetAdminAppointmentStatsUseCase(get(), get()) }
-    single { GetAdminAllAppointmentsUseCase(get(), get()) }
+    single { GetAdminAllAppointmentsUseCase(get(), get(), getOrNull()) }
     single { AdminAppointmentService(get(), get()) }
     single { GetAdminAllRefundsUseCase(get(), get()) }
     single { GetRefundByIdUseCase(get(), get()) }

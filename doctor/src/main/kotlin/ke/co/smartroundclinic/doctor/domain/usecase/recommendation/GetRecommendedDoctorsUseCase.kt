@@ -15,8 +15,9 @@ class GetRecommendedDoctorsUseCase(
         specializationId: String?,
         page: Int,
         size: Int,
+        excludeDoctorId: String? = null,
     ): DefaultResponse<RecommendedDoctorsPageRes?> {
-        val result = repository.getRecommendations(specializationId, page, size)
+        val result = repository.getRecommendations(specializationId, page, size, excludeDoctorId)
 
         // Pre-generate presigned URLs before entering the non-suspend toDefaultResponse lambda.
         val presignedUrlsByDoctorId: Map<String, String?> =

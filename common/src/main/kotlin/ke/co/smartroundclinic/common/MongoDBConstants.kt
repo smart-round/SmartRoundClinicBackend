@@ -100,4 +100,17 @@ object MongoDBConstants {
     const val EARNINGS_LEDGER = "earnings_ledger"
     const val REFUNDS = "refunds"
 
+    /**
+     * MongoDB Database and Entities for REFERRAL
+     */
+    const val REFERRAL_DB = "src_referral"
+    const val REFERRALS = "referrals"
+
+    /**
+     * MongoDB Database and Entities for DOCTOR CHAT
+     */
+    const val DOCTOR_CHAT_DB = "src_doctor_chat"
+    const val DOCTOR_CHAT_THREADS = "doctor_chat_threads"
+    const val DOCTOR_CHAT_MESSAGES = "doctor_chat_messages"
+
 }

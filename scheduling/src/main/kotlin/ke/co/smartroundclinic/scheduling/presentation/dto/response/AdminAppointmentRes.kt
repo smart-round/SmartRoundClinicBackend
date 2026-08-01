@@ -49,6 +49,8 @@ data class AdminAppointmentRes(
     val cancelledBy: String?,
     val updatedAt: String?,
     val payment: AdminAppointmentPaymentRes?,
+    val referralId: String? = null,
+    val referralStatus: String? = null,
 )
 
 @Serializable
