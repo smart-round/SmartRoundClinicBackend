@@ -20,6 +20,7 @@ data class AppointmentEntity(
     val cancellationReason: String? = null,
     val cancelledBy: String? = null,
     val updatedAt: String? = null,
+    val referralId: String? = null,
 ) {
     fun toModel() = Appointment(
         id = id,
@@ -36,6 +37,7 @@ data class AppointmentEntity(
         cancellationReason = cancellationReason,
         cancelledBy = cancelledBy,
         updatedAt = updatedAt,
+        referralId = referralId,
     )
 }
 
@@ -54,4 +56,5 @@ fun Appointment.toEntity() = AppointmentEntity(
     cancellationReason = cancellationReason,
     cancelledBy = cancelledBy,
     updatedAt = updatedAt,
+    referralId = referralId,
 )

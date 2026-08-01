@@ -49,4 +49,10 @@ val databaseModule = module {
     single(named("medicalRecordsDb")) {
         get<MongoClient>().getDatabase(MongoDBConstants.MEDICAL_RECORDS_DB)
     }
+    single(named("referralDb")) {
+        get<MongoClient>().getDatabase(MongoDBConstants.REFERRAL_DB)
+    }
+    single(named("doctorChatDb")) {
+        get<MongoClient>().getDatabase(MongoDBConstants.DOCTOR_CHAT_DB)
+    }
 }

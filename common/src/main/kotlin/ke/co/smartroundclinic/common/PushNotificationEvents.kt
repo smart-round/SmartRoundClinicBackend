@@ -46,4 +46,9 @@ object PushNotificationEvents {
     // ── Account ──────────────────────────────────────────────────────────────────
     const val ACCOUNT_SUSPENDED   = "Account Suspended"
     const val ACCOUNT_REINSTATED  = "Account Reinstated"
+
+    // ── Referral ─────────────────────────────────────────────────────────────────
+    const val REFERRAL_CREATED  = "You've Been Referred"
+    const val REFERRAL_ACCEPTED = "Referral Accepted"
+    const val REFERRAL_DECLINED = "Referral Declined"
 }
