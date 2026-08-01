@@ -2,8 +2,12 @@ package ke.co.smartroundclinic.doctorchat.domain.usecase
 
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.common.VerifiedDoctorResolver
+import ke.co.smartroundclinic.doctorchat.data.entity.DoctorChatMessageEntity
 import ke.co.smartroundclinic.doctorchat.data.entity.DoctorChatThreadEntity
+import ke.co.smartroundclinic.doctorchat.domain.repository.DoctorChatMessageCursor
+import ke.co.smartroundclinic.doctorchat.domain.repository.DoctorChatMessageRepository
 import ke.co.smartroundclinic.doctorchat.domain.repository.DoctorChatThreadRepository
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,13 +34,22 @@ class InitiateDoctorChatUseCaseTest {
         override suspend fun clearVideoRoomId(threadId: String, completedRoomId: String?) = Resource.Success(Unit)
     }
 
+    private class FakeDoctorChatMessageRepository(private val users: Map<String, Pair<String, String?>> = emptyMap()) : DoctorChatMessageRepository {
+        override suspend fun save(entity: DoctorChatMessageEntity) = Resource.Success(entity)
+        override suspend fun getByThread(threadId: String, before: DoctorChatMessageCursor?, size: Int) = Resource.Success(emptyList<DoctorChatMessageEntity>())
+        override fun watchMessagesForThread(threadId: String) = emptyFlow<DoctorChatMessageEntity>()
+        override suspend fun getLatestForThread(threadId: String): DoctorChatMessageEntity? = null
+        override suspend fun getUserName(userId: String): String? = users[userId]?.first
+        override suspend fun getUserInfo(userId: String): Pair<String, String?>? = users[userId]
+    }
+
     private class FakeVerifiedDoctorResolver(private val verified: Set<String>) : VerifiedDoctorResolver {
         override suspend fun isVerified(doctorId: String) = doctorId in verified
     }
 
     @Test
     fun `rejects starting a chat with yourself`(): Unit = runBlocking {
-        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), FakeVerifiedDoctorResolver(setOf("doc-1")))
+        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), FakeDoctorChatMessageRepository(), FakeVerifiedDoctorResolver(setOf("doc-1")))
 
         val result = useCase("doc-1", "doc-1")
 
@@ -45,7 +58,7 @@ class InitiateDoctorChatUseCaseTest {
 
     @Test
     fun `rejects when either doctor is not verified`(): Unit = runBlocking {
-        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), FakeVerifiedDoctorResolver(setOf("doc-1")))
+        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), FakeDoctorChatMessageRepository(), FakeVerifiedDoctorResolver(setOf("doc-1")))
 
         val result = useCase("doc-1", "doc-2")
 
@@ -55,7 +68,7 @@ class InitiateDoctorChatUseCaseTest {
     @Test
     fun `finds or creates the same thread regardless of caller order`(): Unit = runBlocking {
         val repository = FakeDoctorChatThreadRepository()
-        val useCase = InitiateDoctorChatUseCase(repository, FakeVerifiedDoctorResolver(setOf("doc-1", "doc-2")))
+        val useCase = InitiateDoctorChatUseCase(repository, FakeDoctorChatMessageRepository(), FakeVerifiedDoctorResolver(setOf("doc-1", "doc-2")))
 
         val first = useCase("doc-1", "doc-2")
         val second = useCase("doc-2", "doc-1")
@@ -67,11 +80,22 @@ class InitiateDoctorChatUseCaseTest {
 
     @Test
     fun `succeeds when no verified-doctor resolver is wired`(): Unit = runBlocking {
-        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), verifiedDoctorResolver = null)
+        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), FakeDoctorChatMessageRepository(), verifiedDoctorResolver = null)
 
         val result = useCase("doc-1", "doc-2")
 
         assertTrue(result.status)
         assertFalse(result.data == null)
+    }
+
+    @Test
+    fun `resolves the counterpart's display name and picture`(): Unit = runBlocking {
+        val messages = FakeDoctorChatMessageRepository(mapOf("doc-2" to ("Dr. Jane" to "https://cdn/pic.jpg")))
+        val useCase = InitiateDoctorChatUseCase(FakeDoctorChatThreadRepository(), messages, FakeVerifiedDoctorResolver(setOf("doc-1", "doc-2")))
+
+        val result = useCase("doc-1", "doc-2")
+
+        assertEquals("Dr. Jane", result.data?.counterpartName)
+        assertEquals("https://cdn/pic.jpg", result.data?.counterpartPicture)
     }
 }

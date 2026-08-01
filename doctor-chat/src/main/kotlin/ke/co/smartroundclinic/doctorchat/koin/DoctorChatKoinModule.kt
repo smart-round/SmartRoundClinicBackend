@@ -39,7 +39,7 @@ val doctorChatKoinModule = module {
     /**
      * Chat use cases
      */
-    single { InitiateDoctorChatUseCase(get(), getOrNull<VerifiedDoctorResolver>()) }
+    single { InitiateDoctorChatUseCase(get(), get(), getOrNull<VerifiedDoctorResolver>()) }
     single { GetMyDoctorChatThreadsUseCase(get(), get()) }
     single { GetDoctorChatHistoryUseCase(get(), get()) }
 
