@@ -29,6 +29,14 @@ object PushNotificationEvents {
     const val CALL_DECLINED  = "Call Declined"
     const val CALL_CANCELLED = "Call Cancelled"
 
+    // ── Doctor-to-doctor call ringing — distinct from CALL_* above because the payload shape
+    // differs (threadId, not doctorId/patientId); reusing CALL_INVITE etc. here would silently
+    // fail to deep-link since the app's shared push handler expects the patient-call shape.
+    const val DOCTOR_CALL_INVITE    = "Incoming Doctor Call"
+    const val DOCTOR_CALL_ANSWERED  = "Doctor Call Answered"
+    const val DOCTOR_CALL_DECLINED  = "Doctor Call Declined"
+    const val DOCTOR_CALL_CANCELLED = "Doctor Call Cancelled"
+
     // ── Chat (DM) ───────────────────────────────────────────────────────────────
     const val NEW_CHAT_MESSAGE = "New Chat Message"
     fun newChatMessage(senderName: String) = "New message from $senderName"

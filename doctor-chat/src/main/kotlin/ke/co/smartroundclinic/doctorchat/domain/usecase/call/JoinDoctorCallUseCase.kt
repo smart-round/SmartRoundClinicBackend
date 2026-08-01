@@ -57,7 +57,7 @@ class JoinDoctorCallUseCase(
         redis.delete(RedisKeys.activeCallForDoctorChatThread(threadId))
         socketRegistry.sendToUser(threadId, invite.callerId, json.encodeToString(DoctorCallAnsweredEventRes(callId = callId)))
         notificationSender?.sendCallSignal(
-            event = PushNotificationEvents.CALL_ANSWERED,
+            event = PushNotificationEvents.DOCTOR_CALL_ANSWERED,
             recipientId = invite.callerId,
             metadata = mapOf("callId" to callId, "threadId" to threadId),
         )

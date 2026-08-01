@@ -67,7 +67,7 @@ class InviteToDoctorCallUseCase(
 
         runCatching {
             notificationSender?.sendCallSignal(
-                event = PushNotificationEvents.CALL_INVITE,
+                event = PushNotificationEvents.DOCTOR_CALL_INVITE,
                 recipientId = calleeId,
                 metadata = mapOf(
                     "callId" to callId, "callerId" to callerId, "callerName" to (callerName ?: ""),

@@ -38,7 +38,7 @@ class CancelDoctorCallInviteUseCase(
         }
         runCatching {
             notificationSender?.sendCallSignal(
-                event = PushNotificationEvents.CALL_CANCELLED,
+                event = PushNotificationEvents.DOCTOR_CALL_CANCELLED,
                 recipientId = invite.calleeId,
                 metadata = mapOf("callId" to callId, "threadId" to invite.threadId),
             )

@@ -38,7 +38,7 @@ class DeclineDoctorCallInviteUseCase(
         }
         runCatching {
             notificationSender?.sendCallSignal(
-                event = PushNotificationEvents.CALL_DECLINED,
+                event = PushNotificationEvents.DOCTOR_CALL_DECLINED,
                 recipientId = invite.callerId,
                 metadata = mapOf("callId" to callId, "threadId" to invite.threadId),
             )
