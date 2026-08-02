@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.referral.domain.usecase.CreateReferralUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.DeclineReferralUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.GetMyReferralsUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.GetPendingReferralsUseCase
+import ke.co.smartroundclinic.referral.domain.usecase.GetReceivedReferralsUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.GetReferralHistoryUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.ReferralEligibilityUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.admin.GetAdminReferralStatsUseCase
@@ -15,6 +16,7 @@ class ReferralService(
     private val createReferralUseCase: CreateReferralUseCase,
     private val eligibilityUseCase: ReferralEligibilityUseCase,
     private val getMyReferralsUseCase: GetMyReferralsUseCase,
+    private val getReceivedReferralsUseCase: GetReceivedReferralsUseCase,
     private val getPendingReferralsUseCase: GetPendingReferralsUseCase,
     private val getReferralHistoryUseCase: GetReferralHistoryUseCase,
     private val acceptReferralUseCase: AcceptReferralUseCase,
@@ -25,6 +27,7 @@ class ReferralService(
     suspend fun create(req: CreateReferralReq, referringDoctorId: String) = createReferralUseCase(req, referringDoctorId)
     suspend fun eligibility(appointmentId: String, doctorId: String) = eligibilityUseCase(appointmentId, doctorId)
     suspend fun mine(referringDoctorId: String) = getMyReferralsUseCase(referringDoctorId)
+    suspend fun received(receivingDoctorId: String) = getReceivedReferralsUseCase(receivingDoctorId)
     suspend fun pending(patientId: String) = getPendingReferralsUseCase(patientId)
     suspend fun history(patientId: String) = getReferralHistoryUseCase(patientId)
     suspend fun accept(id: String, patientId: String) = acceptReferralUseCase(id, patientId)

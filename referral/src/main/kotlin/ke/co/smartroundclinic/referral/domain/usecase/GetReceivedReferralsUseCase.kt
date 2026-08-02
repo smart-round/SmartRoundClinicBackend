@@ -5,29 +5,26 @@ import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
-import ke.co.smartroundclinic.referral.data.lookup.DoctorDisplayLookup
 import ke.co.smartroundclinic.referral.domain.repository.ReferralRepository
 import ke.co.smartroundclinic.referral.presentation.dto.response.ReferralRes
 import ke.co.smartroundclinic.referral.presentation.dto.response.toRes
 
-/** A doctor's own sent-referrals list. */
-class GetMyReferralsUseCase(
+/** A doctor's own received-referrals list — patients other doctors have referred to them,
+ * independent of whether the patient has responded or booked yet. */
+class GetReceivedReferralsUseCase(
     private val repository: ReferralRepository,
-    private val doctorDisplayLookup: DoctorDisplayLookup,
     private val patientNameResolver: PatientNameResolver? = null,
     private val storageRepository: StorageRepository,
 ) {
-    suspend operator fun invoke(referringDoctorId: String): DefaultResponse<List<ReferralRes>?> {
-        val result = repository.getByReferringDoctor(referringDoctorId)
+    suspend operator fun invoke(receivingDoctorId: String): DefaultResponse<List<ReferralRes>?> {
+        val result = repository.getByReceivingDoctor(receivingDoctorId)
         val entities = result.data ?: emptyList()
 
         val patientNames = patientNameResolver?.getPatientNames(entities.map { it.patientId }.distinct()) ?: emptyMap()
-        val receivingDoctorInfo = doctorDisplayLookup.bulkLookup(entities.map { it.receivingDoctorId }.toSet())
 
-        // receivingDoctorInfo's profilePicture is a raw R2 key resolved live from auth_user — needs
-        // presigning before a client can actually load it (same fix already applied to the
-        // patient-facing pending/history use cases).
-        val presignedByKey = entities.mapNotNull { receivingDoctorInfo[it.receivingDoctorId]?.profilePicture }
+        // referringDoctorPicture is a raw R2 key snapshotted at creation time — presign before
+        // a client can actually load it.
+        val presignedByKey = entities.mapNotNull { it.referringDoctorPicture }
             .toSet()
             .associateWith { key ->
                 (storageRepository.presignedGetUrl(
@@ -39,12 +36,9 @@ class GetMyReferralsUseCase(
 
         return result.toDefaultResponse { items ->
             items?.map { entity ->
-                val receiving = receivingDoctorInfo[entity.receivingDoctorId]
                 entity.toModel().toRes(
                     patientName = patientNames[entity.patientId],
-                    receivingDoctorName = receiving?.name,
-                    receivingDoctorPicture = receiving?.profilePicture?.let { presignedByKey[it] },
-                )
+                ).copy(referringDoctorPicture = entity.referringDoctorPicture?.let { presignedByKey[it] })
             }
         }
     }

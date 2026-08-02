@@ -7,6 +7,7 @@ interface ReferralRepository {
     suspend fun create(entity: ReferralEntity): Resource<ReferralEntity>
     suspend fun getById(id: String): Resource<ReferralEntity?>
     suspend fun getByReferringDoctor(doctorId: String): Resource<List<ReferralEntity>>
+    suspend fun getByReceivingDoctor(doctorId: String): Resource<List<ReferralEntity>>
     suspend fun getPendingByPatient(patientId: String): Resource<List<ReferralEntity>>
 
     /** Every referral (any status) for this patient — lets a patient revisit an already

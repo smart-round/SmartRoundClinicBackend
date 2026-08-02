@@ -50,6 +50,14 @@ fun Route.referralController(service: ReferralService) {
                 }
             }
 
+            get("/received") {
+                call.requireRole(DOCTOR) {
+                    val doctorId = call.getUserId() ?: return@requireRole
+                    val result = service.received(doctorId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
             get("/pending") {
                 call.requireRole(PATIENT) {
                     val patientId = call.getUserId() ?: return@requireRole
