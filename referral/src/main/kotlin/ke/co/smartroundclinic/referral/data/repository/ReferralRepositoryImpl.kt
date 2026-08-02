@@ -149,7 +149,11 @@ class ReferralRepositoryImpl(database: MongoDatabase) : ReferralRepository, Refe
                     Filters.eq(ReferralEntity::id.name, id),
                     Updates.set(ReferralEntity::resultingAppointmentId.name, appointmentId),
                 )
-                log.info("Linked referral id=$id to resultingAppointmentId=$appointmentId")
+                if (result.modifiedCount > 0) {
+                    log.info("Linked referral id=$id to resultingAppointmentId=$appointmentId")
+                } else {
+                    log.error("Failed to link referral id=$id to resultingAppointmentId=$appointmentId — matchedCount=${result.matchedCount} modifiedCount=${result.modifiedCount} (no document matched)")
+                }
                 Resource.Success(result.modifiedCount > 0)
             } catch (e: Exception) {
                 log.error("Failed to link referral id=$id to appointmentId=$appointmentId — ${e.message}", e)

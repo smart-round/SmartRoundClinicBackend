@@ -142,7 +142,13 @@ class BookAppointmentUseCase(
             runCatching { paymentVerificationLookup.linkToAppointment(payment.id, appt.id) }
             if (!req.referralId.isNullOrBlank()) {
                 runCatching { appointmentRepository.setReferralId(appt.id, req.referralId) }
+                    .onSuccess { tagResult ->
+                        val tagged = (tagResult as? Resource.Success)?.data == true
+                        if (!tagged) log.error("Referral tagging did not take effect for appointmentId=${appt.id} referralId=${req.referralId} — result={} — {}", tagResult, logCtx)
+                    }
+                    .onFailure { e -> log.error("Referral tagging threw for appointmentId=${appt.id} referralId=${req.referralId} — {}", logCtx, e) }
                 runCatching { referralLinker?.linkResultingAppointment(req.referralId, appt.id) }
+                    .onFailure { e -> log.error("Referral linkResultingAppointment threw for appointmentId=${appt.id} referralId=${req.referralId} — {}", logCtx, e) }
             }
             runCatching {
                 notificationSender?.send(

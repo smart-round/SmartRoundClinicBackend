@@ -284,7 +284,11 @@ class AppointmentRepositoryImpl(
                         Updates.set(AppointmentEntity::updatedAt.name, Clock.System.now().toString()),
                     ),
                 )
-                log.info("Tagged appointment id=$appointmentId with referralId=$referralId")
+                if (result.modifiedCount > 0) {
+                    log.info("Tagged appointment id=$appointmentId with referralId=$referralId")
+                } else {
+                    log.error("Failed to tag appointment id=$appointmentId with referralId=$referralId — matchedCount=${result.matchedCount} modifiedCount=${result.modifiedCount} (no document matched or field already set to this value)")
+                }
                 Resource.Success(data = result.modifiedCount > 0)
             } catch (e: Exception) {
                 log.error("Failed to tag appointment id=$appointmentId with referralId=$referralId — ${e.message}", e)
