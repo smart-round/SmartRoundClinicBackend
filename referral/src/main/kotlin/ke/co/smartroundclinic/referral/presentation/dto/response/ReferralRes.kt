@@ -12,6 +12,7 @@ data class ReferralRes(
     val referringDoctorPicture: String?,
     val patientId: String,
     val patientName: String? = null,
+    val patientProfilePicture: String? = null,
     val receivingDoctorId: String,
     val receivingDoctorName: String? = null,
     val receivingDoctorPicture: String? = null,
@@ -24,6 +25,7 @@ data class ReferralRes(
 
 fun Referral.toRes(
     patientName: String? = null,
+    patientProfilePicture: String? = null,
     receivingDoctorName: String? = null,
     receivingDoctorPicture: String? = null,
 ) = ReferralRes(
@@ -34,6 +36,7 @@ fun Referral.toRes(
     referringDoctorPicture = referringDoctorPicture,
     patientId = patientId,
     patientName = patientName,
+    patientProfilePicture = patientProfilePicture,
     receivingDoctorId = receivingDoctorId,
     receivingDoctorName = receivingDoctorName,
     receivingDoctorPicture = receivingDoctorPicture,

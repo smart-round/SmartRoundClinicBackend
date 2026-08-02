@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.referral.domain.usecase
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.common.UserProfilePictureResolver
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
 import ke.co.smartroundclinic.referral.domain.repository.ReferralRepository
@@ -14,13 +15,16 @@ import ke.co.smartroundclinic.referral.presentation.dto.response.toRes
 class GetReceivedReferralsUseCase(
     private val repository: ReferralRepository,
     private val patientNameResolver: PatientNameResolver? = null,
+    private val userProfilePictureResolver: UserProfilePictureResolver? = null,
     private val storageRepository: StorageRepository,
 ) {
     suspend operator fun invoke(receivingDoctorId: String): DefaultResponse<List<ReferralRes>?> {
         val result = repository.getByReceivingDoctor(receivingDoctorId)
         val entities = result.data ?: emptyList()
 
-        val patientNames = patientNameResolver?.getPatientNames(entities.map { it.patientId }.distinct()) ?: emptyMap()
+        val patientIds = entities.map { it.patientId }.distinct()
+        val patientNames = patientNameResolver?.getPatientNames(patientIds) ?: emptyMap()
+        val patientPictures = userProfilePictureResolver?.getProfilePictureUrls(patientIds) ?: emptyMap()
 
         // referringDoctorPicture is a raw R2 key snapshotted at creation time — presign before
         // a client can actually load it.
@@ -38,6 +42,7 @@ class GetReceivedReferralsUseCase(
             items?.map { entity ->
                 entity.toModel().toRes(
                     patientName = patientNames[entity.patientId],
+                    patientProfilePicture = patientPictures[entity.patientId],
                 ).copy(referringDoctorPicture = entity.referringDoctorPicture?.let { presignedByKey[it] })
             }
         }
