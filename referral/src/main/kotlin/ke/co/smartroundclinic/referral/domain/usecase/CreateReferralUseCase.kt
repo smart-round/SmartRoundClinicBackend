@@ -49,12 +49,6 @@ class CreateReferralUseCase(
             return Resource.Error<Nothing>(reasons).toDefaultResponse(failedStatusCode = 422) { null }
         }
 
-        val activeReferral = (referralRepository.getActiveBySourceAppointment(req.appointmentId) as? Resource.Success)?.data
-        if (activeReferral != null) {
-            return Resource.Error<Nothing>("This appointment already has an active referral")
-                .toDefaultResponse(failedStatusCode = 409) { null }
-        }
-
         if (verifiedDoctorResolver != null) {
             if (!verifiedDoctorResolver.isVerified(referringDoctorId)) {
                 return Resource.Error<Nothing>("You must be a verified doctor to refer patients")
