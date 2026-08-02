@@ -5,8 +5,6 @@ import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.ReferralDisplayResolver
 import ke.co.smartroundclinic.common.ReferralLinker
 import ke.co.smartroundclinic.common.VerifiedDoctorResolver
-import ke.co.smartroundclinic.doctor.domain.repository.DoctorRatingRepository
-import ke.co.smartroundclinic.medicalrecords.domain.repository.MedicalRecordRepository
 import ke.co.smartroundclinic.referral.data.lookup.DoctorDisplayLookup
 import ke.co.smartroundclinic.referral.data.repository.ReferralRepositoryImpl
 import ke.co.smartroundclinic.referral.domain.repository.ReferralRepository
@@ -31,7 +29,7 @@ val referralKoinModule = module {
     single<ReferralLinker> { ReferralLinkerImpl(get()) }
     single { DoctorDisplayLookup(get(named("authDb"))) }
 
-    single { ReferralEligibilityUseCase(get<AppointmentRepository>(), get<DoctorRatingRepository>(), get<MedicalRecordRepository>()) }
+    single { ReferralEligibilityUseCase(get<AppointmentRepository>()) }
     single { CreateReferralUseCase(get(), get(), get(), get(), getOrNull<VerifiedDoctorResolver>(), getOrNull<NotificationSender>()) }
     single { AcceptReferralUseCase(get(), getOrNull<NotificationSender>()) }
     single { DeclineReferralUseCase(get(), getOrNull<NotificationSender>()) }
