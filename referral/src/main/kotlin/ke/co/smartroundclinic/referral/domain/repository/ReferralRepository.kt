@@ -9,6 +9,10 @@ interface ReferralRepository {
     suspend fun getByReferringDoctor(doctorId: String): Resource<List<ReferralEntity>>
     suspend fun getPendingByPatient(patientId: String): Resource<List<ReferralEntity>>
 
+    /** Every referral (any status) for this patient — lets a patient revisit an already
+     * accepted/declined referral and still book with that doctor if they change their mind. */
+    suspend fun getByPatient(patientId: String): Resource<List<ReferralEntity>>
+
     /** The still-open (PENDING, or ACCEPTED but not yet booked) referral for this source appointment, if any — enforces "one active referral per completed visit". */
     suspend fun getActiveBySourceAppointment(appointmentId: String): Resource<ReferralEntity?>
 

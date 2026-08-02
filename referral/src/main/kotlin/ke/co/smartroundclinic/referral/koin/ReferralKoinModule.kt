@@ -15,6 +15,7 @@ import ke.co.smartroundclinic.referral.domain.usecase.CreateReferralUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.DeclineReferralUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.GetMyReferralsUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.GetPendingReferralsUseCase
+import ke.co.smartroundclinic.referral.domain.usecase.GetReferralHistoryUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.ReferralEligibilityUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.admin.GetAdminReferralStatsUseCase
 import ke.co.smartroundclinic.referral.domain.usecase.admin.GetAdminReferralsUseCase
@@ -34,9 +35,10 @@ val referralKoinModule = module {
     single { AcceptReferralUseCase(get(), getOrNull<NotificationSender>()) }
     single { DeclineReferralUseCase(get(), getOrNull<NotificationSender>()) }
     single { GetMyReferralsUseCase(get(), get(), getOrNull<PatientNameResolver>()) }
-    single { GetPendingReferralsUseCase(get(), get()) }
+    single { GetPendingReferralsUseCase(get(), get(), get()) }
+    single { GetReferralHistoryUseCase(get(), get(), get()) }
     single { GetAdminReferralsUseCase(get(), get(), getOrNull<PatientNameResolver>()) }
     single { GetAdminReferralStatsUseCase(get()) }
 
-    single { ReferralService(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { ReferralService(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

@@ -76,6 +76,18 @@ class ReferralRepositoryImpl(database: MongoDatabase) : ReferralRepository, Refe
             }
         }
 
+    override suspend fun getByPatient(patientId: String): Resource<List<ReferralEntity>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val items = col.find(Filters.eq(ReferralEntity::patientId.name, patientId))
+                    .sort(Sorts.descending(ReferralEntity::createdAt.name)).toList()
+                Resource.Success(items)
+            } catch (e: Exception) {
+                log.error("Failed to fetch referral history for patientId=$patientId — ${e.message}", e)
+                Resource.Error(e.localizedMessage ?: "Failed to fetch referrals")
+            }
+        }
+
     override suspend fun getActiveBySourceAppointment(appointmentId: String): Resource<ReferralEntity?> =
         withContext(Dispatchers.IO) {
             try {

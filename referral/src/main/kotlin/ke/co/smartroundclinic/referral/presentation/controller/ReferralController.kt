@@ -58,6 +58,14 @@ fun Route.referralController(service: ReferralService) {
                 }
             }
 
+            get("/history") {
+                call.requireRole(PATIENT) {
+                    val patientId = call.getUserId() ?: return@requireRole
+                    val result = service.history(patientId)
+                    call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+                }
+            }
+
             patch("/{id}/accept") {
                 call.requireRole(PATIENT) {
                     val patientId = call.getUserId() ?: return@requireRole

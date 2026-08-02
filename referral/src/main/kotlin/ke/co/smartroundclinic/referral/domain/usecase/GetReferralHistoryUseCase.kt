@@ -9,20 +9,19 @@ import ke.co.smartroundclinic.referral.domain.repository.ReferralRepository
 import ke.co.smartroundclinic.referral.presentation.dto.response.ReferralRes
 import ke.co.smartroundclinic.referral.presentation.dto.response.toRes
 
-/** A patient's pending referral requests — backend endpoint built this round; consuming patient-app UI is a follow-up round. */
-class GetPendingReferralsUseCase(
+/** A patient's full referral history (any status) — unlike [GetPendingReferralsUseCase], this
+ * also surfaces already-accepted/declined referrals, so a patient who changes their mind can
+ * still find and book with a doctor they were previously referred to. */
+class GetReferralHistoryUseCase(
     private val repository: ReferralRepository,
     private val doctorDisplayLookup: DoctorDisplayLookup,
     private val storageRepository: StorageRepository,
 ) {
     suspend operator fun invoke(patientId: String): DefaultResponse<List<ReferralRes>?> {
-        val result = repository.getPendingByPatient(patientId)
+        val result = repository.getByPatient(patientId)
         val entities = result.data ?: emptyList()
         val receivingDoctorInfo = doctorDisplayLookup.bulkLookup(entities.map { it.receivingDoctorId }.toSet())
 
-        // referringDoctorPicture is a snapshot key captured at creation time, and
-        // receivingDoctorPicture is resolved live above — both are raw R2 keys that need
-        // presigning before a client can actually load them.
         val presignedByKey = (entities.mapNotNull { it.referringDoctorPicture } +
             entities.mapNotNull { receivingDoctorInfo[it.receivingDoctorId]?.profilePicture })
             .toSet()
