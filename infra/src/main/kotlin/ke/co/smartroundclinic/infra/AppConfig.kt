@@ -59,6 +59,10 @@ data class RealtimeKitConfig(
     val baseUrl: String = EnvLoader.get("CLOUDFLARE_API_BASE_URL") ?: "https://api.cloudflare.com/client/v4",
     val doctorPreset: String = EnvLoader.get("CLOUDFLARE_RTK_PRESET_DOCTOR") ?: "group_call_host",
     val patientPreset: String = EnvLoader.get("CLOUDFLARE_RTK_PRESET_PATIENT") ?: "group_call_participant",
+    // Distinguishes sandbox vs production room titles in the Cloudflare dashboard — e.g. "dev" on
+    // the sandbox deployment yields "dev-doctors-lounge-{threadId}" instead of "doctors-lounge-{threadId}".
+    // Unset in production.
+    val roomPrefix: String? = EnvLoader.get("CLOUDFLARE_RTK_ROOM_PREFIX"),
 )
 
 data class RedisConfig(

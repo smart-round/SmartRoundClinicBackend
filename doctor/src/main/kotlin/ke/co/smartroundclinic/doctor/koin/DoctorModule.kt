@@ -12,6 +12,7 @@ import ke.co.smartroundclinic.doctor.data.repository.PractitionerProfileReposito
 import ke.co.smartroundclinic.common.DoctorSpecialitiesResolver
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.UserProfilePictureResolver
+import ke.co.smartroundclinic.common.VerifiedDoctorResolver
 import ke.co.smartroundclinic.doctor.data.repository.SpecializationRepositoryImpl
 import ke.co.smartroundclinic.doctor.domain.repository.RecommendationRepository
 import ke.co.smartroundclinic.doctor.domain.repository.DoctorRatingRepository
@@ -30,6 +31,7 @@ import ke.co.smartroundclinic.doctor.domain.service.PaymentDetailsService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerLicenceService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerProfileService
 import ke.co.smartroundclinic.doctor.domain.service.SpecializationService
+import ke.co.smartroundclinic.doctor.domain.usecase.recommendation.GetDoctorByIdUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.recommendation.GetRecommendedDoctorsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.rating.DeleteRatingUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.rating.GetDoctorRatingsUseCase
@@ -104,7 +106,9 @@ val doctorModule = module {
     single<DoctorSpecialitiesResolver> { get<SpecializationRepositoryImpl>() }
     single<PaymentDetailsRepository> { PaymentDetailsRepositoryImpl(get(named("doctorDb"))) }
     single<DoctorRatingRepository> { DoctorRatingRepositoryImpl(get(named("doctorDb")), get(named("schedulingDb"))) }
-    single<RecommendationRepository> { RecommendationRepositoryImpl(get(named("doctorDb")), get(named("adminDb")), get(named("schedulingDb")), get(named("authDb"))) }
+    single<RecommendationRepositoryImpl> { RecommendationRepositoryImpl(get(named("doctorDb")), get(named("adminDb")), get(named("schedulingDb")), get(named("authDb"))) }
+    single<RecommendationRepository> { get<RecommendationRepositoryImpl>() }
+    single<VerifiedDoctorResolver> { get<RecommendationRepositoryImpl>() }
 
     /**
      * Profile
@@ -248,7 +252,8 @@ val doctorModule = module {
      * Recommendations
      * */
     single { GetRecommendedDoctorsUseCase(get(), get()) }
-    single { RecommendationService(get()) }
+    single { GetDoctorByIdUseCase(get(), get()) }
+    single { RecommendationService(get(), get()) }
 
     /**
      * Ratings

@@ -15,4 +15,6 @@ data class Appointment(
     val cancellationReason: String? = null,
     val cancelledBy: String? = null,
     val updatedAt: String? = null,
+    /** Set once, at booking time, when this appointment resulted from an accepted referral. */
+    val referralId: String? = null,
 )

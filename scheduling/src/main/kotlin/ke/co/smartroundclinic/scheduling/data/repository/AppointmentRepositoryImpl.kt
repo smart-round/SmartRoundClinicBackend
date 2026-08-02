@@ -274,6 +274,28 @@ class AppointmentRepositoryImpl(
             .toInstant(TimeZone.of("Africa/Nairobi"))
     }.getOrNull()
 
+    override suspend fun setReferralId(appointmentId: String, referralId: String): Resource<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                val result = col.updateOne(
+                    Filters.eq(AppointmentEntity::id.name, appointmentId),
+                    Updates.combine(
+                        Updates.set(AppointmentEntity::referralId.name, referralId),
+                        Updates.set(AppointmentEntity::updatedAt.name, Clock.System.now().toString()),
+                    ),
+                )
+                if (result.modifiedCount > 0) {
+                    log.info("Tagged appointment id=$appointmentId with referralId=$referralId")
+                } else {
+                    log.error("Failed to tag appointment id=$appointmentId with referralId=$referralId — matchedCount=${result.matchedCount} modifiedCount=${result.modifiedCount} (no document matched or field already set to this value)")
+                }
+                Resource.Success(data = result.modifiedCount > 0)
+            } catch (e: Exception) {
+                log.error("Failed to tag appointment id=$appointmentId with referralId=$referralId — ${e.message}", e)
+                Resource.Error(e.localizedMessage ?: "Failed to tag appointment with referral")
+            }
+        }
+
     override suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String): Resource<AppointmentEntity?> =
         withContext(Dispatchers.IO) {
             try {

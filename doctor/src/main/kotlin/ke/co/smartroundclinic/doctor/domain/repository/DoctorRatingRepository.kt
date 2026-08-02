@@ -8,6 +8,7 @@ interface DoctorRatingRepository {
     suspend fun update(id: String, patientId: String, rating: Int?, comment: String?): Resource<DoctorRatingEntity?>
     suspend fun delete(id: String, patientId: String): Resource<Boolean>
     suspend fun getById(id: String): Resource<DoctorRatingEntity?>
+    suspend fun getByAppointmentId(appointmentId: String): Resource<DoctorRatingEntity?>
     suspend fun getByDoctorId(doctorId: String, page: Int, size: Int): Resource<Pair<List<DoctorRatingEntity>, Long>>
     suspend fun getAverageRating(doctorId: String): Resource<Pair<Double, Int>>
 }

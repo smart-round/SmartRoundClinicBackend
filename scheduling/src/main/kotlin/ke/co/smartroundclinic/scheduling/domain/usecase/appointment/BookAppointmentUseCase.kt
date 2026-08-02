@@ -5,6 +5,7 @@ import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.ReferralLinker
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.toEntity
 import ke.co.smartroundclinic.scheduling.data.lookup.PaymentVerificationLookup
@@ -30,6 +31,7 @@ class BookAppointmentUseCase(
     private val serviceTierLookup: ServiceTierLookup,
     private val paymentVerificationLookup: PaymentVerificationLookup,
     private val notificationSender: NotificationSender? = null,
+    private val referralLinker: ReferralLinker? = null,
 ) {
     private val log = LoggerFactory.getLogger(BookAppointmentUseCase::class.java)
 
@@ -123,12 +125,31 @@ class BookAppointmentUseCase(
                 .toDefaultResponse(failedStatusCode = 409) { null }
         }
 
+        if (!req.referralId.isNullOrBlank()) {
+            val referralError = referralLinker?.validateForBooking(req.referralId, req.doctorId, patientId)
+            if (referralError != null) {
+                log.warn("Booking rejected — referral invalid: {} — {}", referralError, logCtx)
+                return Resource.Error<Nothing>(referralError)
+                    .toDefaultResponse(failedStatusCode = 400) { null }
+            }
+        }
+
         val slotEnd = SlotEngine.fromMinutes(SlotEngine.toMinutes(req.slotStart) + consultationDuration + gracePeriod)
 
         val result = appointmentRepository.book(req.toModel(patientId, slotEnd, serviceTierId, consultationDuration).toEntity())
         if (result is Resource.Success && result.data != null) {
             val appt = result.data!!
             runCatching { paymentVerificationLookup.linkToAppointment(payment.id, appt.id) }
+            if (!req.referralId.isNullOrBlank()) {
+                runCatching { appointmentRepository.setReferralId(appt.id, req.referralId) }
+                    .onSuccess { tagResult ->
+                        val tagged = (tagResult as? Resource.Success)?.data == true
+                        if (!tagged) log.error("Referral tagging did not take effect for appointmentId=${appt.id} referralId=${req.referralId} — result={} — {}", tagResult, logCtx)
+                    }
+                    .onFailure { e -> log.error("Referral tagging threw for appointmentId=${appt.id} referralId=${req.referralId} — {}", logCtx, e) }
+                runCatching { referralLinker?.linkResultingAppointment(req.referralId, appt.id) }
+                    .onFailure { e -> log.error("Referral linkResultingAppointment threw for appointmentId=${appt.id} referralId=${req.referralId} — {}", logCtx, e) }
+            }
             runCatching {
                 notificationSender?.send(
                     title = PushNotificationEvents.APPOINTMENT_REQUEST,

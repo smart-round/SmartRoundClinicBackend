@@ -13,6 +13,8 @@ include(":article")
 include(":consultation")
 include(":payments")
 include(":medical-records")
+include(":referral")
+include(":doctor-chat")
 
 dependencyResolutionManagement {
     repositories {

@@ -119,6 +119,12 @@ class DoctorRatingRepositoryImpl(
         Resource.Error(e.message ?: "Failed to fetch rating")
     }
 
+    override suspend fun getByAppointmentId(appointmentId: String): Resource<DoctorRatingEntity?> = try {
+        Resource.Success(col.find(Filters.eq(DoctorRatingEntity::appointmentId.name, appointmentId)).firstOrNull())
+    } catch (e: Exception) {
+        Resource.Error(e.message ?: "Failed to fetch rating")
+    }
+
     override suspend fun getByDoctorId(
         doctorId: String,
         page: Int,

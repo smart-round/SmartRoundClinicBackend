@@ -3,6 +3,7 @@ package ke.co.smartroundclinic.doctor.domain.usecase.recommendation
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.doctor.domain.repository.RecommendationRepository
+import ke.co.smartroundclinic.doctor.presentation.dto.response.RecommendedDoctorRes
 import ke.co.smartroundclinic.doctor.presentation.dto.response.RecommendedDoctorsPageRes
 import ke.co.smartroundclinic.infra.AppConfig
 import ke.co.smartroundclinic.infra.storage.StorageRepository
@@ -15,8 +16,9 @@ class GetRecommendedDoctorsUseCase(
         specializationId: String?,
         page: Int,
         size: Int,
+        excludeDoctorId: String? = null,
     ): DefaultResponse<RecommendedDoctorsPageRes?> {
-        val result = repository.getRecommendations(specializationId, page, size)
+        val result = repository.getRecommendations(specializationId, page, size, excludeDoctorId)
 
         // Pre-generate presigned URLs before entering the non-suspend toDefaultResponse lambda.
         val presignedUrlsByDoctorId: Map<String, String?> =
@@ -43,5 +45,24 @@ class GetRecommendedDoctorsUseCase(
                 )
             }
         }
+    }
+}
+
+class GetDoctorByIdUseCase(
+    private val repository: RecommendationRepository,
+    private val storageRepository: StorageRepository,
+) {
+    suspend operator fun invoke(doctorId: String): DefaultResponse<RecommendedDoctorRes?> {
+        val result = repository.getByDoctorId(doctorId)
+
+        val presignedUrl = ((result as? Resource.Success)?.data?.profilePicture)?.let { key ->
+            (storageRepository.presignedGetUrl(
+                bucket = AppConfig.r2.bucket,
+                key = key,
+                expiresInSeconds = 86400,
+            ) as? Resource.Success)?.data
+        }
+
+        return result.toDefaultResponse { doctor -> doctor?.copy(profilePicture = presignedUrl) }
     }
 }

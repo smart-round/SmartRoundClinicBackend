@@ -6,6 +6,7 @@ import com.mongodb.client.model.Filters
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.common.VerifiedDoctorResolver
 import ke.co.smartroundclinic.doctor.data.entity.PractitionerProfileEntity
 import ke.co.smartroundclinic.doctor.data.entity.SpecializationEntity
 import ke.co.smartroundclinic.doctor.domain.repository.RecommendationRepository
@@ -22,7 +23,7 @@ class RecommendationRepositoryImpl(
     adminDb: MongoDatabase,
     schedulingDb: MongoDatabase,
     authDb: MongoDatabase,
-) : RecommendationRepository {
+) : RecommendationRepository, VerifiedDoctorResolver {
 
     private val log = LoggerFactory.getLogger(RecommendationRepositoryImpl::class.java)
     private val profileCol = doctorDb.getCollection<PractitionerProfileEntity>(MongoDBConstants.DOCTOR_PROFILES)
@@ -37,6 +38,7 @@ class RecommendationRepositoryImpl(
         specializationId: String?,
         page: Int,
         size: Int,
+        excludeDoctorId: String?,
     ): Resource<Pair<List<RecommendedDoctorRes>, Long>> = try {
         val safePage = maxOf(1, page)
         val safeSize = minOf(maxOf(1, size), 50)
@@ -54,10 +56,12 @@ class RecommendationRepositoryImpl(
                 .also { if (it.isEmpty()) return Resource.Success(emptyList<RecommendedDoctorRes>() to 0L) }
         }
 
-        // Only include doctors who are verified (compliance approved) and not suspended
+        // Only include doctors who are verified (compliance approved), not suspended, and not the caller themselves
         val verifiedDoctorIds = loadVerifiedDoctorIds()
         val suspendedDoctorIds = loadSuspendedDoctorIds()
-        val eligibleDoctorIds = verifiedDoctorIds - suspendedDoctorIds
+        val eligibleDoctorIds = (verifiedDoctorIds - suspendedDoctorIds).let {
+            if (excludeDoctorId != null) it - excludeDoctorId else it
+        }
 
         // Load only the relevant profiles
         val profileFilter = when {
@@ -158,6 +162,80 @@ class RecommendationRepositoryImpl(
     } catch (e: Exception) {
         log.error("Failed to compute recommendations — ${e.message}", e)
         Resource.Error(e.message ?: "Failed to fetch recommendations")
+    }
+
+    // Single-doctor lookup for profile-viewing surfaces (e.g. tapping a doctor's name in a
+    // doctor-chat thread) — unlike getRecommendations, this isn't gated on verified/monetized
+    // status since the caller already has an established relationship with this doctor (an active
+    // chat thread), and it skips the scoring/pagination machinery entirely.
+    override suspend fun getByDoctorId(doctorId: String): Resource<RecommendedDoctorRes?> = try {
+        val profile = profileCol.find(Filters.eq(PractitionerProfileEntity::doctorId.name, doctorId)).toList().firstOrNull()
+            ?: return Resource.Success(null)
+
+        val specializations = specializationsCol.find(Filters.eq("doctorId", doctorId)).toList()
+        val specIds = specializations.map { it.specializationId }.toSet()
+        val subSpecIds = specializations.mapNotNull { it.subSpecializationId }.toSet()
+        val specialityNames = loadSpecialityNames(specIds)
+        val subSpecialityNames = if (subSpecIds.isNotEmpty()) loadSubSpecialityNames(subSpecIds) else emptyMap()
+        val specializationDetails = specializations.map { spec ->
+            SpecializationWithNamesRes(
+                id = spec.id,
+                specializationId = spec.specializationId,
+                specializationName = specialityNames[spec.specializationId] ?: spec.specializationId,
+                subSpecializationId = spec.subSpecializationId,
+                subSpecializationName = spec.subSpecializationId?.let { subSpecialityNames[it] },
+            )
+        }
+
+        val doctorInfo = loadDoctorInfo(setOf(doctorId))[doctorId]
+        val bookings = appointmentsCol.countDocuments(Filters.eq("doctorId", doctorId)).toInt()
+
+        Resource.Success(
+            RecommendedDoctorRes(
+                profileId = profile.id,
+                doctorId = profile.doctorId,
+                doctorName = doctorInfo?.first,
+                profilePicture = doctorInfo?.second,
+                kmpdcRegNumber = profile.kmpdcRegNumber,
+                title = profile.title,
+                bio = profile.bio,
+                yearsOfExperience = profile.yearsOfExperience,
+                languages = profile.languages,
+                facilityName = profile.facilityName,
+                averageRating = profile.averageRating,
+                totalReviews = profile.totalReviews,
+                totalBookings = bookings,
+                score = 0.0,
+                specializations = specializationDetails,
+                createdAt = profile.createdAt,
+                updatedAt = profile.updatedAt,
+            ),
+        )
+    } catch (e: Exception) {
+        log.error("Failed to fetch doctor by id=$doctorId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch doctor")
+    }
+
+    override suspend fun isVerified(doctorId: String): Boolean = try {
+        val approved = complianceCol.find(
+            Filters.and(
+                Filters.eq("doctorId", doctorId),
+                Filters.eq("isApproved", true),
+                Filters.eq("isMonetized", true),
+            )
+        ).toList().isNotEmpty()
+        if (!approved) return false
+        val suspended = usersCol.find(
+            Filters.and(
+                Filters.eq("id", doctorId),
+                Filters.eq("role", "DOCTOR"),
+                Filters.eq("accountStatus", "SUSPENDED"),
+            )
+        ).toList().isNotEmpty()
+        !suspended
+    } catch (e: Exception) {
+        log.warn("Could not verify doctorId=$doctorId — ${e.message}")
+        false
     }
 
     private suspend fun loadVerifiedDoctorIds(): Set<String> = try {

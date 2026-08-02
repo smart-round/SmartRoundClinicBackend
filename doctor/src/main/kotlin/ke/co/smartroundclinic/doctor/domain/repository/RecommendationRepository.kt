@@ -8,5 +8,8 @@ interface RecommendationRepository {
         specializationId: String?,
         page: Int,
         size: Int,
+        excludeDoctorId: String? = null,
     ): Resource<Pair<List<RecommendedDoctorRes>, Long>>
+
+    suspend fun getByDoctorId(doctorId: String): Resource<RecommendedDoctorRes?>
 }

@@ -15,7 +15,16 @@ fun Route.recommendationController(service: RecommendationService) {
                 val specializationId = call.request.queryParameters["specializationId"]
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-                val result = service.getRecommendations(specializationId, page, size)
+                val excludeDoctorId = call.request.queryParameters["excludeDoctorId"]
+                val result = service.getRecommendations(specializationId, page, size, excludeDoctorId)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
+
+            // GET /doctor/recommendations/{doctorId} — single-doctor profile lookup, e.g. for
+            // viewing a doctor's profile from a doctor-chat thread.
+            get("{doctorId}") {
+                val doctorId = call.parameters["doctorId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val result = service.getById(doctorId)
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
         }

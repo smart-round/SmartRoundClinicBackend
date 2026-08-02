@@ -30,4 +30,7 @@ interface AppointmentRepository {
 
     /** The soonest CONFIRMED appointment between this pair that hasn't expired (now <= slotStart + 24h), or null if none — the single source of truth clients use to decide whether/when the video-call option should appear for a permanent chat thread. */
     suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String): Resource<AppointmentEntity?>
+
+    /** Tags [appointmentId] with [referralId] — called exactly once, when a patient books with a doctor they were referred to. */
+    suspend fun setReferralId(appointmentId: String, referralId: String): Resource<Boolean>
 }

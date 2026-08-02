@@ -36,6 +36,9 @@ class ListConversationThreadsUseCaseTest {
         override fun watchByDoctorId(doctorId: String): Flow<AppointmentEntity> = emptyFlow()
         override suspend fun existsConfirmedOrCompletedBetween(doctorId: String, patientId: String): Boolean =
             appointments.any { it.doctorId == doctorId && it.patientId == patientId && (it.status == "CONFIRMED" || it.status == "COMPLETED") }
+        override suspend fun hasJoinableConfirmedAppointment(doctorId: String, patientId: String): Boolean = false
+        override suspend fun getNextConfirmedAppointment(doctorId: String, patientId: String) = Resource.Success<AppointmentEntity?>(null)
+        override suspend fun setReferralId(appointmentId: String, referralId: String) = Resource.Success(true)
     }
 
     private class FakeMessageRepository(

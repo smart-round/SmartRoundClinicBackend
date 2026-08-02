@@ -11,6 +11,8 @@ data class BookAppointmentReq(
     val slotStart: String,
     val transactionRef: String,
     val notes: String? = null,
+    /** Set when this booking fulfils an accepted referral to [doctorId] — validated and linked in BookAppointmentUseCase. */
+    val referralId: String? = null,
 ) {
     fun toModel(patientId: String, slotEnd: String, serviceTierId: String, consultationDuration: Int) = Appointment(
         id = ObjectId().toString(),

@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.scheduling.domain.usecase.appointment
 
 import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
+import ke.co.smartroundclinic.common.ReferralDisplayResolver
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.data.entity.AppointmentEntity
 import ke.co.smartroundclinic.scheduling.data.lookup.AppointmentAdminLookup
@@ -15,6 +16,7 @@ import kotlin.math.ceil
 class GetAdminAllAppointmentsUseCase(
     private val repository: AppointmentRepository,
     private val lookup: AppointmentAdminLookup,
+    private val referralDisplayResolver: ReferralDisplayResolver? = null,
 ) {
     suspend operator fun invoke(
         status: String?,
@@ -42,13 +44,17 @@ class GetAdminAllAppointmentsUseCase(
         val userIds = items.flatMap { listOf(it.doctorId, it.patientId) }.distinct()
         val namesMap = lookup.getUserNames(userIds)
         val paymentsMap = lookup.getPaymentsByAppointmentIds(items.map { it.id })
+        val referralIds = items.mapNotNull { it.referralId }.distinct()
+        val referralStatusMap = referralDisplayResolver?.let { resolver ->
+            referralIds.associateWith { resolver.getReferralDisplayInfo(it)?.status }
+        } ?: emptyMap()
 
         return DefaultResponse(
             httpStatusCode = HttpStatusCode.OK.value,
             status = true,
             message = "Appointments fetched successfully",
             data = AdminAppointmentsPageRes(
-                items = items.map { it.toAdminRes(namesMap, paymentsMap[it.id]) },
+                items = items.map { it.toAdminRes(namesMap, paymentsMap[it.id], referralStatusMap[it.referralId]) },
                 total = total,
                 page = page,
                 size = size,
@@ -60,6 +66,7 @@ class GetAdminAllAppointmentsUseCase(
     private fun AppointmentEntity.toAdminRes(
         names: Map<String, String>,
         payment: AppointmentPaymentInfo?,
+        referralStatus: String?,
     ) = AdminAppointmentRes(
         id = id,
         doctorId = doctorId,
@@ -92,5 +99,7 @@ class GetAdminAllAppointmentsUseCase(
                 mpesaReference = it.mpesaReference,
             )
         },
+        referralId = referralId,
+        referralStatus = referralStatus,
     )
 }
