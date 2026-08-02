@@ -31,6 +31,7 @@ import ke.co.smartroundclinic.doctor.domain.service.PaymentDetailsService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerLicenceService
 import ke.co.smartroundclinic.doctor.domain.service.PractitionerProfileService
 import ke.co.smartroundclinic.doctor.domain.service.SpecializationService
+import ke.co.smartroundclinic.doctor.domain.usecase.recommendation.GetDoctorByIdUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.recommendation.GetRecommendedDoctorsUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.rating.DeleteRatingUseCase
 import ke.co.smartroundclinic.doctor.domain.usecase.rating.GetDoctorRatingsUseCase
@@ -251,7 +252,8 @@ val doctorModule = module {
      * Recommendations
      * */
     single { GetRecommendedDoctorsUseCase(get(), get()) }
-    single { RecommendationService(get()) }
+    single { GetDoctorByIdUseCase(get(), get()) }
+    single { RecommendationService(get(), get()) }
 
     /**
      * Ratings

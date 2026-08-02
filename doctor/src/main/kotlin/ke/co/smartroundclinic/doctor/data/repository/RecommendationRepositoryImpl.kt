@@ -164,6 +164,58 @@ class RecommendationRepositoryImpl(
         Resource.Error(e.message ?: "Failed to fetch recommendations")
     }
 
+    // Single-doctor lookup for profile-viewing surfaces (e.g. tapping a doctor's name in a
+    // doctor-chat thread) — unlike getRecommendations, this isn't gated on verified/monetized
+    // status since the caller already has an established relationship with this doctor (an active
+    // chat thread), and it skips the scoring/pagination machinery entirely.
+    override suspend fun getByDoctorId(doctorId: String): Resource<RecommendedDoctorRes?> = try {
+        val profile = profileCol.find(Filters.eq(PractitionerProfileEntity::doctorId.name, doctorId)).toList().firstOrNull()
+            ?: return Resource.Success(null)
+
+        val specializations = specializationsCol.find(Filters.eq("doctorId", doctorId)).toList()
+        val specIds = specializations.map { it.specializationId }.toSet()
+        val subSpecIds = specializations.mapNotNull { it.subSpecializationId }.toSet()
+        val specialityNames = loadSpecialityNames(specIds)
+        val subSpecialityNames = if (subSpecIds.isNotEmpty()) loadSubSpecialityNames(subSpecIds) else emptyMap()
+        val specializationDetails = specializations.map { spec ->
+            SpecializationWithNamesRes(
+                id = spec.id,
+                specializationId = spec.specializationId,
+                specializationName = specialityNames[spec.specializationId] ?: spec.specializationId,
+                subSpecializationId = spec.subSpecializationId,
+                subSpecializationName = spec.subSpecializationId?.let { subSpecialityNames[it] },
+            )
+        }
+
+        val doctorInfo = loadDoctorInfo(setOf(doctorId))[doctorId]
+        val bookings = appointmentsCol.countDocuments(Filters.eq("doctorId", doctorId)).toInt()
+
+        Resource.Success(
+            RecommendedDoctorRes(
+                profileId = profile.id,
+                doctorId = profile.doctorId,
+                doctorName = doctorInfo?.first,
+                profilePicture = doctorInfo?.second,
+                kmpdcRegNumber = profile.kmpdcRegNumber,
+                title = profile.title,
+                bio = profile.bio,
+                yearsOfExperience = profile.yearsOfExperience,
+                languages = profile.languages,
+                facilityName = profile.facilityName,
+                averageRating = profile.averageRating,
+                totalReviews = profile.totalReviews,
+                totalBookings = bookings,
+                score = 0.0,
+                specializations = specializationDetails,
+                createdAt = profile.createdAt,
+                updatedAt = profile.updatedAt,
+            ),
+        )
+    } catch (e: Exception) {
+        log.error("Failed to fetch doctor by id=$doctorId — ${e.message}", e)
+        Resource.Error(e.message ?: "Failed to fetch doctor")
+    }
+
     override suspend fun isVerified(doctorId: String): Boolean = try {
         val approved = complianceCol.find(
             Filters.and(

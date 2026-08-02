@@ -19,6 +19,14 @@ fun Route.recommendationController(service: RecommendationService) {
                 val result = service.getRecommendations(specializationId, page, size, excludeDoctorId)
                 call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
             }
+
+            // GET /doctor/recommendations/{doctorId} — single-doctor profile lookup, e.g. for
+            // viewing a doctor's profile from a doctor-chat thread.
+            get("{doctorId}") {
+                val doctorId = call.parameters["doctorId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val result = service.getById(doctorId)
+                call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
+            }
         }
 
     }
