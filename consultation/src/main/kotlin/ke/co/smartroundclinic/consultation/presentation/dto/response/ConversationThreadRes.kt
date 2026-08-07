@@ -18,4 +18,12 @@ data class ConversationThreadRes(
     val latestAppointmentId: String,
     val isOnline: Boolean = false,
     val lastSeenAt: String? = null,
+    /**
+     * What the last message *was*, so clients can pick an icon without string-matching the
+     * preview text. Defaults to TEXT for older clients that ignore it.
+     */
+    val lastMessageKind: ThreadPreviewKind = ThreadPreviewKind.TEXT,
 )
+
+@Serializable
+enum class ThreadPreviewKind { TEXT, PHOTO, FILE, PRESCRIPTION }

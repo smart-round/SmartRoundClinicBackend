@@ -8,6 +8,8 @@ import ke.co.smartroundclinic.consultation.data.entity.MessageType
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationHiddenThreadRepository
 import ke.co.smartroundclinic.consultation.domain.repository.ConsultationMessageRepository
 import ke.co.smartroundclinic.consultation.domain.repository.MessageCursor
+import ke.co.smartroundclinic.consultation.presentation.dto.response.ConversationThreadRes
+import ke.co.smartroundclinic.consultation.presentation.dto.response.ThreadPreviewKind
 import ke.co.smartroundclinic.scheduling.data.entity.AppointmentEntity
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import kotlinx.coroutines.flow.Flow
@@ -134,21 +136,50 @@ class ListConversationThreadsUseCaseTest {
         assertEquals(0, response.data?.size)
     }
 
-    @Test
-    fun `formats last message preview per message type`(): Unit = runBlocking {
+    private fun fileThread(file: ConsultationFile): ConversationThreadRes? = runBlocking {
         val appointments = listOf(appointment("appt-1", "doc-1", "pat-1", "2026-01-01T00:00:00.000Z"))
         val fileMessage = ConsultationMessageEntity(
             id = "m1", doctorId = "doc-1", patientId = "pat-1",
             senderId = "doc-1", senderRole = "DOCTOR", senderName = "Dr. Jane",
-            messageType = MessageType.FILE, files = listOf(ConsultationFile("xray.png", "key", "image/png", 10L)),
+            messageType = MessageType.FILE, files = listOf(file),
             createdAt = "2026-01-01T00:00:00.000Z",
         )
         val messages = FakeMessageRepository(latestByPair = mapOf(("doc-1" to "pat-1") to fileMessage))
         val useCase = ListConversationThreadsUseCase(FakeAppointmentRepository(appointments), messages, FakeHiddenThreadRepository(), FakeRedisRepository())
+        useCase("doc-1", "DOCTOR").data?.first()
+    }
 
-        val response = useCase("doc-1", "DOCTOR")
+    @Test
+    fun `image attachments preview as Photo rather than their filename`() {
+        val thread = fileThread(ConsultationFile("xray.png", "key", "image/png", 10L))
 
-        assertEquals("xray.png", response.data?.first()?.lastMessagePreview)
+        assertEquals("Photo", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.PHOTO, thread?.lastMessageKind)
+    }
+
+    @Test
+    fun `camera captures named with a generated id still preview as Photo`() {
+        // FileKit names camera temp files with a UUID, which used to surface verbatim.
+        val thread = fileThread(ConsultationFile("9f2c1e04-7b3a-4d55-8e21-6a0b9c3d1f88.jpg", "key", "image/jpeg", 10L))
+
+        assertEquals("Photo", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.PHOTO, thread?.lastMessageKind)
+    }
+
+    @Test
+    fun `an image with no contentType falls back to its extension`() {
+        val thread = fileThread(ConsultationFile("scan.HEIC", "key", "application/octet-stream", 10L))
+
+        assertEquals("Photo", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.PHOTO, thread?.lastMessageKind)
+    }
+
+    @Test
+    fun `non-image attachments keep showing their filename`() {
+        val thread = fileThread(ConsultationFile("results.pdf", "key", "application/pdf", 10L))
+
+        assertEquals("results.pdf", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.FILE, thread?.lastMessageKind)
     }
 
     @Test
