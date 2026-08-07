@@ -12,4 +12,13 @@ data class DoctorChatThreadRes(
     val lastMessageAt: String?,
     val isOnline: Boolean = false,
     val lastSeenAt: String? = null,
+    /** See [ThreadPreviewKind] — lets clients pick an icon without parsing the preview text. */
+    val lastMessageKind: ThreadPreviewKind = ThreadPreviewKind.TEXT,
 )
+
+/**
+ * Deliberately duplicated from consultation's enum of the same name rather than shared:
+ * doctor-chat does not depend on consultation, and the wire values are identical.
+ */
+@Serializable
+enum class ThreadPreviewKind { TEXT, PHOTO, FILE, PRESCRIPTION }
