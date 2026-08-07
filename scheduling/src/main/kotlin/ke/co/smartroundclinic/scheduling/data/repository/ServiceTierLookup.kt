@@ -5,6 +5,7 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import kotlinx.coroutines.flow.firstOrNull
 import org.bson.Document
+import org.bson.types.Decimal128
 import org.slf4j.LoggerFactory
 
 sealed class ConsultationInfoResult {
@@ -76,8 +77,7 @@ class ServiceTierLookup(
      * serviceTierId they were booked against, so this stays correct even if the tier is repriced.
      */
     suspend fun getTierPrice(serviceTierId: String): Double? = try {
-        serviceTiersCol.find(Filters.eq("id", serviceTierId)).firstOrNull()
-            ?.let { doc -> doc.getDouble("tierPrice") ?: doc.getInteger("tierPrice")?.toDouble() }
+        serviceTiersCol.find(Filters.eq("id", serviceTierId)).firstOrNull()?.readTierPrice()
     } catch (e: Exception) {
         log.warn("Could not fetch tier price for service tier $serviceTierId — ${e.message}")
         null
@@ -93,7 +93,7 @@ class ServiceTierLookup(
                     buildMap {
                         flow.collect { doc ->
                             val id = doc.getString("id") ?: return@collect
-                            val price = doc.getDouble("tierPrice") ?: doc.getInteger("tierPrice")?.toDouble()
+                            val price = doc.readTierPrice()
                             if (price != null) put(id, price)
                         }
                     }
@@ -102,5 +102,17 @@ class ServiceTierLookup(
             log.warn("Could not fetch tier prices for $ids — ${e.message}")
             emptyMap()
         }
+    }
+
+    /**
+     * Reads `tierPrice` without assuming a BSON numeric type. Documents in this collection are
+     * written from several places, so the same field can arrive as int32, int64, double or
+     * Decimal128 — the typed Document accessors throw on a mismatch rather than coercing.
+     */
+    private fun Document.readTierPrice(): Double? = when (val raw = get("tierPrice")) {
+        is Number -> raw.toDouble()
+        is Decimal128 -> raw.bigDecimalValue().toDouble()
+        is String -> raw.toDoubleOrNull()
+        else -> null
     }
 }
