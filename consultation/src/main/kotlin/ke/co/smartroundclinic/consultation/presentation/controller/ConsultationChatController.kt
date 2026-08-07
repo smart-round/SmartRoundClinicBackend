@@ -17,7 +17,9 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.NotificationDestination
+import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationChatService
 import ke.co.smartroundclinic.consultation.domain.service.ConsultationSocketRegistry
 import ke.co.smartroundclinic.consultation.domain.usecase.call.CancelCallInviteUseCase
@@ -101,9 +103,94 @@ fun Route.consultationChatController(
     authenticate("auth-jwt") {
 
         // POST /chat/{otherUserId}/files
-        // Multipart file upload. The saved FILE message is broadcast to any open
-        // WebSocket clients via the MongoDB change stream — the response is the
-        // single source of truth for the sender's optimistic message.
+        // Step 1 of the direct-to-R2 upload: mint a pre-signed PUT URL.
+        //
+        // Preferred over the multipart route below, which proxies the whole file through this
+        // process and holds it in heap before forwarding it to R2 — paying for the transfer
+        // twice and putting large files at risk of exhausting the JVM. Here the bytes go
+        // straight from the client to storage.
+        post("/chat/{otherUserId}/files/presign") {
+            val otherUserId = call.parameters["otherUserId"]
+                ?: throw MissingParametersException("otherUserId path parameter is required")
+            val userId = call.getUserId() ?: return@post
+            val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
+            val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
+
+            if (!appointmentRepository.existsConfirmedOrCompletedBetween(doctorId, patientId)) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No consultation relationship with this user"))
+            }
+
+            val req = call.receive<PresignUploadReq>()
+            if (req.sizeBytes <= 0) {
+                return@post call.respond(HttpStatusCode.BadRequest, mapOf("message" to "sizeBytes must be positive"))
+            }
+            if (req.sizeBytes > MAX_CHAT_FILE_BYTES) {
+                return@post call.respond(
+                    HttpStatusCode.PayloadTooLarge,
+                    mapOf("message" to "Unable to send file as it is too large. Please try again"),
+                )
+            }
+
+            when (val result = chatService.presignFileUpload(doctorId, patientId, req.fileName, req.contentType)) {
+                is Resource.Success -> {
+                    val data = result.data!!
+                    call.respond(
+                        HttpStatusCode.OK,
+                        DefaultResponse(
+                            httpStatusCode = HttpStatusCode.OK.value,
+                            message = "Upload URL generated",
+                            status = true,
+                            data = PresignUploadRes(
+                                messageId = data.messageId,
+                                key = data.key,
+                                uploadUrl = data.uploadUrl,
+                                contentType = data.contentType,
+                            ),
+                        ),
+                    )
+                }
+                is Resource.Error -> call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("message" to (result.message ?: "Failed to prepare upload")),
+                )
+            }
+        }
+
+        // Step 2: record the message once the client's PUT to R2 has succeeded.
+        post("/chat/{otherUserId}/files/complete") {
+            val otherUserId = call.parameters["otherUserId"]
+                ?: throw MissingParametersException("otherUserId path parameter is required")
+            val userId = call.getUserId() ?: return@post
+            val role = call.principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString() ?: ""
+            val (doctorId, patientId) = resolvePair(userId, role, otherUserId)
+
+            if (!appointmentRepository.existsConfirmedOrCompletedBetween(doctorId, patientId)) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No consultation relationship with this user"))
+            }
+
+            val req = call.receive<CompleteUploadReq>()
+            val senderName = chatService.getUserName(userId) ?: "Unknown"
+            val result = chatService.completeFileUpload(
+                doctorId = doctorId,
+                patientId = patientId,
+                senderId = userId,
+                senderRole = role,
+                senderName = senderName,
+                messageId = req.messageId,
+                key = req.key,
+                fileName = req.fileName,
+                contentType = req.contentType,
+                sizeBytes = req.sizeBytes,
+            )
+            val response = result.toDefaultResponse(
+                successStatusCode = HttpStatusCode.Created.value,
+                failedStatusCode = HttpStatusCode.BadRequest.value,
+            ) { it?.toModel()?.toRes() }
+            call.respond(HttpStatusCode.fromValue(response.httpStatusCode), response)
+        }
+
+        // Legacy multipart file upload — kept so older clients keep working. The saved FILE
+        // message is broadcast to any open WebSocket clients via the MongoDB change stream.
         post("/chat/{otherUserId}/files") {
             val otherUserId = call.parameters["otherUserId"]
                 ?: throw MissingParametersException("otherUserId path parameter is required")
@@ -324,3 +411,34 @@ fun Route.consultationChatController(
         }
     }
 }
+
+/**
+ * Server-side ceiling for chat attachments, mirrored by the apps so they can reject early.
+ * Decimal MB deliberately — file managers report sizes in decimal, so a binary-MiB limit lets
+ * a file the user calls "26 MB" slip under a cap labelled "25 MB".
+ */
+private const val MAX_CHAT_FILE_BYTES = 10L * 1_000_000
+
+@Serializable
+private data class PresignUploadReq(
+    val fileName: String,
+    val contentType: String,
+    val sizeBytes: Long,
+)
+
+@Serializable
+private data class PresignUploadRes(
+    val messageId: String,
+    val key: String,
+    val uploadUrl: String,
+    val contentType: String,
+)
+
+@Serializable
+private data class CompleteUploadReq(
+    val messageId: String,
+    val key: String,
+    val fileName: String,
+    val contentType: String,
+    val sizeBytes: Long,
+)

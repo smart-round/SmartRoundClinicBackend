@@ -65,6 +65,8 @@ class GetMergedConsultationHistoryUseCaseTest {
         override suspend fun delete(bucket: String, key: String) = Resource.Success<Nothing>(null)
         override suspend fun presignedGetUrl(bucket: String, key: String, expiresInSeconds: Long) =
             Resource.Success(presignedUrl)
+        override suspend fun presignedPutUrl(bucket: String, key: String, contentType: String, expiresInSeconds: Long) =
+            Resource.Success("https://cdn.test/upload")
     }
 
     private fun message(id: String, createdAt: String, files: List<ConsultationFile> = emptyList()) =

@@ -4,6 +4,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.DeleteObjectRequest
 import aws.sdk.kotlin.services.s3.model.PutObjectRequest
 import aws.sdk.kotlin.services.s3.presigners.presignGetObject
+import aws.sdk.kotlin.services.s3.presigners.presignPutObject
 import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
 import aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider
 import aws.smithy.kotlin.runtime.collections.Attributes
@@ -80,5 +81,26 @@ class R2StorageRepositoryImpl(private val config: R2Config) : StorageRepository 
     } catch (e: Exception) {
         logger.error("R2 presign failed for $bucket/$key: ${e.message}")
         Resource.Error(e.localizedMessage ?: "Failed to generate pre-signed URL")
+    }
+
+    override suspend fun presignedPutUrl(
+        bucket: String,
+        key: String,
+        contentType: String,
+        expiresInSeconds: Long,
+    ): Resource<String> = try {
+        val presignedRequest = client.presignPutObject(
+            input = PutObjectRequest {
+                this.bucket = bucket
+                this.key = key
+                // Signed into the URL — the client's PUT must send the identical header.
+                this.contentType = contentType
+            },
+            duration = expiresInSeconds.seconds,
+        )
+        Resource.Success(data = presignedRequest.url.toString(), message = "Pre-signed upload URL generated")
+    } catch (e: Exception) {
+        logger.error("R2 presign PUT failed for $bucket/$key: ${e.message}")
+        Resource.Error(e.localizedMessage ?: "Failed to generate pre-signed upload URL")
     }
 }
