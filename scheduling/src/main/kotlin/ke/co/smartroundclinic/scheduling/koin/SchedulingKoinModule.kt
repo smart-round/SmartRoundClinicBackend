@@ -57,7 +57,7 @@ val schedulingKoinModule = module {
     // Appointment use cases
     single { BookAppointmentUseCase(get(), get(), get(), get(), get(), getOrNull(), getOrNull()) }
     single { GetAllAppointmentsUseCase(get()) }
-    single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>(), getOrNull<UserProfilePictureResolver>(), getOrNull<ReferralDisplayResolver>()) }
+    single { GetDoctorAppointmentDetailsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>(), getOrNull<UserProfilePictureResolver>(), getOrNull<ReferralDisplayResolver>(), get<ServiceTierLookup>()) }
     single { GetAppointmentByIdUseCase(get(), get()) }
     single { GetPatientAppointmentsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<UserProfilePictureResolver>(), getOrNull<DoctorSpecialitiesResolver>(), get()) }
     single { GetPatientAppointmentsForAdminUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<DoctorSpecialitiesResolver>()) }

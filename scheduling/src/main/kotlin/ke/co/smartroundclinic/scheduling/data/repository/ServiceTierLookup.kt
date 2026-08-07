@@ -70,4 +70,37 @@ class ServiceTierLookup(
         log.warn("Could not fetch service tier $serviceTierId — ${e.message}")
         null
     }
+
+    /**
+     * Consultation price for a tier, used to show the appointment's amount. Appointments store the
+     * serviceTierId they were booked against, so this stays correct even if the tier is repriced.
+     */
+    suspend fun getTierPrice(serviceTierId: String): Double? = try {
+        serviceTiersCol.find(Filters.eq("id", serviceTierId)).firstOrNull()
+            ?.let { doc -> doc.getDouble("tierPrice") ?: doc.getInteger("tierPrice")?.toDouble() }
+    } catch (e: Exception) {
+        log.warn("Could not fetch tier price for service tier $serviceTierId — ${e.message}")
+        null
+    }
+
+    /** Batched [getTierPrice] — one query per distinct tier rather than one per appointment. */
+    suspend fun getTierPrices(serviceTierIds: Collection<String>): Map<String, Double> {
+        val ids = serviceTierIds.filter { it.isNotBlank() }.distinct()
+        if (ids.isEmpty()) return emptyMap()
+        return try {
+            serviceTiersCol.find(Filters.`in`("id", ids))
+                .let { flow ->
+                    buildMap {
+                        flow.collect { doc ->
+                            val id = doc.getString("id") ?: return@collect
+                            val price = doc.getDouble("tierPrice") ?: doc.getInteger("tierPrice")?.toDouble()
+                            if (price != null) put(id, price)
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            log.warn("Could not fetch tier prices for $ids — ${e.message}")
+            emptyMap()
+        }
+    }
 }

@@ -21,6 +21,9 @@ data class DoctorAppointmentDetailRes(
     val referralId: String? = null,
     val referredByDoctorName: String? = null,
     val referredByDoctorPicture: String? = null,
+    /** Consultation price of the service tier this appointment was booked against. */
+    val amount: Double? = null,
+    val currency: String = "KES",
 )
 
 fun Appointment.toDetailRes(
@@ -29,6 +32,8 @@ fun Appointment.toDetailRes(
     doctorSpecialities: List<String>,
     referredByDoctorName: String? = null,
     referredByDoctorPicture: String? = null,
+    amount: Double? = null,
+    currency: String = "KES",
 ) = DoctorAppointmentDetailRes(
     id = id,
     doctorId = doctorId,
@@ -48,4 +53,6 @@ fun Appointment.toDetailRes(
     referralId = referralId,
     referredByDoctorName = referredByDoctorName,
     referredByDoctorPicture = referredByDoctorPicture,
+    amount = amount,
+    currency = currency,
 )
