@@ -417,7 +417,7 @@ fun Route.consultationChatController(
  * Decimal MB deliberately — file managers report sizes in decimal, so a binary-MiB limit lets
  * a file the user calls "26 MB" slip under a cap labelled "25 MB".
  */
-private const val MAX_CHAT_FILE_BYTES = 10L * 1_000_000
+private const val MAX_CHAT_FILE_BYTES = 300L * 1_000_000
 
 @Serializable
 private data class PresignUploadReq(
