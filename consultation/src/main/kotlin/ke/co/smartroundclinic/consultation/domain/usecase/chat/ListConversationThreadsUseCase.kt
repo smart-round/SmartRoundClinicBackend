@@ -81,7 +81,10 @@ class ListConversationThreadsUseCase(
                 when {
                     file == null -> "Attachment"
                     file.isImage() -> "Photo"
-                    else -> file.fileName
+                    file.isVideo() -> "Video"
+                    // A document's name is the only thing distinguishing one from another.
+                    file.isDocument() -> file.fileName
+                    else -> "File"
                 }
             }
         }
@@ -90,17 +93,31 @@ class ListConversationThreadsUseCase(
         when (message.messageType) {
             MessageType.TEXT -> ThreadPreviewKind.TEXT
             MessageType.PRESCRIPTION -> ThreadPreviewKind.PRESCRIPTION
-            MessageType.FILE ->
-                if (message.files.firstOrNull()?.isImage() == true) ThreadPreviewKind.PHOTO
-                else ThreadPreviewKind.FILE
+            MessageType.FILE -> {
+                val file = message.files.firstOrNull()
+                when {
+                    file?.isImage() == true -> ThreadPreviewKind.PHOTO
+                    file?.isVideo() == true -> ThreadPreviewKind.VIDEO
+                    else -> ThreadPreviewKind.FILE
+                }
+            }
         }
 
     /** contentType is authoritative; the extension is a fallback for older records. */
     private fun ConsultationFile.isImage(): Boolean =
-        contentType.startsWith("image/", ignoreCase = true) ||
-            fileName.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS
+        contentType.startsWith("image/", ignoreCase = true) || ext() in IMAGE_EXTENSIONS
+
+    private fun ConsultationFile.isVideo(): Boolean =
+        contentType.startsWith("video/", ignoreCase = true) || ext() in VIDEO_EXTENSIONS
+
+    private fun ConsultationFile.isDocument(): Boolean =
+        contentType == "application/pdf" || ext() in DOCUMENT_EXTENSIONS
+
+    private fun ConsultationFile.ext(): String = fileName.substringAfterLast('.', "").lowercase()
 
     private companion object {
         val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp")
+        val VIDEO_EXTENSIONS = setOf("mp4", "mov", "avi", "mkv", "webm", "3gp", "m4v", "mpeg", "mpg")
+        val DOCUMENT_EXTENSIONS = setOf("pdf", "doc", "docx", "xls", "xlsx", "csv", "ppt", "pptx", "txt", "rtf")
     }
 }

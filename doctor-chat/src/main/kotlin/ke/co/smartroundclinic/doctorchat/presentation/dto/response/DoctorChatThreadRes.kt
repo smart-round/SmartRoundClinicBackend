@@ -21,4 +21,4 @@ data class DoctorChatThreadRes(
  * doctor-chat does not depend on consultation, and the wire values are identical.
  */
 @Serializable
-enum class ThreadPreviewKind { TEXT, PHOTO, FILE, PRESCRIPTION }
+enum class ThreadPreviewKind { TEXT, PHOTO, VIDEO, FILE, PRESCRIPTION }

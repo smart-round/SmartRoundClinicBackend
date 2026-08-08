@@ -120,6 +120,92 @@ class ConsultationChatService(
      * and persists a FILE-type message. The change stream pushes the new message
      * to any connected WebSocket clients.
      */
+    /**
+     * Step 1 of the direct-to-R2 upload: hands the client a pre-signed PUT URL.
+     *
+     * The legacy [uploadFile] path streams the whole file through this process and holds it in
+     * heap before forwarding it to R2, so the transfer is paid for twice and large files
+     * threaten the JVM. Here the bytes never touch us — the client PUTs straight to storage and
+     * then calls [completeFileUpload] to record the message.
+     *
+     * The messageId is minted now and reused as the object key, so a client that uploads but
+     * never completes leaves an orphan object rather than a phantom message.
+     */
+    suspend fun presignFileUpload(
+        doctorId: String,
+        patientId: String,
+        fileName: String,
+        contentType: String,
+    ): Resource<PresignedUpload> {
+        val safeName = fileName.ifBlank { "file" }
+        val safeContentType = contentType.ifBlank { "application/octet-stream" }
+        val messageId = ObjectId().toString()
+        val ext = safeName.substringAfterLast(".", "bin")
+        val key = "consultation-files/$doctorId-$patientId/$messageId.$ext"
+
+        return when (val result = storageRepository.presignedPutUrl(AppConfig.r2.bucket, key, safeContentType)) {
+            is Resource.Success -> Resource.Success(
+                PresignedUpload(
+                    messageId = messageId,
+                    key = key,
+                    uploadUrl = result.data ?: return Resource.Error("No upload URL returned"),
+                    contentType = safeContentType,
+                ),
+            )
+            is Resource.Error -> Resource.Error(result.message ?: "Failed to prepare upload")
+        }
+    }
+
+    /**
+     * Step 2: records the message for an object the client has already PUT to R2.
+     *
+     * [key] is not taken on trust — it must match the key we minted for [messageId] under this
+     * exact thread, so a caller cannot point a message at somebody else's object.
+     */
+    suspend fun completeFileUpload(
+        doctorId: String,
+        patientId: String,
+        senderId: String,
+        senderRole: String,
+        senderName: String,
+        messageId: String,
+        key: String,
+        fileName: String,
+        contentType: String,
+        sizeBytes: Long,
+    ): Resource<ConsultationMessageEntity> {
+        val safeName = fileName.ifBlank { "file" }
+        val safeContentType = contentType.ifBlank { "application/octet-stream" }
+        val expectedPrefix = "consultation-files/$doctorId-$patientId/$messageId."
+        if (!key.startsWith(expectedPrefix)) {
+            return Resource.Error("Upload key does not belong to this conversation")
+        }
+        if (sizeBytes <= 0) return Resource.Error("Empty file")
+
+        val entity = ConsultationMessageEntity(
+            id = messageId,
+            doctorId = doctorId,
+            patientId = patientId,
+            senderId = senderId,
+            senderRole = senderRole,
+            senderName = senderName,
+            messageType = MessageType.FILE,
+            files = listOf(
+                ConsultationFile(
+                    fileName = safeName,
+                    url = key, // store R2 key, not presigned URL
+                    contentType = safeContentType,
+                    sizeBytes = sizeBytes,
+                ),
+            ),
+        )
+        return when (val saveResult = repository.save(entity)) {
+            is Resource.Success -> Resource.Success(resolveEntityFiles(saveResult.data ?: entity))
+            is Resource.Error -> Resource.Error(saveResult.message ?: "Failed to save file message")
+        }
+    }
+
+    /** Legacy proxied upload — kept so older clients keep working. Prefer the pre-signed flow. */
     suspend fun uploadFile(
         doctorId: String,
         patientId: String,
@@ -165,3 +251,11 @@ class ConsultationChatService(
         }
     }
 }
+
+/** What the client needs to PUT a chat attachment straight to R2. */
+data class PresignedUpload(
+    val messageId: String,
+    val key: String,
+    val uploadUrl: String,
+    val contentType: String,
+)

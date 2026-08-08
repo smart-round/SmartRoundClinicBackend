@@ -26,4 +26,4 @@ data class ConversationThreadRes(
 )
 
 @Serializable
-enum class ThreadPreviewKind { TEXT, PHOTO, FILE, PRESCRIPTION }
+enum class ThreadPreviewKind { TEXT, PHOTO, VIDEO, FILE, PRESCRIPTION }
