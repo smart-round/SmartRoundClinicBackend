@@ -4,6 +4,8 @@ import io.ktor.http.HttpStatusCode
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.PatientNameResolver
 import ke.co.smartroundclinic.common.Resource
+import ke.co.smartroundclinic.infra.AppConfig
+import ke.co.smartroundclinic.infra.storage.StorageRepository
 import ke.co.smartroundclinic.referral.data.lookup.DoctorDisplayLookup
 import ke.co.smartroundclinic.referral.domain.repository.ReferralRepository
 import ke.co.smartroundclinic.referral.presentation.dto.response.AdminReferralsPageRes
@@ -13,6 +15,7 @@ import kotlin.math.ceil
 class GetAdminReferralsUseCase(
     private val repository: ReferralRepository,
     private val doctorDisplayLookup: DoctorDisplayLookup,
+    private val storageRepository: StorageRepository,
     private val patientNameResolver: PatientNameResolver? = null,
 ) {
     suspend operator fun invoke(status: String?, page: Int, size: Int): DefaultResponse<AdminReferralsPageRes?> {
@@ -37,6 +40,20 @@ class GetAdminReferralsUseCase(
         val doctorIds = (items.map { it.receivingDoctorId } + items.map { it.referringDoctorId }).distinct().toSet()
         val doctorInfo = doctorDisplayLookup.bulkLookup(doctorIds)
 
+        // referringDoctorPicture is a raw R2 key snapshotted at creation time and
+        // receivingDoctorPicture is resolved live above — both need presigning before
+        // a client can actually load them.
+        val presignedByKey = (items.mapNotNull { it.referringDoctorPicture } +
+            items.mapNotNull { doctorInfo[it.receivingDoctorId]?.profilePicture })
+            .toSet()
+            .associateWith { key ->
+                (storageRepository.presignedGetUrl(
+                    bucket = AppConfig.r2.bucket,
+                    key = key,
+                    expiresInSeconds = 86400,
+                ) as? Resource.Success)?.data
+            }
+
         return DefaultResponse(
             httpStatusCode = HttpStatusCode.OK.value,
             status = true,
@@ -47,8 +64,8 @@ class GetAdminReferralsUseCase(
                     entity.toModel().toRes(
                         patientName = patientNames[entity.patientId],
                         receivingDoctorName = receiving?.name,
-                        receivingDoctorPicture = receiving?.profilePicture,
-                    )
+                        receivingDoctorPicture = receiving?.profilePicture?.let { presignedByKey[it] },
+                    ).copy(referringDoctorPicture = entity.referringDoctorPicture?.let { presignedByKey[it] })
                 },
                 total = total,
                 page = page,
