@@ -175,10 +175,34 @@ class ListConversationThreadsUseCaseTest {
     }
 
     @Test
-    fun `non-image attachments keep showing their filename`() {
+    fun `documents keep showing their filename`() {
         val thread = fileThread(ConsultationFile("results.pdf", "key", "application/pdf", 10L))
 
         assertEquals("results.pdf", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.FILE, thread?.lastMessageKind)
+    }
+
+    @Test
+    fun `videos preview as Video rather than their filename`() {
+        val thread = fileThread(ConsultationFile("VID-20260629-WA0017.mp4", "key", "video/mp4", 10L))
+
+        assertEquals("Video", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.VIDEO, thread?.lastMessageKind)
+    }
+
+    @Test
+    fun `a video with no contentType falls back to its extension`() {
+        val thread = fileThread(ConsultationFile("clip.MOV", "key", "application/octet-stream", 10L))
+
+        assertEquals("Video", thread?.lastMessagePreview)
+        assertEquals(ThreadPreviewKind.VIDEO, thread?.lastMessageKind)
+    }
+
+    @Test
+    fun `unrecognised attachments preview as a generic File`() {
+        val thread = fileThread(ConsultationFile("archive.zip", "key", "application/zip", 10L))
+
+        assertEquals("File", thread?.lastMessagePreview)
         assertEquals(ThreadPreviewKind.FILE, thread?.lastMessageKind)
     }
 
