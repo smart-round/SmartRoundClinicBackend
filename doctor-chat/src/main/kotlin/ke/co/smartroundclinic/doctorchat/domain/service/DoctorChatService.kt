@@ -113,6 +113,89 @@ class DoctorChatService(
     }
 
     /** Uploads to R2 under `doctor-chat-files/{threadId}/{messageId}.{ext}` and persists a FILE message. */
+    /**
+     * Step 1 of the direct-to-R2 upload: hands the client a pre-signed PUT URL.
+     *
+     * The legacy [uploadFile] path streams the whole file through this process and holds it in
+     * heap before forwarding it to R2, so the transfer is paid for twice and large files
+     * threaten the JVM. Here the bytes never touch us.
+     */
+    suspend fun presignFileUpload(
+        threadId: String,
+        fileName: String,
+        contentType: String,
+    ): Resource<DoctorChatPresignedUpload> {
+        val safeName = fileName.ifBlank { "file" }
+        val safeContentType = contentType.ifBlank { "application/octet-stream" }
+        val messageId = ObjectId().toString()
+        val ext = safeName.substringAfterLast(".", "bin")
+        val key = "doctor-chat-files/$threadId/$messageId.$ext"
+
+        return when (val result = storageRepository.presignedPutUrl(AppConfig.r2.bucket, key, safeContentType)) {
+            is Resource.Success -> Resource.Success(
+                DoctorChatPresignedUpload(
+                    messageId = messageId,
+                    key = key,
+                    uploadUrl = result.data ?: return Resource.Error("No upload URL returned"),
+                    contentType = safeContentType,
+                ),
+            )
+            is Resource.Error -> Resource.Error(result.message ?: "Failed to prepare upload")
+        }
+    }
+
+    /**
+     * Step 2: records the message for an object the client has already PUT to R2.
+     *
+     * [key] is not taken on trust — it must match the key minted for [messageId] under this
+     * exact thread, so a caller cannot attach a message to somebody else's object.
+     */
+    suspend fun completeFileUpload(
+        threadId: String,
+        senderId: String,
+        senderName: String,
+        recipientId: String,
+        messageId: String,
+        key: String,
+        fileName: String,
+        contentType: String,
+        sizeBytes: Long,
+    ): Resource<DoctorChatMessageEntity> {
+        val safeName = fileName.ifBlank { "file" }
+        val safeContentType = contentType.ifBlank { "application/octet-stream" }
+        if (!key.startsWith("doctor-chat-files/$threadId/$messageId.")) {
+            return Resource.Error("Upload key does not belong to this conversation")
+        }
+        if (sizeBytes <= 0) return Resource.Error("Empty file")
+
+        val entity = DoctorChatMessageEntity(
+            id = messageId,
+            threadId = threadId,
+            senderId = senderId,
+            senderName = senderName,
+            messageType = DoctorChatMessageType.FILE,
+            files = listOf(DoctorChatFile(fileName = safeName, url = key, contentType = safeContentType, sizeBytes = sizeBytes)),
+        )
+        val result = when (val saveResult = repository.save(entity)) {
+            is Resource.Success -> Resource.Success(resolveEntityFiles(saveResult.data ?: entity))
+            is Resource.Error -> Resource.Error(saveResult.message ?: "Failed to save file message")
+        }
+        if (!isOnline(recipientId)) {
+            runCatching {
+                notificationSender?.send(
+                    title = PushNotificationEvents.newChatMessage(senderName),
+                    message = safeName,
+                    channel = NotificationChannel.PUSH_NOTIFICATION,
+                    destination = NotificationDestination.DOCTOR,
+                    recipientId = recipientId,
+                    metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE, "threadId" to threadId),
+                )
+            }
+        }
+        return result
+    }
+
+    /** Legacy proxied upload — kept so older clients keep working. Prefer the pre-signed flow. */
     suspend fun uploadFile(
         threadId: String,
         senderId: String,
@@ -161,3 +244,11 @@ class DoctorChatService(
         return result
     }
 }
+
+/** What the client needs to PUT a doctor-chat attachment straight to R2. */
+data class DoctorChatPresignedUpload(
+    val messageId: String,
+    val key: String,
+    val uploadUrl: String,
+    val contentType: String,
+)
