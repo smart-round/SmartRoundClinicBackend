@@ -74,7 +74,9 @@ class InviteToCallUseCase(
         }
 
         val callId = ObjectId().toString()
-        val callerName = messages.getUserName(callerId)
+        // getUserInfo, not getUserName: the incoming-call screen shows the caller's avatar,
+        // and this is the only point where we know who is calling.
+        val (callerName, callerPicture) = messages.getUserInfo(callerId) ?: (null to null)
         val invite = CallInviteState(
             callId = callId,
             callerId = callerId,
@@ -107,6 +109,7 @@ class InviteToCallUseCase(
                         callId = callId,
                         callerId = callerId,
                         callerName = callerName,
+                        callerPicture = callerPicture,
                         isVideo = isVideo,
                         ringTimeoutSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
                     )
@@ -123,6 +126,7 @@ class InviteToCallUseCase(
                     "callId" to callId,
                     "callerId" to callerId,
                     "callerName" to (callerName ?: ""),
+                    "callerPicture" to (callerPicture ?: ""),
                     "doctorId" to doctorId,
                     "patientId" to patientId,
                     "isVideo" to isVideo.toString(),

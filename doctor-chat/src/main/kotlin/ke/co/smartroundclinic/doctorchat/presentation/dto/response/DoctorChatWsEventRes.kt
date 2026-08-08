@@ -24,6 +24,8 @@ data class DoctorCallInviteEventRes(
     val callId: String,
     val callerId: String,
     val callerName: String?,
+    /** Pre-signed avatar URL, so the incoming-call screen can show who is calling. */
+    val callerPicture: String? = null,
     val isVideo: Boolean,
     val ringTimeoutSeconds: Long,
 )

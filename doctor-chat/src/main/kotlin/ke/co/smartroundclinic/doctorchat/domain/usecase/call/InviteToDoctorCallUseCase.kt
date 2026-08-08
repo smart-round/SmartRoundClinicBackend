@@ -46,7 +46,8 @@ class InviteToDoctorCallUseCase(
         }
 
         val callId = ObjectId().toString()
-        val callerName = messages.getUserName(callerId)
+        // getUserInfo, not getUserName: the incoming-call screen shows the caller's avatar.
+        val (callerName, callerPicture) = messages.getUserInfo(callerId) ?: (null to null)
         val invite = DoctorCallInviteState(
             callId = callId, callerId = callerId, calleeId = calleeId, threadId = threadId, isVideo = isVideo, createdAt = sortableNowIso(),
         )
@@ -61,7 +62,7 @@ class InviteToDoctorCallUseCase(
         runCatching {
             socketRegistry.sendToUser(
                 threadId, calleeId,
-                json.encodeToString(DoctorCallInviteEventRes(callId = callId, callerId = callerId, callerName = callerName, isVideo = isVideo, ringTimeoutSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS)),
+                json.encodeToString(DoctorCallInviteEventRes(callId = callId, callerId = callerId, callerName = callerName, callerPicture = callerPicture, isVideo = isVideo, ringTimeoutSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS)),
             )
         }.onFailure { logger.error("InviteToDoctorCallUseCase: socket send threw for callId=$callId calleeId=$calleeId", it) }
 
@@ -70,7 +71,7 @@ class InviteToDoctorCallUseCase(
                 event = PushNotificationEvents.DOCTOR_CALL_INVITE,
                 recipientId = calleeId,
                 metadata = mapOf(
-                    "callId" to callId, "callerId" to callerId, "callerName" to (callerName ?: ""),
+                    "callId" to callId, "callerId" to callerId, "callerName" to (callerName ?: ""), "callerPicture" to (callerPicture ?: ""),
                     "threadId" to threadId, "isVideo" to isVideo.toString(),
                     "ringTimeoutSeconds" to RedisKeys.CALL_INVITE_TTL_SECONDS.toString(),
                 ),
