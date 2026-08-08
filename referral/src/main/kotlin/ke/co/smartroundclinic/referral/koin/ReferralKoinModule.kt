@@ -40,7 +40,7 @@ val referralKoinModule = module {
     single { GetReceivedReferralsUseCase(get(), getOrNull<PatientNameResolver>(), getOrNull<UserProfilePictureResolver>(), get()) }
     single { GetPendingReferralsUseCase(get(), get(), get()) }
     single { GetReferralHistoryUseCase(get(), get(), get()) }
-    single { GetAdminReferralsUseCase(get(), get(), getOrNull<PatientNameResolver>()) }
+    single { GetAdminReferralsUseCase(get(), get(), get(), getOrNull<PatientNameResolver>()) }
     single { GetAdminReferralStatsUseCase(get()) }
 
     single { ReferralService(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
