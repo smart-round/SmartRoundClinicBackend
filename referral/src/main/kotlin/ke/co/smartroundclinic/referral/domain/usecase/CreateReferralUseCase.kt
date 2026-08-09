@@ -68,7 +68,7 @@ class CreateReferralUseCase(
             referringDoctorPicture = referringDoctorInfo.profilePicture,
             patientId = appointment.patientId,
             receivingDoctorId = req.receivingDoctorId,
-            reason = req.reason,
+            reason = req.reason.orEmpty(),
         )
 
         val result = referralRepository.create(entity)
