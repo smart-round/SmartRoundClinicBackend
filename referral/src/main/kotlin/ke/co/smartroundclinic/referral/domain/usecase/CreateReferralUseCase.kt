@@ -31,10 +31,9 @@ class CreateReferralUseCase(
             return Resource.Error<Nothing>("You cannot refer a patient to yourself")
                 .toDefaultResponse(failedStatusCode = 400) { null }
         }
-        if (req.reason.isBlank()) {
-            return Resource.Error<Nothing>("A reason for the referral is required")
-                .toDefaultResponse(failedStatusCode = 400) { null }
-        }
+        // The doctor app no longer collects a free-text reason — referring goes straight to
+        // choosing the receiving doctor, who gets the patient's medical summary instead. Referrals
+        // created before that change keep the reason they were given.
 
         val appointment = (appointmentRepository.getById(req.appointmentId) as? Resource.Success)?.data
             ?: return Resource.Error<Nothing>("Appointment not found").toDefaultResponse(failedStatusCode = 404) { null }
