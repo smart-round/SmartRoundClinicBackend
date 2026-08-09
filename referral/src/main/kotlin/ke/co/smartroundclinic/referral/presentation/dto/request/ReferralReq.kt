@@ -6,5 +6,7 @@ import kotlinx.serialization.Serializable
 data class CreateReferralReq(
     val appointmentId: String,
     val receivingDoctorId: String,
-    val reason: String,
+    // Defaulted so a client that omits it still deserializes. The doctor app stopped collecting a
+    // reason; the stored column stays non-null and simply holds an empty string.
+    val reason: String = "",
 )
