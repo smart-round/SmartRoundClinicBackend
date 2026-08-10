@@ -29,6 +29,13 @@ data class MedicalRecordRes(
     val createdAt: String,
     val updatedAt: String? = null,
     val doctorName: String? = null,
+    /**
+     * Set only on the copy embedded in a chat card, naming the [ke.co.smartroundclinic
+     * .medicalrecords.domain.model.MedicalRecordField] entries this revision changed. Always empty
+     * on the REST responses, where the caller is reading the record rather than being told about a
+     * change to it.
+     */
+    val editedFields: List<String> = emptyList(),
 )
 
 fun PrescriptionItem.toRes() = PrescriptionItemRes(drug, dosage, frequency, duration, instructions)
