@@ -29,7 +29,7 @@ class HandleIntaSendWebhookUseCase(
 
         when (state) {
             "COMPLETE" -> {
-                val (entityId, appointmentId) = handleComplete(payload, invoiceId)
+                val (entityId, appointmentId) = handleTerminal(payload, invoiceId, PaymentEntity.PaymentStatus.COMPLETED)
                 linkedPaymentEntityId = entityId
                 linkedAppointmentId = appointmentId
             }
@@ -45,8 +45,9 @@ class HandleIntaSendWebhookUseCase(
             }
             "FAILED" -> {
                 log.warn("IntaSend invoiceId=$invoiceId FAILED — reason=${payload.failedReason} code=${payload.failedCode}")
-                linkedPaymentEntityId = null
-                linkedAppointmentId = null
+                val (entityId, appointmentId) = handleTerminal(payload, invoiceId, PaymentEntity.PaymentStatus.FAILED)
+                linkedPaymentEntityId = entityId
+                linkedAppointmentId = appointmentId
             }
             else -> {
                 log.info("IntaSend invoiceId=$invoiceId unhandled state=$state")
@@ -76,23 +77,32 @@ class HandleIntaSendWebhookUseCase(
         }.onFailure { log.error("Failed to write payment log invoiceId=$invoiceId — ${it.message}", it) }
     }
 
-    /** Returns (paymentEntityId, appointmentId) on success, (null, null) otherwise. */
-    private suspend fun handleComplete(payload: IntaSendCallbackPayload, invoiceId: String): Pair<String?, String?> {
+    /**
+     * Applies a terminal (COMPLETED or FAILED) webhook state to the matching payment record.
+     * The write itself is guarded in [PaymentRepository.updateFromWebhook] so a COMPLETED payment
+     * can never be moved back to FAILED by a webhook that was merely delayed or delivered out of
+     * order. Returns (paymentEntityId, appointmentId) on success, (null, null) otherwise.
+     */
+    private suspend fun handleTerminal(
+        payload: IntaSendCallbackPayload,
+        invoiceId: String,
+        status: PaymentEntity.PaymentStatus,
+    ): Pair<String?, String?> {
         val transactionRef = payload.apiRef?.removePrefix("ISL_")
         if (transactionRef.isNullOrBlank()) {
-            log.warn("COMPLETE invoiceId=$invoiceId — api_ref missing, cannot link to payment record")
+            log.warn("$status invoiceId=$invoiceId — api_ref missing, cannot link to payment record")
             return null to null
         }
 
         return when (val result = paymentRepository.getByTransactionRef(transactionRef)) {
             is Resource.Success -> {
                 val existing = result.data ?: run {
-                    log.warn("COMPLETE invoiceId=$invoiceId — no payment record for transactionRef=$transactionRef")
+                    log.warn("$status invoiceId=$invoiceId — no payment record for transactionRef=$transactionRef")
                     return null to null
                 }
                 paymentRepository.updateFromWebhook(
                     id = existing.id,
-                    status = PaymentEntity.PaymentStatus.COMPLETED.name,
+                    status = status.name,
                     invoiceId = invoiceId,
                     mpesaReference = payload.mpesaReference,
                     charges = payload.charges,
@@ -101,7 +111,7 @@ class HandleIntaSendWebhookUseCase(
                     paymentMethod = payload.provider,
                 )
                 log.info(
-                    "Payment COMPLETED — id=${existing.id} appointmentId=${existing.appointmentId} " +
+                    "Payment $status — id=${existing.id} appointmentId=${existing.appointmentId} " +
                     "invoiceId=$invoiceId mpesaRef=${payload.mpesaReference} " +
                     "value=${payload.value} netAmount=${payload.netAmount}"
                 )
