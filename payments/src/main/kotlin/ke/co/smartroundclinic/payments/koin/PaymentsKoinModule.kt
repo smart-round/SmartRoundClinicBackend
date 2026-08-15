@@ -82,7 +82,7 @@ val paymentsKoinModule = module {
 
     // General payment use cases
     single { InitiatePaymentUseCase(get(), get()) }
-    single { GetPaymentByIdUseCase(get()) }
+    single { GetPaymentByIdUseCase(get(), get()) }
     single { GetPaymentByAppointmentUseCase(get()) }
     single { GetPaymentsByPatientUseCase(get()) }
     single { GetPaymentsByDoctorUseCase(get()) }

@@ -144,11 +144,30 @@ class PaymentRepositoryImpl(database: MongoDatabase) : PaymentRepository {
         netAmount?.let      { updates.add(Updates.set(PaymentEntity::netAmount.name, it)) }
         account?.let        { updates.add(Updates.set(PaymentEntity::account.name, it)) }
         paymentMethod?.let  { updates.add(Updates.set(PaymentEntity::paymentMethod.name, it)) }
+
+        // COMPLETED is terminal — a webhook that arrives late or out of order must never move a
+        // payment back to a non-completed state. The filter enforces this atomically so it holds
+        // no matter what order concurrent webhook deliveries land in.
+        val filter = if (status.uppercase() == PaymentEntity.PaymentStatus.COMPLETED.name) {
+            Filters.eq(PaymentEntity::id.name, id)
+        } else {
+            Filters.and(
+                Filters.eq(PaymentEntity::id.name, id),
+                Filters.ne(PaymentEntity::status.name, PaymentEntity.PaymentStatus.COMPLETED.name),
+            )
+        }
+
         val updated = col.findOneAndUpdate(
-            Filters.eq(PaymentEntity::id.name, id),
+            filter,
             Updates.combine(updates),
             FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER),
-        ) ?: return Resource.Error("Payment not found")
+        )
+        if (updated == null) {
+            val current = col.find(Filters.eq(PaymentEntity::id.name, id)).firstOrNull()
+                ?: return Resource.Error("Payment not found")
+            log.info("Skipped webhook update for id=$id — already ${current.status}, refusing to downgrade to $status")
+            return Resource.Success(current)
+        }
         log.info("Payment id=$id updated from webhook — status=$status invoiceId=$invoiceId mpesaRef=$mpesaReference")
         Resource.Success(updated)
     } catch (e: Exception) {
