@@ -52,10 +52,14 @@ class CancelAppointmentUseCase(
                 .toDefaultResponse(failedStatusCode = 422) { null }
         }
 
-        val slotStartInstant = parseSlotTime(entity.date, entity.slotStart)
-        if (slotStartInstant != null && Clock.System.now() >= slotStartInstant) {
-            return Resource.Error<Nothing>("Appointment cannot be cancelled after its scheduled start time")
-                .toDefaultResponse(failedStatusCode = 422) { null }
+        // Doctors need to be able to clear a BOOKED/CONFIRMED appointment that's already come and
+        // gone (e.g. a no-show) — only patients are held to the pre-start cutoff.
+        if (role == "PATIENT") {
+            val slotStartInstant = parseSlotTime(entity.date, entity.slotStart)
+            if (slotStartInstant != null && Clock.System.now() >= slotStartInstant) {
+                return Resource.Error<Nothing>("Appointment cannot be cancelled after its scheduled start time")
+                    .toDefaultResponse(failedStatusCode = 422) { null }
+            }
         }
 
         var createdRefund: RefundDoc? = null
