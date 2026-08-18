@@ -7,6 +7,7 @@ import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.NotificationChannel
 import ke.co.smartroundclinic.common.NotificationDestination
 import ke.co.smartroundclinic.common.NotificationSender
+import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.apns.ApnsAppTarget
 import ke.co.smartroundclinic.infra.apns.ApnsVoipClient
@@ -230,8 +231,16 @@ class NotificationRepositoryImpl(
         }
         // VoIP tokens ring reliably via a direct APNs push even when the app is killed — the
         // reliable channel for iOS, on top of (not instead of) the FCM silent-push fallback above.
+        // Restricted to the actual ring: Apple requires every VoIP push an app receives to result
+        // in it reporting a new incoming call via CallKit, or iOS flags the app as non-compliant
+        // and starts silently dropping future VoIP pushes to it. Sending CALL_ANSWERED/CANCELLED/
+        // DECLINED over this channel too was breaking that contract — the caller's own device would
+        // get a VoIP push for "the callee answered" that isn't a real incoming call, and enough of
+        // those would get the device's VoIP delivery throttled so the *next real* invite never woke
+        // it at all.
+        val isInviteEvent = event == PushNotificationEvents.CALL_INVITE || event == PushNotificationEvents.DOCTOR_CALL_INVITE
         val voipClient = apnsVoipClient
-        if (voipTokens.isNotEmpty() && voipClient != null) {
+        if (isInviteEvent && voipTokens.isNotEmpty() && voipClient != null) {
             voipTokens.forEach { token ->
                 val target = when (token.userType) {
                     UserType.DOCTOR -> ApnsAppTarget.DOCTOR
