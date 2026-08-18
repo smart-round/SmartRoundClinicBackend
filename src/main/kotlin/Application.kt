@@ -1,5 +1,6 @@
 package ke.co
 
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -92,6 +93,9 @@ fun Application.module() {
     val root = routing {
         get("/") {
             call.respondText("Hello World!")
+        }
+        get("/robots.txt") {
+            call.respondText("User-agent: *\nDisallow: /\n", ContentType.Text.Plain)
         }
     }
     syncPermissionCatalog(root) { catalog ->
