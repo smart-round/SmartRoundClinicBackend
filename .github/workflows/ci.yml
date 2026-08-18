@@ -12,6 +12,22 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      # ApplicationTest boots the full Koin graph, which needs a live Redis. The real REDIS_URL
+      # secret points at a self-hosted VPS with a firewall that only reliably allows the prod
+      # host's own IP — GitHub's ephemeral runner IPs get through sometimes and time out other
+      # times, making :test intermittently fail for commits that never touch Redis at all. This
+      # container gives CI its own always-reachable Redis; REDIS_URL is overridden below to point
+      # at it (EnvLoader lets a real env var win over the .env file's value).
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,6 +45,8 @@ jobs:
         run: printf '%s\n' "${{ secrets.ENV_FILE }}" > .env
 
       - name: Run tests
+        env:
+          REDIS_URL: redis://localhost:6379
         run: ./gradlew test --no-daemon
 
       - name: Upload test reports
