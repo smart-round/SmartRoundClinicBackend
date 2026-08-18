@@ -15,6 +15,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import org.slf4j.LoggerFactory
 
 private val APPOINTMENT_TIMEZONE = TimeZone.of("Africa/Nairobi")
 
@@ -28,6 +29,8 @@ class CompleteAppointmentUseCase(
     private val notificationSender: NotificationSender? = null,
     private val earningsCreditor: AppointmentEarningsCreditor? = null,
 ) {
+    private val log = LoggerFactory.getLogger(CompleteAppointmentUseCase::class.java)
+
     suspend operator fun invoke(id: String, doctorId: String): DefaultResponse<AppointmentRes?> {
         val existing = repository.getById(id)
         if (existing is Resource.Error) return existing.toDefaultResponse(failedStatusCode = 404) { null }
@@ -54,7 +57,7 @@ class CompleteAppointmentUseCase(
                     recipientId = entity.patientId,
                     metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_COMPLETED, "appointmentId" to id),
                 )
-            }
+            }.onFailure { e -> log.error("Appointment-completed push notification threw for appointmentId=$id", e) }
             runCatching {
                 earningsCreditor?.creditEarningsForAppointment(id, entity.doctorId)
             }

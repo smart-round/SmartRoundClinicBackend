@@ -20,6 +20,7 @@ import ke.co.smartroundclinic.infra.redis.RedisKeys
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 /**
  * Resolves (or lazily provisions) the Cloudflare RealtimeKit meeting tied to a
@@ -39,6 +40,7 @@ class JoinThreadCallUseCase(
     private val socketRegistry: ConsultationSocketRegistry? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val logger = LoggerFactory.getLogger(JoinThreadCallUseCase::class.java)
 
     private fun meetingTitle(doctorId: String, patientId: String) = "Thread $doctorId:$patientId"
 
@@ -59,11 +61,13 @@ class JoinThreadCallUseCase(
         redis.delete(RedisKeys.activeCallForThread(doctorId, patientId))
         val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
         socketRegistry.sendToUser(threadKey, invite.callerId, json.encodeToString(ConsultationCallAnsweredEventRes(callId = callId)))
-        notificationSender?.sendCallSignal(
-            event = PushNotificationEvents.CALL_ANSWERED,
-            recipientId = invite.callerId,
-            metadata = mapOf("callId" to callId, "doctorId" to doctorId, "patientId" to patientId),
-        )
+        runCatching {
+            notificationSender?.sendCallSignal(
+                event = PushNotificationEvents.CALL_ANSWERED,
+                recipientId = invite.callerId,
+                metadata = mapOf("callId" to callId, "doctorId" to doctorId, "patientId" to patientId),
+            )
+        }.onFailure { e -> logger.error("signalAnsweredIfRinging: sendCallSignal threw for callId=$callId callerId=${invite.callerId}", e) }
     }
 
     private suspend fun resolveMeetingId(doctorId: String, patientId: String, currentStoredId: String?): Resource<String> {
@@ -160,6 +164,7 @@ class JoinThreadCallUseCase(
             is Resource.Success -> {
                 val p = resolvedParticipant.data!!
                 runCatching { signalAnsweredIfRinging(doctorId, patientId, userId) }
+                    .onFailure { e -> logger.error("signalAnsweredIfRinging threw for doctorId=$doctorId patientId=$patientId userId=$userId", e) }
                 runCatching {
                     notificationSender?.send(
                         title = if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED,
@@ -174,7 +179,7 @@ class JoinThreadCallUseCase(
                             "patientId" to patientId,
                         ),
                     )
-                }
+                }.onFailure { e -> logger.error("Call-joined push notification threw for doctorId=$doctorId patientId=$patientId isDoctor=$isDoctor", e) }
                 DefaultResponse(
                     httpStatusCode = HttpStatusCode.OK.value,
                     status = true,

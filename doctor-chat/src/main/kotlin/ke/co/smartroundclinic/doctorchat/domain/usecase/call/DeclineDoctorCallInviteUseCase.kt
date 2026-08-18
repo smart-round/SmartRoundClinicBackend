@@ -12,6 +12,7 @@ import ke.co.smartroundclinic.infra.redis.RedisKeys
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 /** Callee explicitly declined a ringing invite — tells the caller to stop ringing right away. */
 class DeclineDoctorCallInviteUseCase(
@@ -20,6 +21,7 @@ class DeclineDoctorCallInviteUseCase(
     private val notificationSender: NotificationSender? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val logger = LoggerFactory.getLogger(DeclineDoctorCallInviteUseCase::class.java)
 
     suspend operator fun invoke(callId: String, calleeId: String): DefaultResponse<Unit?> {
         val raw = redis.get(RedisKeys.callInvite(callId))
@@ -35,14 +37,14 @@ class DeclineDoctorCallInviteUseCase(
 
         runCatching {
             socketRegistry.sendToUser(invite.threadId, invite.callerId, json.encodeToString(DoctorCallDeclinedEventRes(callId = callId)))
-        }
+        }.onFailure { e -> logger.error("DeclineDoctorCallInviteUseCase: socket send threw for callId=$callId callerId=${invite.callerId}", e) }
         runCatching {
             notificationSender?.sendCallSignal(
                 event = PushNotificationEvents.DOCTOR_CALL_DECLINED,
                 recipientId = invite.callerId,
                 metadata = mapOf("callId" to callId, "threadId" to invite.threadId),
             )
-        }
+        }.onFailure { e -> logger.error("DeclineDoctorCallInviteUseCase: sendCallSignal threw for callId=$callId callerId=${invite.callerId}", e) }
 
         return DefaultResponse(httpStatusCode = HttpStatusCode.OK.value, status = true, message = "Declined", data = null)
     }

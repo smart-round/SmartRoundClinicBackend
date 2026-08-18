@@ -12,6 +12,7 @@ import ke.co.smartroundclinic.infra.redis.RedisKeys
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 /** Caller hung up (or the client-side ring timer expired) before the callee answered. */
 class CancelDoctorCallInviteUseCase(
@@ -20,6 +21,7 @@ class CancelDoctorCallInviteUseCase(
     private val notificationSender: NotificationSender? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val logger = LoggerFactory.getLogger(CancelDoctorCallInviteUseCase::class.java)
 
     suspend operator fun invoke(callId: String, callerId: String): DefaultResponse<Unit?> {
         val raw = redis.get(RedisKeys.callInvite(callId))
@@ -35,14 +37,14 @@ class CancelDoctorCallInviteUseCase(
 
         runCatching {
             socketRegistry.sendToUser(invite.threadId, invite.calleeId, json.encodeToString(DoctorCallCancelledEventRes(callId = callId)))
-        }
+        }.onFailure { e -> logger.error("CancelDoctorCallInviteUseCase: socket send threw for callId=$callId calleeId=${invite.calleeId}", e) }
         runCatching {
             notificationSender?.sendCallSignal(
                 event = PushNotificationEvents.DOCTOR_CALL_CANCELLED,
                 recipientId = invite.calleeId,
                 metadata = mapOf("callId" to callId, "threadId" to invite.threadId),
             )
-        }
+        }.onFailure { e -> logger.error("CancelDoctorCallInviteUseCase: sendCallSignal threw for callId=$callId calleeId=${invite.calleeId}", e) }
 
         return DefaultResponse(httpStatusCode = HttpStatusCode.OK.value, status = true, message = "Cancelled", data = null)
     }

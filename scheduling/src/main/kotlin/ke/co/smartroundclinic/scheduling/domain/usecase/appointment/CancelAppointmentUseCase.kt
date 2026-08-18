@@ -85,7 +85,7 @@ class CancelAppointmentUseCase(
                         metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CANCELLED, "appointmentId" to id),
                     )
                 }
-            }
+            }.onFailure { e -> log.error("Appointment-cancelled push notification threw for appointmentId=$id role=$role", e) }
             runCatching {
                 val payment = paymentLookup.getPaymentByAppointmentId(id)
                 if (payment == null || payment.status != "COMPLETED") {

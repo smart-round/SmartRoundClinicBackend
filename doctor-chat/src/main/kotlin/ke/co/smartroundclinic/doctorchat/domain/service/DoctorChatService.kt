@@ -96,7 +96,7 @@ class DoctorChatService(
                                 "threadId" to threadId,
                             ),
                         )
-                    }
+                    }.onFailure { e -> log.error("New-chat-message push notification threw for threadId=$threadId recipientId=$recipientId", e) }
                 }
             }
             "TYPING" -> {
@@ -190,7 +190,7 @@ class DoctorChatService(
                     recipientId = recipientId,
                     metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE, "threadId" to threadId),
                 )
-            }
+            }.onFailure { e -> log.error("New-chat-message push notification threw for threadId=$threadId recipientId=$recipientId", e) }
         }
         return result
     }
@@ -239,7 +239,7 @@ class DoctorChatService(
                     recipientId = recipientId,
                     metadata = mapOf("event" to PushNotificationEvents.NEW_CHAT_MESSAGE, "threadId" to threadId),
                 )
-            }
+            }.onFailure { e -> log.error("New-chat-message push notification threw for threadId=$threadId recipientId=$recipientId", e) }
         }
         return result
     }
