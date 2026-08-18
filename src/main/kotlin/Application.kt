@@ -51,6 +51,7 @@ import ke.co.smartroundclinic.referral.koin.referralKoinModule
 import ke.co.smartroundclinic.doctorchat.doctorChatModule
 import ke.co.smartroundclinic.doctorchat.koin.doctorChatKoinModule
 import ke.co.smartroundclinic.doctorchat.domain.usecase.call.StaleDoctorCallCleanupTask
+import ke.co.smartroundclinic.notification.domain.usecase.StaleDeviceTokenCleanupTask
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -74,7 +75,8 @@ fun Application.module() {
         backgroundTasks = {
             val staleCallCleanup: StaleCallCleanupTask by inject()
             val staleDoctorCallCleanup: StaleDoctorCallCleanupTask by inject()
-            listOf(staleCallCleanup, staleDoctorCallCleanup)
+            val staleDeviceTokenCleanup: StaleDeviceTokenCleanupTask by inject()
+            listOf(staleCallCleanup, staleDoctorCallCleanup, staleDeviceTokenCleanup)
         },
     )
     authModule()

@@ -10,4 +10,7 @@ interface UserDeviceTokenRepository {
     suspend fun getByUser(userId: String): Resource<List<UserDeviceToken>>
     suspend fun getByUserType(userType: UserType): Resource<List<UserDeviceToken>>
     suspend fun getAll(): Resource<List<UserDeviceToken>>
+
+    /** Deletes tokens unused for [staleAfterDays] days, then trims every user back down to [maxPerUser]. */
+    suspend fun pruneStaleAndExcessTokens(staleAfterDays: Int, maxPerUser: Int): Resource<Int>
 }

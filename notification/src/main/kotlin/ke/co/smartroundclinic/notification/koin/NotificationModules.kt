@@ -22,6 +22,7 @@ import ke.co.smartroundclinic.notification.domain.usecase.GetPushNotificationLog
 import ke.co.smartroundclinic.notification.domain.usecase.MarkNotificationAsReadUseCase
 import ke.co.smartroundclinic.notification.domain.usecase.RegisterDeviceTokenUseCase
 import ke.co.smartroundclinic.notification.domain.usecase.SendPushNotificationUseCase
+import ke.co.smartroundclinic.notification.domain.usecase.StaleDeviceTokenCleanupTask
 import ke.co.smartroundclinic.notification.domain.usecase.UnregisterDeviceTokenUseCase
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
@@ -57,6 +58,7 @@ val notificationModule = module {
     single { UnregisterDeviceTokenUseCase(get()) }
     single { SendPushNotificationUseCase(get(), get()) }
     single { GetPushNotificationLogsUseCase(get()) }
+    single { StaleDeviceTokenCleanupTask(get()) }
 
     single {
         NotificationService(

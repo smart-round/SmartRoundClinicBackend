@@ -2,6 +2,7 @@ package ke.co.smartroundclinic.notification.data.repository
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.ReplaceOptions
+import com.mongodb.client.model.Sorts
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
 import ke.co.smartroundclinic.common.Resource
@@ -16,8 +17,11 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import org.bson.Document
 import org.slf4j.LoggerFactory
+
+private const val MAX_STANDARD_TOKENS_PER_USER = 5
 
 class UserDeviceTokenRepositoryImpl(database: MongoDatabase) : UserDeviceTokenRepository {
 
@@ -56,9 +60,67 @@ class UserDeviceTokenRepositoryImpl(database: MongoDatabase) : UserDeviceTokenRe
                     entity,
                     ReplaceOptions().upsert(true),
                 )
+                // A device's FCM token rotates over the life of an install (and each reinstall mints
+                // a fresh one), and registration only ever upserts by exact token value — a rotated or
+                // reinstalled token is a *new* document, not a replacement of the old one. Left alone
+                // this grows without bound; cap it here so every new registration for a user evicts
+                // its own least-recently-used STANDARD token once the user is already at the limit.
+                if (entity.tokenType == TokenType.STANDARD.name) {
+                    evictExcessTokens(entity.userId, TokenType.STANDARD.name, MAX_STANDARD_TOKENS_PER_USER)
+                }
                 Resource.Success(data = token, message = "Device token registered successfully")
             } catch (e: Exception) {
                 Resource.Error(e.localizedMessage ?: "Failed to register device token")
+            }
+        }
+
+    /** Keeps at most [max] tokens of [tokenType] for [userId], dropping the least-recently-used ones. */
+    private suspend fun evictExcessTokens(userId: String, tokenType: String, max: Int): Int {
+        val docs = rawCollection.find(
+            Filters.and(
+                Filters.eq(UserDeviceTokenEntity::userId.name, userId),
+                Filters.eq(UserDeviceTokenEntity::tokenType.name, tokenType),
+            )
+        ).sort(Sorts.descending(UserDeviceTokenEntity::lastUsedAt.name)).toList()
+
+        if (docs.size <= max) return 0
+
+        val idsToRemove = docs.drop(max).mapNotNull { it.getString(UserDeviceTokenEntity::id.name) }
+        if (idsToRemove.isEmpty()) return 0
+
+        collection.deleteMany(Filters.`in`(UserDeviceTokenEntity::id.name, idsToRemove))
+        logger.info("Evicted ${idsToRemove.size} excess $tokenType token(s) for userId=$userId (cap=$max)")
+        return idsToRemove.size
+    }
+
+    override suspend fun pruneStaleAndExcessTokens(staleAfterDays: Int, maxPerUser: Int): Resource<Int> =
+        withContext(Dispatchers.IO) {
+            try {
+                var removed = 0
+
+                // Tokens nobody has (re)registered in a long time are almost certainly a dead install
+                // (uninstalled app, or a token FCM itself already stopped honoring) — see 80a189f-style
+                // dead-token discovery: sendCallSignal/sendDataOnly discover this per-send but never
+                // delete, so without a sweep like this the collection only ever grows.
+                val staleThreshold = (Clock.System.now() - staleAfterDays.days).toString()
+                removed += collection.deleteMany(
+                    Filters.lt(UserDeviceTokenEntity::lastUsedAt.name, staleThreshold)
+                ).deletedCount.toInt()
+
+                // Catches accounts that were already over MAX_STANDARD_TOKENS_PER_USER before this cap
+                // existed — register() only trims on its own next call, which may never come.
+                val userIds = rawCollection.distinct(
+                    UserDeviceTokenEntity::userId.name,
+                    Filters.eq(UserDeviceTokenEntity::tokenType.name, TokenType.STANDARD.name),
+                    String::class.java,
+                ).toList()
+                userIds.forEach { userId ->
+                    removed += evictExcessTokens(userId, TokenType.STANDARD.name, maxPerUser)
+                }
+
+                Resource.Success(data = removed, message = "Pruned $removed device token(s)")
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Failed to prune device tokens")
             }
         }
 
