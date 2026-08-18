@@ -11,7 +11,6 @@ import java.security.interfaces.ECPrivateKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Base64
 import java.util.Date
-import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.EnvLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,6 +23,18 @@ import org.slf4j.LoggerFactory
 
 /** Which app the recipient device token belongs to — each has its own bundle id (apns-topic), but shares one Team-wide auth key. */
 enum class ApnsAppTarget { PATIENT, DOCTOR }
+
+/**
+ * Distinguishes a dead token (APNs rejected it with "BadDeviceToken" or "Unregistered" — per
+ * Apple's guidance this token is permanently invalid and the caller should stop storing/using it)
+ * from every other failure (config, network, transient APNs error), which should just be retried
+ * next call rather than deleting a token that might still be good.
+ */
+sealed class ApnsSendResult {
+    data object Success : ApnsSendResult()
+    data object InvalidToken : ApnsSendResult()
+    data class Error(val message: String) : ApnsSendResult()
+}
 
 private data class ApnsVoipCredentials(
     val teamId: String,
@@ -39,7 +50,7 @@ private data class ApnsVoipCredentials(
  * APNS_TEAM_ID / APNS_KEY_ID / APNS_AUTH_KEY_P8 env vars. One key authenticates pushes to both the
  * doctor and patient apps (APNs auth-key tokens are Team-wide); only the per-app apns-topic
  * differs, resolved from APNS_BUNDLE_ID_PATIENT / APNS_BUNDLE_ID_DOCTOR by the caller's
- * [ApnsAppTarget]. Entirely optional: if unset, [send] returns a Resource.Error and callers fall
+ * [ApnsAppTarget]. Entirely optional: if unset, [send] returns an [ApnsSendResult.Error] and callers fall
  * back to the FCM silent-push channel.
  */
 class ApnsVoipClient {
@@ -108,12 +119,12 @@ class ApnsVoipClient {
         }
     }
 
-    suspend fun send(deviceToken: String, event: String, data: Map<String, String>, target: ApnsAppTarget): Resource<Unit> =
+    suspend fun send(deviceToken: String, event: String, data: Map<String, String>, target: ApnsAppTarget): ApnsSendResult =
         withContext(Dispatchers.IO) {
             val creds = credentials
-                ?: return@withContext Resource.Error("APNs VoIP push not configured")
+                ?: return@withContext ApnsSendResult.Error("APNs VoIP push not configured")
             val bundleId = bundleIds[target]
-                ?: return@withContext Resource.Error("APNS_BUNDLE_ID_${target.name} not configured")
+                ?: return@withContext ApnsSendResult.Error("APNS_BUNDLE_ID_${target.name} not configured")
             try {
                 val payload = buildJsonObject {
                     put("aps", buildJsonObject { put("content-available", 1) })
@@ -132,15 +143,23 @@ class ApnsVoipClient {
                     .build()
 
                 val response = http.send(request, HttpResponse.BodyHandlers.ofString())
-                if (response.statusCode() == 200) {
-                    Resource.Success(Unit)
-                } else {
-                    log.warn("APNs VoIP push failed status=${response.statusCode()} body=${response.body()}")
-                    Resource.Error("APNs VoIP push failed: HTTP ${response.statusCode()}")
+                when {
+                    response.statusCode() == 200 -> ApnsSendResult.Success
+                    // Per Apple's guidance: BadDeviceToken (400) and Unregistered (410) mean the
+                    // token is permanently dead — the caller should stop storing/using it rather
+                    // than retrying it on every future call.
+                    response.statusCode() == 410 || response.body().contains("BadDeviceToken") -> {
+                        log.warn("APNs VoIP push rejected dead token status=${response.statusCode()} body=${response.body()}")
+                        ApnsSendResult.InvalidToken
+                    }
+                    else -> {
+                        log.warn("APNs VoIP push failed status=${response.statusCode()} body=${response.body()}")
+                        ApnsSendResult.Error("APNs VoIP push failed: HTTP ${response.statusCode()}")
+                    }
                 }
             } catch (e: Exception) {
                 log.error("APNs VoIP push error — ${e.message}", e)
-                Resource.Error(e.message ?: "APNs VoIP push failed")
+                ApnsSendResult.Error(e.message ?: "APNs VoIP push failed")
             }
         }
 }

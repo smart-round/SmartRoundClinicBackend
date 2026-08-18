@@ -10,6 +10,7 @@ import ke.co.smartroundclinic.common.NotificationSender
 import ke.co.smartroundclinic.common.PushNotificationEvents
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.apns.ApnsAppTarget
+import ke.co.smartroundclinic.infra.apns.ApnsSendResult
 import ke.co.smartroundclinic.infra.apns.ApnsVoipClient
 import ke.co.smartroundclinic.notification.data.entity.NotificationEntity
 import ke.co.smartroundclinic.notification.domain.model.NotificationStatus
@@ -248,6 +249,13 @@ class NotificationRepositoryImpl(
                 }
                 runCatching { voipClient.send(token.deviceToken, event, metadata, target) }
                     .onFailure { logger.error("sendCallSignal: voipClient.send threw for event=$event recipientId=$recipientId", it) }
+                    .onSuccess { result ->
+                        if (result is ApnsSendResult.InvalidToken) {
+                            logger.warn("sendCallSignal: pruning dead VoIP token id=${token.id} recipientId=$recipientId")
+                            runCatching { deviceTokenRepo.unregister(token.id, recipientId) }
+                                .onFailure { logger.error("sendCallSignal: failed to prune dead VoIP token id=${token.id}", it) }
+                        }
+                    }
             }
         }
     }
