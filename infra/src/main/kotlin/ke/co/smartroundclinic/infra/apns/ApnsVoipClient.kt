@@ -77,12 +77,15 @@ class ApnsVoipClient {
     private val jwtMaxAgeMs = 50L * 60 * 1000
 
     private fun loadPrivateKey(p8: String): ECPrivateKey {
-        // Filters down to the base64 alphabet rather than just stripping whitespace — env vars
-        // holding a pasted multi-line .p8 key often end up with literal "\n" (backslash + n)
-        // instead of real newlines, which `\s`.toRegex() doesn't match and Base64 can't decode.
+        // Env vars holding a pasted multi-line .p8 key often end up with literal "\n" (backslash
+        // + n) instead of real newlines. That literal token must be dropped as a whole BEFORE the
+        // alphabet filter below — filtering char-by-char keeps the 'n' (it's a normal letter),
+        // splicing a spurious 'n' into the middle of the base64 payload and corrupting byte
+        // alignment ("Last unit does not have enough valid bits").
         val cleaned = p8
             .replace("-----BEGIN PRIVATE KEY-----", "")
             .replace("-----END PRIVATE KEY-----", "")
+            .replace("\\n", "")
             .filter { it.isLetterOrDigit() || it == '+' || it == '/' || it == '=' }
         val keyBytes = Base64.getDecoder().decode(cleaned)
         val keySpec = PKCS8EncodedKeySpec(keyBytes)
