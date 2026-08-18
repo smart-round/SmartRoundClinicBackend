@@ -39,7 +39,10 @@ class JoinThreadCallUseCase(
     private val redis: RedisRepository? = null,
     private val socketRegistry: ConsultationSocketRegistry? = null,
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
+    // encodeDefaults = true — the "type" discriminator on the CALL_* event DTOs defaults to a
+    // fixed value, so without this it's always equal to its default and gets omitted entirely
+    // from the wire payload, leaving clients with no "type" field to dispatch on (see 80a189f).
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val logger = LoggerFactory.getLogger(JoinThreadCallUseCase::class.java)
 
     private fun meetingTitle(doctorId: String, patientId: String) = "Thread $doctorId:$patientId"
