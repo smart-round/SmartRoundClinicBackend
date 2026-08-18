@@ -9,11 +9,14 @@ import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.scheduling.domain.repository.AppointmentRepository
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.AppointmentRes
 import ke.co.smartroundclinic.scheduling.presentation.dto.response.toRes
+import org.slf4j.LoggerFactory
 
 class ConfirmAppointmentUseCase(
     private val repository: AppointmentRepository,
     private val notificationSender: NotificationSender? = null,
 ) {
+    private val log = LoggerFactory.getLogger(ConfirmAppointmentUseCase::class.java)
+
     suspend operator fun invoke(id: String, doctorId: String): DefaultResponse<AppointmentRes?> {
         val existing = repository.getById(id)
         if (existing is Resource.Error) return existing.toDefaultResponse(failedStatusCode = 404) { null }
@@ -33,7 +36,7 @@ class ConfirmAppointmentUseCase(
                     recipientId = entity.patientId,
                     metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_CONFIRMED, "appointmentId" to id),
                 )
-            }
+            }.onFailure { e -> log.error("Appointment-confirmed push notification threw for appointmentId=$id", e) }
         }
         return result.toDefaultResponse { it?.toModel()?.toRes() }
     }

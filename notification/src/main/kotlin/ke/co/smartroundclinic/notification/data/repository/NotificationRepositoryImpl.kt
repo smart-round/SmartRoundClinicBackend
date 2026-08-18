@@ -183,8 +183,23 @@ class NotificationRepositoryImpl(
                 }
             }
             val tokens = (tokensResource as? Resource.Success)?.data ?: emptyList()
+            logger.info(
+                "send title=\"$title\" destination=$destination recipientId=$recipientId " +
+                    "getTokens=${if (tokensResource is Resource.Error) "ERROR:${tokensResource.message}" else "OK"} " +
+                    "tokenCount=${tokens.size}"
+            )
             if (tokens.isNotEmpty()) {
                 runCatching { pushRepo.send(tokens, title, message, metadata) }
+                    .onFailure { logger.error("send: pushRepo.send threw for title=\"$title\" recipientId=$recipientId destination=$destination", it) }
+                    .onSuccess { result ->
+                        if (result is Resource.Error) {
+                            logger.warn("send: pushRepo.send returned error for title=\"$title\" recipientId=$recipientId destination=$destination: ${result.message}")
+                        } else {
+                            logger.info("send: pushRepo.send succeeded for title=\"$title\" recipientId=$recipientId destination=$destination tokenCount=${tokens.size}")
+                        }
+                    }
+            } else {
+                logger.warn("send: no device tokens found for title=\"$title\" recipientId=$recipientId destination=$destination — push not sent")
             }
         }
     }

@@ -66,6 +66,7 @@ class InviteToDoctorCallUseCase(
             )
         }.onFailure { logger.error("InviteToDoctorCallUseCase: socket send threw for callId=$callId calleeId=$calleeId", it) }
 
+        logger.info("InviteToDoctorCallUseCase: notificationSender is ${if (notificationSender == null) "NULL (no push will be sent)" else "present"} for callId=$callId calleeId=$calleeId")
         runCatching {
             notificationSender?.sendCallSignal(
                 event = PushNotificationEvents.DOCTOR_CALL_INVITE,

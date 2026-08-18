@@ -167,7 +167,7 @@ class BookAppointmentUseCase(
                     recipientId = appt.patientId,
                     metadata = mapOf("event" to PushNotificationEvents.APPOINTMENT_BOOKED, "appointmentId" to appt.id),
                 )
-            }
+            }.onFailure { e -> log.error("Appointment-booked push notification threw for appointmentId=${appt.id} — {}", logCtx, e) }
         }
         return result.toDefaultResponse(successStatusCode = 201, failedStatusCode = 409) { it?.toModel()?.toRes() }
     }
