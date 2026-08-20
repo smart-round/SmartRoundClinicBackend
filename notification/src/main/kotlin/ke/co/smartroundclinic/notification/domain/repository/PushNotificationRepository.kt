@@ -24,6 +24,7 @@ interface PushNotificationRepository {
         tokens: List<UserDeviceToken>,
         event: String,
         data: Map<String, String> = emptyMap(),
+        ttlSeconds: Long? = null,
     ): Resource<PushNotificationSummary>
 
     suspend fun getLogs(page: Int, size: Int): Resource<Pair<List<PushNotificationLog>, Long>>

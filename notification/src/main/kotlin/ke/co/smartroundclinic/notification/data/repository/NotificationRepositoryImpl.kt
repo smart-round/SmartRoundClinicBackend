@@ -210,6 +210,7 @@ class NotificationRepositoryImpl(
         event: String,
         recipientId: String,
         metadata: Map<String, String>,
+        ttlSeconds: Long?,
     ) {
         val tokensResource = deviceTokenRepo.getByUser(recipientId)
         val tokens = (tokensResource as? Resource.Success)?.data ?: emptyList()
@@ -222,7 +223,7 @@ class NotificationRepositoryImpl(
         )
 
         if (standardTokens.isNotEmpty()) {
-            runCatching { pushRepo.sendDataOnly(standardTokens, event, metadata) }
+            runCatching { pushRepo.sendDataOnly(standardTokens, event, metadata, ttlSeconds) }
                 .onFailure { logger.error("sendCallSignal: sendDataOnly threw for event=$event recipientId=$recipientId", it) }
                 .onSuccess { result ->
                     if (result is Resource.Error) {
@@ -247,7 +248,7 @@ class NotificationRepositoryImpl(
                     UserType.DOCTOR -> ApnsAppTarget.DOCTOR
                     UserType.PATIENT -> ApnsAppTarget.PATIENT
                 }
-                runCatching { voipClient.send(token.deviceToken, event, metadata, target) }
+                runCatching { voipClient.send(token.deviceToken, event, metadata, target, ttlSeconds) }
                     .onFailure { logger.error("sendCallSignal: voipClient.send threw for event=$event recipientId=$recipientId", it) }
                     .onSuccess { result ->
                         if (result is ApnsSendResult.InvalidToken) {

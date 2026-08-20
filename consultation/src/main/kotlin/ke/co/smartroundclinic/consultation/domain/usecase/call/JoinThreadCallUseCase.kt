@@ -36,8 +36,8 @@ class JoinThreadCallUseCase(
     private val messages: ConsultationMessageRepository,
     private val client: RealtimeKitClient,
     private val notificationSender: NotificationSender? = null,
-    private val redis: RedisRepository? = null,
-    private val socketRegistry: ConsultationSocketRegistry? = null,
+    private val redis: RedisRepository,
+    private val socketRegistry: ConsultationSocketRegistry,
 ) {
     // encodeDefaults = true — the "type" discriminator on the CALL_* event DTOs defaults to a
     // fixed value, so without this it's always equal to its default and gets omitted entirely
@@ -48,29 +48,57 @@ class JoinThreadCallUseCase(
     private fun meetingTitle(doctorId: String, patientId: String) = "Thread $doctorId:$patientId"
 
     /**
-     * If this join is the callee accepting a ringing invite (see [InviteToCallUseCase]), tells the
-     * caller's client CALL_ANSWERED so it stops ringing and calls join itself. No-ops otherwise —
-     * including when the *caller's own* client calls join in response to that signal, since by then
-     * the invite has already been cleared below.
+     * Gate for atomic 1:1 joining: a token is only ever granted against a callId whose invite is
+     * still alive in Redis — an expired, cancelled, or declined call can never be joined by
+     * either side, so it's impossible for one party to end up alone in a room the other side
+     * already gave up on. Returns the invite on success, or an error response to return as-is.
      */
-    private suspend fun signalAnsweredIfRinging(doctorId: String, patientId: String, joiningUserId: String) {
-        if (redis == null || socketRegistry == null) return
-        val callId = redis.get(RedisKeys.activeCallForThread(doctorId, patientId)) ?: return
-        val raw = redis.get(RedisKeys.callInvite(callId)) ?: return
+    private suspend fun requireLiveInvite(callId: String, doctorId: String, patientId: String, userId: String): Resource<CallInviteState> {
+        val raw = redis.get(RedisKeys.callInvite(callId))
+            ?: return Resource.Error("Call is no longer active")
         val invite = json.decodeFromString<CallInviteState>(raw)
-        if (invite.calleeId != joiningUserId) return
+        if (invite.doctorId != doctorId || invite.patientId != patientId) return Resource.Error("Call invite does not match this thread")
+        if (invite.callerId != userId && invite.calleeId != userId) return Resource.Error("Not a participant of this call")
+        return Resource.Success(invite)
+    }
 
-        redis.delete(RedisKeys.callInvite(callId))
-        redis.delete(RedisKeys.activeCallForThread(doctorId, patientId))
-        val threadKey = ConsultationSocketRegistry.threadKey(doctorId, patientId)
-        socketRegistry.sendToUser(threadKey, invite.callerId, json.encodeToString(ConsultationCallAnsweredEventRes(callId = callId)))
-        runCatching {
-            notificationSender?.sendCallSignal(
-                event = PushNotificationEvents.CALL_ANSWERED,
-                recipientId = invite.callerId,
-                metadata = mapOf("callId" to callId, "doctorId" to doctorId, "patientId" to patientId),
-            )
-        }.onFailure { e -> logger.error("signalAnsweredIfRinging: sendCallSignal threw for callId=$callId callerId=${invite.callerId}", e) }
+    /**
+     * Records this join and, once both sides are in, tears down the now-unneeded invite bookkeeping.
+     * `redis.increment` is atomic (unlike a read-modify-write on the invite object itself), so two
+     * near-simultaneous joins can't race into a lost update — the join that returns 1 is provably
+     * first, the one that returns 2 is provably second, regardless of arrival order.
+     *
+     * The callee's own join (regardless of whether it's first or second by the counter, which it
+     * always is here since the caller only ever joins after receiving CALL_ANSWERED) fires that
+     * CALL_ANSWERED signal so the caller's client stops ringing and joins itself.
+     */
+    private suspend fun recordJoinAndMaybeCleanUp(invite: CallInviteState, joiningUserId: String) {
+        if (joiningUserId == invite.calleeId) {
+            val threadKey = ConsultationSocketRegistry.threadKey(invite.doctorId, invite.patientId)
+            runCatching {
+                socketRegistry.sendToUser(threadKey, invite.callerId, json.encodeToString(ConsultationCallAnsweredEventRes(callId = invite.callId)))
+            }.onFailure { e -> logger.error("recordJoinAndMaybeCleanUp: socket send threw for callId=${invite.callId} callerId=${invite.callerId}", e) }
+            runCatching {
+                notificationSender?.sendCallSignal(
+                    event = PushNotificationEvents.CALL_ANSWERED,
+                    recipientId = invite.callerId,
+                    metadata = mapOf("callId" to invite.callId, "doctorId" to invite.doctorId, "patientId" to invite.patientId),
+                    ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
+                )
+            }.onFailure { e -> logger.error("recordJoinAndMaybeCleanUp: sendCallSignal threw for callId=${invite.callId} callerId=${invite.callerId}", e) }
+        }
+
+        val joinCount = redis.increment(RedisKeys.callJoinCount(invite.callId))
+        if (joinCount <= 1) {
+            // First join — keep the invite alive a bit longer so the other side's own imminent
+            // join (triggered by the CALL_ANSWERED signal just sent) still finds it valid.
+            redis.expire(RedisKeys.callInvite(invite.callId), RedisKeys.CALL_JOIN_GRACE_SECONDS)
+        } else {
+            // Both sides are in — the invite/counter have done their job.
+            redis.delete(RedisKeys.callInvite(invite.callId))
+            redis.delete(RedisKeys.activeCallForThread(invite.doctorId, invite.patientId))
+            redis.delete(RedisKeys.callJoinCount(invite.callId))
+        }
     }
 
     private suspend fun resolveMeetingId(doctorId: String, patientId: String, currentStoredId: String?): Resource<String> {
@@ -96,12 +124,22 @@ class JoinThreadCallUseCase(
         return threads.setVideoRoomIdIfAbsent(doctorId, patientId, newId)
     }
 
-    suspend operator fun invoke(doctorId: String, patientId: String, userId: String): DefaultResponse<JoinCallRes?> {
+    suspend operator fun invoke(doctorId: String, patientId: String, userId: String, callId: String): DefaultResponse<JoinCallRes?> {
         if (userId != doctorId && userId != patientId) {
             return DefaultResponse(
                 httpStatusCode = HttpStatusCode.Forbidden.value,
                 status = false,
                 message = "Not a participant of this thread",
+                data = null,
+            )
+        }
+
+        val invite = when (val r = requireLiveInvite(callId, doctorId, patientId, userId)) {
+            is Resource.Success -> r.data!!
+            is Resource.Error -> return DefaultResponse(
+                httpStatusCode = HttpStatusCode.Gone.value,
+                status = false,
+                message = r.message ?: "Call is no longer active",
                 data = null,
             )
         }
@@ -166,8 +204,8 @@ class JoinThreadCallUseCase(
         return when (resolvedParticipant) {
             is Resource.Success -> {
                 val p = resolvedParticipant.data!!
-                runCatching { signalAnsweredIfRinging(doctorId, patientId, userId) }
-                    .onFailure { e -> logger.error("signalAnsweredIfRinging threw for doctorId=$doctorId patientId=$patientId userId=$userId", e) }
+                runCatching { recordJoinAndMaybeCleanUp(invite, userId) }
+                    .onFailure { e -> logger.error("recordJoinAndMaybeCleanUp threw for callId=$callId doctorId=$doctorId patientId=$patientId userId=$userId", e) }
                 runCatching {
                     notificationSender?.send(
                         title = if (isDoctor) PushNotificationEvents.CALL_DOCTOR_JOINED else PushNotificationEvents.CALL_PATIENT_JOINED,

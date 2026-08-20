@@ -115,6 +115,7 @@ class InviteToCallUseCase(
                         callerPicture = callerPicture,
                         isVideo = isVideo,
                         ringTimeoutSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
+                        createdAt = invite.createdAt,
                     )
                 ),
             )
@@ -134,7 +135,9 @@ class InviteToCallUseCase(
                     "patientId" to patientId,
                     "isVideo" to isVideo.toString(),
                     "ringTimeoutSeconds" to RedisKeys.CALL_INVITE_TTL_SECONDS.toString(),
+                    "createdAt" to invite.createdAt,
                 ),
+                ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
             )
         }.onFailure { logger.error("InviteToCallUseCase: sendCallSignal threw for callId=$callId calleeId=$calleeId", it) }
 

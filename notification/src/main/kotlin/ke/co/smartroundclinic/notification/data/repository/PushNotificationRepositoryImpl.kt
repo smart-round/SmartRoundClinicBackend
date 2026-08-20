@@ -4,8 +4,10 @@ import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.Aps
 import com.google.firebase.messaging.ApnsConfig
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.MessagingErrorCode
 import com.google.firebase.messaging.MulticastMessage
 import com.google.firebase.messaging.Notification
+import com.google.firebase.messaging.SendResponse
 import com.mongodb.client.model.Filters
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.common.MongoDBConstants
@@ -16,10 +18,12 @@ import ke.co.smartroundclinic.notification.domain.model.PushNotificationLogStatu
 import ke.co.smartroundclinic.notification.domain.model.PushNotificationSummary
 import ke.co.smartroundclinic.notification.domain.model.UserDeviceToken
 import ke.co.smartroundclinic.notification.domain.repository.PushNotificationRepository
+import ke.co.smartroundclinic.notification.domain.repository.UserDeviceTokenRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import org.bson.types.ObjectId
+import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
 private const val FCM_BATCH_SIZE = 500
@@ -27,9 +31,25 @@ private const val FCM_BATCH_SIZE = 500
 class PushNotificationRepositoryImpl(
     database: MongoDatabase,
     private val messaging: FirebaseMessaging?,
+    private val deviceTokenRepository: UserDeviceTokenRepository,
 ) : PushNotificationRepository {
 
+    private val logger = LoggerFactory.getLogger(PushNotificationRepositoryImpl::class.java)
     private val logCollection = database.getCollection<PushNotificationLogEntity>(MongoDBConstants.PUSH_NOTIFICATION_LOGS)
+
+    // FCM reports a dead/uninstalled registration as MessagingErrorCode.UNREGISTERED via the v1
+    // API, but some already-persisted log rows in this deployment predate that check and instead
+    // stored the legacy HTTP-API error name directly in `exception.message` ("NotRegistered") —
+    // so a token that's actually dead can surface either way depending on when the error was hit.
+    private fun SendResponse.isDeadTokenError(): Boolean =
+        exception?.messagingErrorCode == MessagingErrorCode.UNREGISTERED ||
+            exception?.message?.contains("NotRegistered", ignoreCase = true) == true
+
+    private suspend fun pruneIfDead(response: SendResponse, token: UserDeviceToken) {
+        if (!response.isDeadTokenError()) return
+        runCatching { deviceTokenRepository.unregister(token.id, token.userId) }
+            .onFailure { logger.error("Failed to prune dead FCM token id=${token.id} userId=${token.userId}", it) }
+    }
 
     override suspend fun send(
         tokens: List<UserDeviceToken>,
@@ -76,6 +96,7 @@ class PushNotificationRepositoryImpl(
                         )
                     )
                     if (response.isSuccessful) totalSent++ else totalFailed++
+                    pruneIfDead(response, token)
                 }
             }
 
@@ -92,6 +113,7 @@ class PushNotificationRepositoryImpl(
         tokens: List<UserDeviceToken>,
         event: String,
         data: Map<String, String>,
+        ttlSeconds: Long?,
     ): Resource<PushNotificationSummary> = withContext(Dispatchers.IO) {
         if (messaging == null) {
             return@withContext Resource.Error("Push notifications not configured (FCM credentials missing)")
@@ -105,18 +127,26 @@ class PushNotificationRepositoryImpl(
             val payload = data + ("event" to event)
             val sentAt = Clock.System.now().toString()
 
+            // Without an explicit TTL, FCM/APNs default to holding an undeliverable message for
+            // hours to weeks and delivering it whenever the device next reconnects — for ephemeral
+            // call signaling that means a "ringing" push can land long after the caller gave up,
+            // ringing the callee's phone for a call that's already dead. ttlSeconds caps that.
+            val androidConfigBuilder = AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH)
+            val apnsConfigBuilder = ApnsConfig.builder()
+                .putHeader("apns-push-type", "background")
+                .putHeader("apns-priority", "5")
+                .setAps(Aps.builder().setContentAvailable(true).build())
+            if (ttlSeconds != null) {
+                androidConfigBuilder.setTtl(ttlSeconds * 1000)
+                apnsConfigBuilder.putHeader("apns-expiration", (Clock.System.now().epochSeconds + ttlSeconds).toString())
+            }
+
             tokens.chunked(FCM_BATCH_SIZE).forEach { chunk ->
                 val multicast = MulticastMessage.builder()
                     .putAllData(payload)
                     .addAllTokens(chunk.map { it.deviceToken })
-                    .setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build())
-                    .setApnsConfig(
-                        ApnsConfig.builder()
-                            .putHeader("apns-push-type", "background")
-                            .putHeader("apns-priority", "5")
-                            .setAps(Aps.builder().setContentAvailable(true).build())
-                            .build()
-                    )
+                    .setAndroidConfig(androidConfigBuilder.build())
+                    .setApnsConfig(apnsConfigBuilder.build())
                     .build()
 
                 val batchResponse = messaging.sendEachForMulticast(multicast)
@@ -139,6 +169,7 @@ class PushNotificationRepositoryImpl(
                         )
                     )
                     if (response.isSuccessful) totalSent++ else totalFailed++
+                    pruneIfDead(response, token)
                 }
             }
 

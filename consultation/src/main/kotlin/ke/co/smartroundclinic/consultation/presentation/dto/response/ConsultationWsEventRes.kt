@@ -33,6 +33,8 @@ data class ConsultationCallInviteEventRes(
     val callerPicture: String? = null,
     val isVideo: Boolean,
     val ringTimeoutSeconds: Long,
+    /** When this invite was created — lets the client detect a late-delivered/replayed signal and skip ringing on a call that's already timed out. */
+    val createdAt: String,
 )
 
 @Serializable

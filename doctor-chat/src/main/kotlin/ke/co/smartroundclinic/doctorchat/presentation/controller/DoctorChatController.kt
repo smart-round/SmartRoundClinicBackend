@@ -232,7 +232,8 @@ fun Route.doctorChatController(
                 call.requireRole(DOCTOR) {
                     val threadId = call.parameters["threadId"] ?: throw MissingParametersException("threadId path parameter is required")
                     val callerId = call.getUserId() ?: return@requireRole
-                    val result = joinCallUseCase(threadId, callerId)
+                    val req = call.receive<DoctorCallActionReq>()
+                    val result = joinCallUseCase(threadId, callerId, req.callId)
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
                 }
             }

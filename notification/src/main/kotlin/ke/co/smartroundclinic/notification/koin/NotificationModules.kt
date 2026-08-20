@@ -39,7 +39,7 @@ val notificationModule = module {
 
     single<UserDeviceTokenRepository> { UserDeviceTokenRepositoryImpl(get(named("notificationDb"))) }
     single<PushNotificationRepository> {
-        PushNotificationRepositoryImpl(get(named("notificationDb")), get<FcmConfig>().messaging)
+        PushNotificationRepositoryImpl(get(named("notificationDb")), get<FcmConfig>().messaging, get())
     }
 
     // ── In-app notifications (also dispatches FCM on PUSH_NOTIFICATION channel) ──

@@ -36,8 +36,8 @@ class JoinDoctorCallUseCase(
     private val messages: DoctorChatMessageRepository,
     private val client: RealtimeKitClient,
     private val notificationSender: NotificationSender? = null,
-    private val redis: RedisRepository? = null,
-    private val socketRegistry: DoctorChatSocketRegistry? = null,
+    private val redis: RedisRepository,
+    private val socketRegistry: DoctorChatSocketRegistry,
 ) {
     // encodeDefaults = true — the "type" discriminator on the CALL_* event DTOs defaults to a
     // fixed value, so without this it's always equal to its default and gets omitted entirely
@@ -51,23 +51,40 @@ class JoinDoctorCallUseCase(
         return "$base-$threadId"
     }
 
-    private suspend fun signalAnsweredIfRinging(threadId: String, joiningUserId: String) {
-        if (redis == null || socketRegistry == null) return
-        val callId = redis.get(RedisKeys.activeCallForDoctorChatThread(threadId)) ?: return
-        val raw = redis.get(RedisKeys.callInvite(callId)) ?: return
+    /** Mirrors JoinThreadCallUseCase.requireLiveInvite — see its doc comment for the atomicity rationale. */
+    private suspend fun requireLiveInvite(callId: String, threadId: String, userId: String): Resource<DoctorCallInviteState> {
+        val raw = redis.get(RedisKeys.callInvite(callId))
+            ?: return Resource.Error("Call is no longer active")
         val invite = json.decodeFromString<DoctorCallInviteState>(raw)
-        if (invite.calleeId != joiningUserId) return
+        if (invite.threadId != threadId) return Resource.Error("Call invite does not match this thread")
+        if (invite.callerId != userId && invite.calleeId != userId) return Resource.Error("Not a participant of this call")
+        return Resource.Success(invite)
+    }
 
-        redis.delete(RedisKeys.callInvite(callId))
-        redis.delete(RedisKeys.activeCallForDoctorChatThread(threadId))
-        socketRegistry.sendToUser(threadId, invite.callerId, json.encodeToString(DoctorCallAnsweredEventRes(callId = callId)))
-        runCatching {
-            notificationSender?.sendCallSignal(
-                event = PushNotificationEvents.DOCTOR_CALL_ANSWERED,
-                recipientId = invite.callerId,
-                metadata = mapOf("callId" to callId, "threadId" to threadId),
-            )
-        }.onFailure { e -> logger.error("signalAnsweredIfRinging: sendCallSignal threw for callId=$callId callerId=${invite.callerId}", e) }
+    /** Mirrors JoinThreadCallUseCase.recordJoinAndMaybeCleanUp — see its doc comment for the atomicity rationale. */
+    private suspend fun recordJoinAndMaybeCleanUp(invite: DoctorCallInviteState, joiningUserId: String) {
+        if (joiningUserId == invite.calleeId) {
+            runCatching {
+                socketRegistry.sendToUser(invite.threadId, invite.callerId, json.encodeToString(DoctorCallAnsweredEventRes(callId = invite.callId)))
+            }.onFailure { e -> logger.error("recordJoinAndMaybeCleanUp: socket send threw for callId=${invite.callId} callerId=${invite.callerId}", e) }
+            runCatching {
+                notificationSender?.sendCallSignal(
+                    event = PushNotificationEvents.DOCTOR_CALL_ANSWERED,
+                    recipientId = invite.callerId,
+                    metadata = mapOf("callId" to invite.callId, "threadId" to invite.threadId),
+                    ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
+                )
+            }.onFailure { e -> logger.error("recordJoinAndMaybeCleanUp: sendCallSignal threw for callId=${invite.callId} callerId=${invite.callerId}", e) }
+        }
+
+        val joinCount = redis.increment(RedisKeys.callJoinCount(invite.callId))
+        if (joinCount <= 1) {
+            redis.expire(RedisKeys.callInvite(invite.callId), RedisKeys.CALL_JOIN_GRACE_SECONDS)
+        } else {
+            redis.delete(RedisKeys.callInvite(invite.callId))
+            redis.delete(RedisKeys.activeCallForDoctorChatThread(invite.threadId))
+            redis.delete(RedisKeys.callJoinCount(invite.callId))
+        }
     }
 
     private suspend fun resolveMeetingId(threadId: String, currentStoredId: String?): Resource<String> {
@@ -92,13 +109,18 @@ class JoinDoctorCallUseCase(
         return threads.setVideoRoomIdIfAbsent(threadId, newId)
     }
 
-    suspend operator fun invoke(threadId: String, userId: String): DefaultResponse<JoinDoctorCallRes?> {
+    suspend operator fun invoke(threadId: String, userId: String, callId: String): DefaultResponse<JoinDoctorCallRes?> {
         val thread = when (val r = threads.getById(threadId)) {
             is Resource.Success -> r.data ?: return DefaultResponse(httpStatusCode = HttpStatusCode.NotFound.value, status = false, message = "Thread not found", data = null)
             is Resource.Error -> return DefaultResponse(httpStatusCode = HttpStatusCode.InternalServerError.value, status = false, message = r.message ?: "Failed to load thread", data = null)
         }
         if (userId != thread.doctorAId && userId != thread.doctorBId) {
             return DefaultResponse(httpStatusCode = HttpStatusCode.Forbidden.value, status = false, message = "Not a participant of this thread", data = null)
+        }
+
+        val invite = when (val r = requireLiveInvite(callId, threadId, userId)) {
+            is Resource.Success -> r.data!!
+            is Resource.Error -> return DefaultResponse(httpStatusCode = HttpStatusCode.Gone.value, status = false, message = r.message ?: "Call is no longer active", data = null)
         }
 
         val preset = AppConfig.realtimeKit.doctorPreset
@@ -124,8 +146,8 @@ class JoinDoctorCallUseCase(
         return when (resolvedParticipant) {
             is Resource.Success -> {
                 val p = resolvedParticipant.data!!
-                runCatching { signalAnsweredIfRinging(threadId, userId) }
-                    .onFailure { e -> logger.error("signalAnsweredIfRinging threw for threadId=$threadId userId=$userId", e) }
+                runCatching { recordJoinAndMaybeCleanUp(invite, userId) }
+                    .onFailure { e -> logger.error("recordJoinAndMaybeCleanUp threw for callId=$callId threadId=$threadId userId=$userId", e) }
                 runCatching {
                     notificationSender?.send(
                         title = PushNotificationEvents.CALL_DOCTOR_JOINED,

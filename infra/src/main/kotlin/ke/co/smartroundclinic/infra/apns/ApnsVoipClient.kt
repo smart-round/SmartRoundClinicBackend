@@ -119,7 +119,13 @@ class ApnsVoipClient {
         }
     }
 
-    suspend fun send(deviceToken: String, event: String, data: Map<String, String>, target: ApnsAppTarget): ApnsSendResult =
+    suspend fun send(
+        deviceToken: String,
+        event: String,
+        data: Map<String, String>,
+        target: ApnsAppTarget,
+        ttlSeconds: Long? = null,
+    ): ApnsSendResult =
         withContext(Dispatchers.IO) {
             val creds = credentials
                 ?: return@withContext ApnsSendResult.Error("APNs VoIP push not configured")
@@ -132,13 +138,21 @@ class ApnsVoipClient {
                     data.forEach { (k, v) -> put(k, JsonPrimitive(v)) }
                 }
                 val host = if (creds.useSandbox) "https://api.sandbox.push.apple.com" else "https://api.push.apple.com"
-                val request = HttpRequest.newBuilder()
+                val requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create("$host/3/device/$deviceToken"))
                     .version(HttpClient.Version.HTTP_2)
                     .header("authorization", "bearer ${currentJwt(creds)}")
                     .header("apns-topic", "$bundleId.voip")
                     .header("apns-push-type", "voip")
                     .header("apns-priority", "10")
+                // Without this, APNs holds an undeliverable VoIP push (device offline) and can
+                // deliver it whenever the device next reconnects — long after the caller gave up,
+                // ringing the callee for a call that's already dead. 0 tells APNs to attempt
+                // delivery once and discard immediately rather than store it at all.
+                if (ttlSeconds != null) {
+                    requestBuilder.header("apns-expiration", (System.currentTimeMillis() / 1000 + ttlSeconds).toString())
+                }
+                val request = requestBuilder
                     .POST(HttpRequest.BodyPublishers.ofString(json.encodeToString(JsonObject.serializer(), payload)))
                     .build()
 

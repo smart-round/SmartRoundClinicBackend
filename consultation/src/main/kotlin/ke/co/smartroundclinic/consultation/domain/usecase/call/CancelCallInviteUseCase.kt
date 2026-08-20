@@ -51,6 +51,7 @@ class CancelCallInviteUseCase(
                     "doctorId" to invite.doctorId,
                     "patientId" to invite.patientId,
                 ),
+                ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
             )
         }.onFailure { e -> logger.error("CancelCallInviteUseCase: sendCallSignal threw for callId=$callId calleeId=${invite.calleeId}", e) }
 

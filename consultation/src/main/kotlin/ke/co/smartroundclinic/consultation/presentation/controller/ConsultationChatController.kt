@@ -261,7 +261,8 @@ fun Route.consultationChatController(
                 return@post call.respond(HttpStatusCode.Forbidden, mapOf("message" to "No active appointment ready for a call right now"))
             }
 
-            val result = joinCallUseCase(doctorId, patientId, userId)
+            val req = call.receive<CallActionReq>()
+            val result = joinCallUseCase(doctorId, patientId, userId, req.callId)
             call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
         }
 

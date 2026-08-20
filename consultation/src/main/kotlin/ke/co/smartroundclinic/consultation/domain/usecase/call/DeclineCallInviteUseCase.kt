@@ -51,6 +51,7 @@ class DeclineCallInviteUseCase(
                     "doctorId" to invite.doctorId,
                     "patientId" to invite.patientId,
                 ),
+                ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
             )
         }.onFailure { e -> logger.error("DeclineCallInviteUseCase: sendCallSignal threw for callId=$callId callerId=${invite.callerId}", e) }
 

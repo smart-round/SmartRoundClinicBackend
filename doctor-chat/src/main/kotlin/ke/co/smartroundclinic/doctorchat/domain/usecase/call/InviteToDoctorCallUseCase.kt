@@ -65,7 +65,7 @@ class InviteToDoctorCallUseCase(
         runCatching {
             socketRegistry.sendToUser(
                 threadId, calleeId,
-                json.encodeToString(DoctorCallInviteEventRes(callId = callId, callerId = callerId, callerName = callerName, callerPicture = callerPicture, isVideo = isVideo, ringTimeoutSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS)),
+                json.encodeToString(DoctorCallInviteEventRes(callId = callId, callerId = callerId, callerName = callerName, callerPicture = callerPicture, isVideo = isVideo, ringTimeoutSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS, createdAt = invite.createdAt)),
             )
         }.onFailure { logger.error("InviteToDoctorCallUseCase: socket send threw for callId=$callId calleeId=$calleeId", it) }
 
@@ -78,7 +78,9 @@ class InviteToDoctorCallUseCase(
                     "callId" to callId, "callerId" to callerId, "callerName" to (callerName ?: ""), "callerPicture" to (callerPicture ?: ""),
                     "threadId" to threadId, "isVideo" to isVideo.toString(),
                     "ringTimeoutSeconds" to RedisKeys.CALL_INVITE_TTL_SECONDS.toString(),
+                    "createdAt" to invite.createdAt,
                 ),
+                ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
             )
         }.onFailure { logger.error("InviteToDoctorCallUseCase: sendCallSignal threw for callId=$callId calleeId=$calleeId", it) }
 

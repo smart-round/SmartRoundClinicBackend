@@ -46,6 +46,7 @@ class CancelDoctorCallInviteUseCase(
                 event = PushNotificationEvents.DOCTOR_CALL_CANCELLED,
                 recipientId = invite.calleeId,
                 metadata = mapOf("callId" to callId, "threadId" to invite.threadId),
+                ttlSeconds = RedisKeys.CALL_INVITE_TTL_SECONDS,
             )
         }.onFailure { e -> logger.error("CancelDoctorCallInviteUseCase: sendCallSignal threw for callId=$callId calleeId=${invite.calleeId}", e) }
 
