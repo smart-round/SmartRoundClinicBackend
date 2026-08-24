@@ -17,7 +17,13 @@ data class ArticleEntity(
     val datePosted: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
-    val references: List<ArticleReferenceEntity> = emptyList(),
+    // Stored as a JSON string rather than a native BSON array of ArticleReferenceEntity: the
+    // MongoDB Kotlin driver's default-value support for a missing field is solid for simple
+    // nullable/scalar properties (every other optional field here is one) but is a materially
+    // bigger ask for a missing field typed as List<DataClass> — a String field with a "[]"
+    // default is the same well-trodden shape as every other optional column, so legacy documents
+    // written before this field existed decode exactly like they always have.
+    val referencesJson: String = "[]",
 ) {
     fun toModel() = Article(
         id = id,
@@ -31,7 +37,7 @@ data class ArticleEntity(
         datePosted = datePosted,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        references = references.map { it.toModel() },
+        references = referencesFromJson(referencesJson).map { it.toModel() },
     )
 }
 
@@ -47,5 +53,5 @@ fun Article.toEntity() = ArticleEntity(
     datePosted = datePosted,
     createdAt = createdAt,
     updatedAt = updatedAt,
-    references = references.map { it.toEntity() },
+    referencesJson = references.map { it.toEntity() }.toReferencesJson(),
 )

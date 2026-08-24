@@ -1,7 +1,13 @@
 package ke.co.smartroundclinic.article.data.entity
 
 import ke.co.smartroundclinic.article.domain.model.ArticleReference
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
+/** Also the JSON shape persisted in [ArticleEntity.referencesJson] — see that field for why. */
+@Serializable
 data class ArticleReferenceEntity(
     val id: String,
     val title: String,
@@ -10,6 +16,13 @@ data class ArticleReferenceEntity(
     val url: String,
     val year: Int? = null,
 )
+
+private val referencesFormat = Json { ignoreUnknownKeys = true }
+
+fun List<ArticleReferenceEntity>.toReferencesJson(): String = referencesFormat.encodeToString(this)
+
+fun referencesFromJson(json: String): List<ArticleReferenceEntity> =
+    runCatching { referencesFormat.decodeFromString<List<ArticleReferenceEntity>>(json) }.getOrDefault(emptyList())
 
 fun ArticleReferenceEntity.toModel() = ArticleReference(
     id = id,
