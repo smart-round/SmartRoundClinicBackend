@@ -5,6 +5,8 @@ import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.article.data.entity.ArticleEntity
 import ke.co.smartroundclinic.article.data.entity.ArticleReferenceEntity
+import ke.co.smartroundclinic.article.data.entity.referencesFromJson
+import ke.co.smartroundclinic.article.data.entity.toReferencesJson
 import ke.co.smartroundclinic.article.domain.model.ArticleState
 import ke.co.smartroundclinic.article.domain.repository.ArticleRepository
 import ke.co.smartroundclinic.common.MongoDBConstants
@@ -129,8 +131,8 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                 ?.let { updates.add(Updates.set(ArticleEntity::categoryId.name, it)) }
             thumbnailKey?.trim()?.takeIf { it != existing.thumbnailKey }
                 ?.let { updates.add(Updates.set(ArticleEntity::thumbnailKey.name, it)) }
-            references?.takeIf { it != existing.references }
-                ?.let { updates.add(Updates.set(ArticleEntity::references.name, it)) }
+            references?.takeIf { it != referencesFromJson(existing.referencesJson) }
+                ?.let { updates.add(Updates.set(ArticleEntity::referencesJson.name, it.toReferencesJson())) }
 
             if (updates.isEmpty()) return@withContext Resource.Success(data = existing, message = "No changes detected")
 
@@ -172,8 +174,8 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                 ?.let { updates.add(Updates.set(ArticleEntity::categoryId.name, it)) }
             thumbnailKey?.trim()?.takeIf { it != existing.thumbnailKey }
                 ?.let { updates.add(Updates.set(ArticleEntity::thumbnailKey.name, it)) }
-            references?.takeIf { it != existing.references }
-                ?.let { updates.add(Updates.set(ArticleEntity::references.name, it)) }
+            references?.takeIf { it != referencesFromJson(existing.referencesJson) }
+                ?.let { updates.add(Updates.set(ArticleEntity::referencesJson.name, it.toReferencesJson())) }
 
             if (updates.isEmpty()) return@withContext Resource.Success(data = existing, message = "No changes detected")
 
@@ -243,7 +245,7 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                     ArticleState.LIVE.name -> return@withContext Resource.Error("Article is already live")
                     ArticleState.DELETED.name -> return@withContext Resource.Error("Cannot publish a deleted article")
                 }
-                if (existing.references.isEmpty())
+                if (referencesFromJson(existing.referencesJson).isEmpty())
                     return@withContext Resource.Error("Add at least one medical reference before publishing")
                 val now = Clock.System.now().toString()
                 val stateUpdates = mutableListOf(
@@ -273,7 +275,7 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                     ArticleState.LIVE.name -> return@withContext Resource.Error("Article is already live")
                     ArticleState.DELETED.name -> return@withContext Resource.Error("Cannot publish a deleted article")
                 }
-                if (existing.references.isEmpty())
+                if (referencesFromJson(existing.referencesJson).isEmpty())
                     return@withContext Resource.Error("Add at least one medical reference before publishing")
                 val now = Clock.System.now().toString()
                 val updates = mutableListOf(
