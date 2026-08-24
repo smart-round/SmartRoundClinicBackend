@@ -1,10 +1,12 @@
 package ke.co.smartroundclinic.article.domain.usecase.article
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.article.data.entity.toEntity
 import ke.co.smartroundclinic.article.domain.repository.ArticleRepository
 import ke.co.smartroundclinic.article.presentation.dto.request.UpdateArticleReq
 import ke.co.smartroundclinic.article.presentation.dto.response.ArticleRes
 import ke.co.smartroundclinic.article.presentation.dto.response.toRes
+import ke.co.smartroundclinic.article.presentation.dto.toModel
 import ke.co.smartroundclinic.common.DefaultResponse
 import ke.co.smartroundclinic.common.Resource
 import ke.co.smartroundclinic.infra.AppConfig
@@ -24,6 +26,8 @@ class UpdateArticleUseCase(
         imageBytes: ByteArray?,
         imageContentType: String?,
     ): DefaultResponse<ArticleRes?> = withContext(Dispatchers.IO) {
+        req.references?.let { refs -> validateReferences(refs)?.let { return@withContext it } }
+
         // Store the R2 key only — presigned URL is generated on each read by ArticleService
         val thumbnailKey = when {
             imageBytes != null && imageContentType != null -> {
@@ -48,6 +52,7 @@ class UpdateArticleUseCase(
             summary = req.summary,
             categoryId = req.categoryId,
             thumbnailKey = thumbnailKey,
+            references = req.references?.map { it.toModel().toEntity() },
         ).toDefaultResponse { it?.toModel()?.toRes() }
     }
 }

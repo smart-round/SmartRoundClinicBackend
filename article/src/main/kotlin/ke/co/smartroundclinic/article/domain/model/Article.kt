@@ -12,4 +12,5 @@ data class Article(
     val datePosted: String?,
     val createdAt: String,
     val updatedAt: String?,
+    val references: List<ArticleReference> = emptyList(),
 )

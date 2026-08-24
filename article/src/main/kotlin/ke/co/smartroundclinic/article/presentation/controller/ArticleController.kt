@@ -15,12 +15,29 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.utils.io.toByteArray
 import ke.co.smartroundclinic.article.domain.service.ArticleService
+import ke.co.smartroundclinic.article.presentation.dto.ArticleReferenceDto
 import ke.co.smartroundclinic.article.presentation.dto.request.CreateArticleReq
 import ke.co.smartroundclinic.article.presentation.dto.request.UpdateArticleReq
 import ke.co.smartroundclinic.infra.plugins.MissingParametersException
 import ke.co.smartroundclinic.infra.plugins.getUserId
 import ke.co.smartroundclinic.infra.plugins.requireImageContentType
 import ke.co.smartroundclinic.infra.plugins.requireRole
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+
+/**
+ * The doctor's article form sends citations as a JSON array in the "references" multipart field —
+ * multipart has no native structured-field support, so this is the simplest way to carry a list
+ * of objects alongside the plain-text form fields.
+ */
+private fun parseReferences(json: String?): Result<List<ArticleReferenceDto>?> {
+    if (json.isNullOrBlank()) return Result.success(null)
+    return try {
+        Result.success(Json.decodeFromString<List<ArticleReferenceDto>>(json))
+    } catch (e: SerializationException) {
+        Result.failure(e)
+    }
+}
 
 private const val ADMIN = "ADMIN"
 private const val DOCTOR = "DOCTOR"
@@ -61,12 +78,18 @@ fun Route.articleController(service: ArticleService) {
                         HttpStatusCode.BadRequest, mapOf("message" to "categoryId is required")
                     )
                     if (imageBytes != null) requireImageContentType(imageContentType)
+                    val references = parseReferences(parts["references"]).getOrElse {
+                        return@requireRole call.respond(
+                            HttpStatusCode.BadRequest, mapOf("message" to "references must be a valid JSON array")
+                        )
+                    }
                     val req = CreateArticleReq(
                         title = title,
                         content = content,
                         summary = summary,
                         categoryId = categoryId,
                         thumbnailUrl = parts["thumbnailUrl"],
+                        references = references ?: emptyList(),
                     )
                     val result = service.create(req, doctorId, imageBytes, imageContentType.ifBlank { null })
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)
@@ -132,12 +155,18 @@ fun Route.articleController(service: ArticleService) {
                         part.dispose()
                     }
                     if (imageBytes != null) requireImageContentType(imageContentType)
+                    val references = parseReferences(parts["references"]).getOrElse {
+                        return@requireRole call.respond(
+                            HttpStatusCode.BadRequest, mapOf("message" to "references must be a valid JSON array")
+                        )
+                    }
                     val req = UpdateArticleReq(
                         title = parts["title"],
                         content = parts["content"],
                         summary = parts["summary"],
                         categoryId = parts["categoryId"],
                         thumbnailUrl = parts["thumbnailUrl"],
+                        references = references,
                     )
                     val result = service.update(id, doctorId, req, imageBytes, imageContentType.ifBlank { null })
                     call.respond(HttpStatusCode.fromValue(result.httpStatusCode), result)

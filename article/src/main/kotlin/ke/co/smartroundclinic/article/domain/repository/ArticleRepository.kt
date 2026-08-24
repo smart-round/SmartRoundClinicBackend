@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.article.domain.repository
 
 import ke.co.smartroundclinic.article.data.entity.ArticleEntity
+import ke.co.smartroundclinic.article.data.entity.ArticleReferenceEntity
 import ke.co.smartroundclinic.common.Resource
 
 interface ArticleRepository {
@@ -16,6 +17,7 @@ interface ArticleRepository {
         summary: String?,
         categoryId: String?,
         thumbnailKey: String?,
+        references: List<ArticleReferenceEntity>?,
     ): Resource<ArticleEntity?>
     suspend fun updateByDoctor(
         id: String,
@@ -25,6 +27,7 @@ interface ArticleRepository {
         summary: String?,
         categoryId: String?,
         thumbnailKey: String?,
+        references: List<ArticleReferenceEntity>?,
     ): Resource<ArticleEntity?>
     suspend fun publish(id: String): Resource<ArticleEntity?>
     suspend fun publishByDoctor(id: String, doctorId: String): Resource<ArticleEntity?>

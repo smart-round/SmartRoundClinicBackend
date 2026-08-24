@@ -1,6 +1,8 @@
 package ke.co.smartroundclinic.article.presentation.dto.response
 
 import ke.co.smartroundclinic.article.domain.model.Article
+import ke.co.smartroundclinic.article.presentation.dto.ArticleReferenceDto
+import ke.co.smartroundclinic.article.presentation.dto.toDto
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,6 +19,7 @@ data class ArticleRes(
     val createdAt: String,
     val updatedAt: String?,
     val authorName: String? = null,
+    val references: List<ArticleReferenceDto> = emptyList(),
 )
 
 @Serializable
@@ -41,4 +44,5 @@ fun Article.toRes() = ArticleRes(
     datePosted = datePosted,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    references = references.map { it.toDto() },
 )
