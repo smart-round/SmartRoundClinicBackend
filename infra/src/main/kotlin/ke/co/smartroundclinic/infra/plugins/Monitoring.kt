@@ -76,8 +76,9 @@ fun Application.configureMonitoring() {
             }
             
             val reset = "\u001B[0m"
+            val ipColor = "\u001B[34m" // BLUE
             
-            "${statusColor}Path:$uri, status: $status$reset, ${methodColor}HTTP method: $httpMethod$reset, duration: $duration, IP: $clientIp, User agent: $userAgent"
+            "${statusColor}Path:$uri, status: $status$reset, ${methodColor}HTTP method: $httpMethod$reset, duration: $duration, ${ipColor}IP: $clientIp$reset, User agent: $userAgent"
         }
     }
     routing {
