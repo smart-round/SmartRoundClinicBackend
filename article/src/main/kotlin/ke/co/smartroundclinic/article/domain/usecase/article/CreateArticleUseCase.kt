@@ -31,6 +31,8 @@ class CreateArticleUseCase(
             return@withContext Resource.Error<ArticleRes?>("Article category not found")
                 .toDefaultResponse(failedStatusCode = HttpStatusCode.NotFound.value) { null }
 
+        validateReferences(req.references)?.let { return@withContext it }
+
         val model = req.toModel(doctorId)
 
         // Store the R2 key only — presigned URL is generated on each read by ArticleService

@@ -2,6 +2,8 @@ package ke.co.smartroundclinic.article.presentation.dto.request
 
 import ke.co.smartroundclinic.article.domain.model.Article
 import ke.co.smartroundclinic.article.domain.model.ArticleState
+import ke.co.smartroundclinic.article.presentation.dto.ArticleReferenceDto
+import ke.co.smartroundclinic.article.presentation.dto.toModel
 import org.bson.types.ObjectId
 import kotlin.time.Clock
 
@@ -11,6 +13,7 @@ data class CreateArticleReq(
     val summary: String,
     val categoryId: String,
     val thumbnailUrl: String? = null,
+    val references: List<ArticleReferenceDto> = emptyList(),
 ) {
     fun toModel(doctorId: String) = Article(
         id = ObjectId().toString(),
@@ -24,6 +27,7 @@ data class CreateArticleReq(
         datePosted = null,
         createdAt = Clock.System.now().toString(),
         updatedAt = null,
+        references = references.map { it.toModel() },
     )
 }
 
@@ -33,4 +37,6 @@ data class UpdateArticleReq(
     val summary: String? = null,
     val categoryId: String? = null,
     val thumbnailUrl: String? = null,
+    // null = leave references untouched; a (possibly empty) list replaces them entirely
+    val references: List<ArticleReferenceDto>? = null,
 )

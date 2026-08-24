@@ -17,6 +17,7 @@ data class ArticleEntity(
     val datePosted: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
+    val references: List<ArticleReferenceEntity> = emptyList(),
 ) {
     fun toModel() = Article(
         id = id,
@@ -30,6 +31,7 @@ data class ArticleEntity(
         datePosted = datePosted,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        references = references.map { it.toModel() },
     )
 }
 
@@ -45,4 +47,5 @@ fun Article.toEntity() = ArticleEntity(
     datePosted = datePosted,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    references = references.map { it.toEntity() },
 )

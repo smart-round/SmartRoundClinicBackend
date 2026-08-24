@@ -4,6 +4,7 @@ import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import ke.co.smartroundclinic.article.data.entity.ArticleEntity
+import ke.co.smartroundclinic.article.data.entity.ArticleReferenceEntity
 import ke.co.smartroundclinic.article.domain.model.ArticleState
 import ke.co.smartroundclinic.article.domain.repository.ArticleRepository
 import ke.co.smartroundclinic.common.MongoDBConstants
@@ -109,6 +110,7 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
         summary: String?,
         categoryId: String?,
         thumbnailKey: String?,
+        references: List<ArticleReferenceEntity>?,
     ): Resource<ArticleEntity?> = withContext(Dispatchers.IO) {
         try {
             val existing = collection.find(Filters.eq(ArticleEntity::id.name, id)).firstOrNull()
@@ -127,6 +129,8 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                 ?.let { updates.add(Updates.set(ArticleEntity::categoryId.name, it)) }
             thumbnailKey?.trim()?.takeIf { it != existing.thumbnailKey }
                 ?.let { updates.add(Updates.set(ArticleEntity::thumbnailKey.name, it)) }
+            references?.takeIf { it != existing.references }
+                ?.let { updates.add(Updates.set(ArticleEntity::references.name, it)) }
 
             if (updates.isEmpty()) return@withContext Resource.Success(data = existing, message = "No changes detected")
 
@@ -147,6 +151,7 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
         summary: String?,
         categoryId: String?,
         thumbnailKey: String?,
+        references: List<ArticleReferenceEntity>?,
     ): Resource<ArticleEntity?> = withContext(Dispatchers.IO) {
         try {
             val existing = collection.find(Filters.eq(ArticleEntity::id.name, id)).firstOrNull()
@@ -167,6 +172,8 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                 ?.let { updates.add(Updates.set(ArticleEntity::categoryId.name, it)) }
             thumbnailKey?.trim()?.takeIf { it != existing.thumbnailKey }
                 ?.let { updates.add(Updates.set(ArticleEntity::thumbnailKey.name, it)) }
+            references?.takeIf { it != existing.references }
+                ?.let { updates.add(Updates.set(ArticleEntity::references.name, it)) }
 
             if (updates.isEmpty()) return@withContext Resource.Success(data = existing, message = "No changes detected")
 
@@ -236,6 +243,8 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                     ArticleState.LIVE.name -> return@withContext Resource.Error("Article is already live")
                     ArticleState.DELETED.name -> return@withContext Resource.Error("Cannot publish a deleted article")
                 }
+                if (existing.references.isEmpty())
+                    return@withContext Resource.Error("Add at least one medical reference before publishing")
                 val now = Clock.System.now().toString()
                 val stateUpdates = mutableListOf(
                     Updates.set(ArticleEntity::state.name, ArticleState.LIVE.name),
@@ -264,6 +273,8 @@ class ArticleRepositoryImpl(database: MongoDatabase) : ArticleRepository {
                     ArticleState.LIVE.name -> return@withContext Resource.Error("Article is already live")
                     ArticleState.DELETED.name -> return@withContext Resource.Error("Cannot publish a deleted article")
                 }
+                if (existing.references.isEmpty())
+                    return@withContext Resource.Error("Add at least one medical reference before publishing")
                 val now = Clock.System.now().toString()
                 val updates = mutableListOf(
                     Updates.set(ArticleEntity::state.name, ArticleState.LIVE.name),
