@@ -24,6 +24,8 @@ dependencies {
     api(libs.ktor.server.status.pages)
     api(libs.ktor.server.request.validation)
     api(libs.ktor.server.call.logging)
+    api(libs.ktor.server.forwarded.header)
+    api(libs.ktor.server.rate.limit)
     api(libs.ktor.server.metrics.micrometer)
     api(libs.micrometer.registry.prometheus)
     api(libs.ktor.server.cors)

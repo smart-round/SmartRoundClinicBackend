@@ -7,6 +7,7 @@ import ke.co.smartroundclinic.infra.plugins.configureBackgroundTasks
 import ke.co.smartroundclinic.infra.plugins.configureHTTP
 import ke.co.smartroundclinic.infra.plugins.configureKoin
 import ke.co.smartroundclinic.infra.plugins.configureMonitoring
+import ke.co.smartroundclinic.infra.plugins.configureRateLimiting
 import ke.co.smartroundclinic.infra.plugins.configureRequestValidation
 import ke.co.smartroundclinic.infra.plugins.configureSecurity
 import ke.co.smartroundclinic.infra.plugins.configureSerialization
@@ -23,6 +24,7 @@ fun Application.configureInfraModule(
     configureSerialization()
     configureSecurity()
     configureMonitoring()
+    configureRateLimiting()
     configureSockets()
     configureRequestValidation(validators)
     configureBackgroundTasks(backgroundTasks())
