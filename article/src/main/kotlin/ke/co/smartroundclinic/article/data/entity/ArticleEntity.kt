@@ -17,13 +17,13 @@ data class ArticleEntity(
     val datePosted: String? = null,
     val createdAt: String = Clock.System.now().toString(),
     val updatedAt: String? = null,
-    // Stored as a JSON string rather than a native BSON array of ArticleReferenceEntity: the
-    // MongoDB Kotlin driver's default-value support for a missing field is solid for simple
-    // nullable/scalar properties (every other optional field here is one) but is a materially
-    // bigger ask for a missing field typed as List<DataClass> — a String field with a "[]"
-    // default is the same well-trodden shape as every other optional column, so legacy documents
-    // written before this field existed decode exactly like they always have.
-    val referencesJson: String = "[]",
+    // MUST be nullable, not a non-null default: confirmed via direct decode testing against
+    // production that the MongoDB Kotlin driver's DataClassCodec passes an explicit null for a
+    // field missing from a legacy BSON document rather than invoking the Kotlin default — which
+    // throws a constructor NPE for a non-null parameter. Every other optional field on this
+    // entity is nullable for the same reason; this one has to be too, with "[]" applied manually
+    // in toModel() instead of at the constructor default.
+    val referencesJson: String? = null,
 ) {
     fun toModel() = Article(
         id = id,
