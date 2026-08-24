@@ -21,8 +21,9 @@ private val referencesFormat = Json { ignoreUnknownKeys = true }
 
 fun List<ArticleReferenceEntity>.toReferencesJson(): String = referencesFormat.encodeToString(this)
 
-fun referencesFromJson(json: String): List<ArticleReferenceEntity> =
-    runCatching { referencesFormat.decodeFromString<List<ArticleReferenceEntity>>(json) }.getOrDefault(emptyList())
+fun referencesFromJson(json: String?): List<ArticleReferenceEntity> =
+    if (json == null) emptyList()
+    else runCatching { referencesFormat.decodeFromString<List<ArticleReferenceEntity>>(json) }.getOrDefault(emptyList())
 
 fun ArticleReferenceEntity.toModel() = ArticleReference(
     id = id,
