@@ -6,6 +6,7 @@ import ke.co.smartroundclinic.article.domain.service.ArticleCategoryService
 import ke.co.smartroundclinic.article.domain.service.ArticleService
 import ke.co.smartroundclinic.article.presentation.controller.articleCategoryController
 import ke.co.smartroundclinic.article.presentation.controller.articleController
+import ke.co.smartroundclinic.article.presentation.controller.articleShareController
 import org.koin.ktor.ext.inject
 
 fun Application.articleModule() {
@@ -14,5 +15,6 @@ fun Application.articleModule() {
     routing {
         articleCategoryController(articleCategoryService)
         articleController(articleService)
+        articleShareController(articleService)
     }
 }
