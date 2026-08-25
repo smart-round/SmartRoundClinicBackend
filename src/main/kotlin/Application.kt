@@ -131,9 +131,9 @@ private val APPLE_APP_SITE_ASSOCIATION = """
     }
 """.trimIndent()
 
-// SHA256 cert fingerprints below are the shared local ~/.android/debug.keystore, for verifying
-// App Links against debug builds only. Replace with each app's Play Console release fingerprint
-// (App signing > App signing key certificate) before this covers Play-installed builds.
+// Each app lists two fingerprints: its real Play App Signing key (what actually signs the APK
+// on a user's device — from Play Console > Setup > App integrity > App signing key certificate)
+// and the shared local ~/.android/debug.keystore, kept so debug builds still verify too.
 private val ANDROID_ASSET_LINKS = """
     [
       {
@@ -141,7 +141,10 @@ private val ANDROID_ASSET_LINKS = """
         "target": {
           "namespace": "android_app",
           "package_name": "ke.co.smartroundclinic.doctor",
-          "sha256_cert_fingerprints": ["36:12:66:8F:E6:D2:A4:90:DC:9E:0D:9C:A0:F5:BE:26:F7:B7:8C:D7:7F:0A:D2:19:8D:01:D7:DD:27:32:F6:98"]
+          "sha256_cert_fingerprints": [
+            "AF:3F:37:1D:AE:1F:A7:37:AB:22:9A:8C:43:0E:7B:C3:0C:F3:31:CF:E9:72:BF:EF:3A:92:E9:00:25:3A:69:57",
+            "36:12:66:8F:E6:D2:A4:90:DC:9E:0D:9C:A0:F5:BE:26:F7:B7:8C:D7:7F:0A:D2:19:8D:01:D7:DD:27:32:F6:98"
+          ]
         }
       },
       {
@@ -149,7 +152,10 @@ private val ANDROID_ASSET_LINKS = """
         "target": {
           "namespace": "android_app",
           "package_name": "ke.co.smartroundclinic.patient",
-          "sha256_cert_fingerprints": ["36:12:66:8F:E6:D2:A4:90:DC:9E:0D:9C:A0:F5:BE:26:F7:B7:8C:D7:7F:0A:D2:19:8D:01:D7:DD:27:32:F6:98"]
+          "sha256_cert_fingerprints": [
+            "45:26:E0:34:63:47:C5:EA:22:91:14:69:3F:BD:19:F7:D7:E9:0A:37:66:DE:87:C6:F3:A4:FB:23:F3:86:09:3C",
+            "36:12:66:8F:E6:D2:A4:90:DC:9E:0D:9C:A0:F5:BE:26:F7:B7:8C:D7:7F:0A:D2:19:8D:01:D7:DD:27:32:F6:98"
+          ]
         }
       }
     ]
