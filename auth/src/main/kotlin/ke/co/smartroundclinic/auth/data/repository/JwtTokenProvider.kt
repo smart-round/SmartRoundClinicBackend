@@ -31,6 +31,7 @@ class JwtTokenProvider : TokenProvider {
             .withAudience(jwtAudience)
             .withIssuer(jwtDomain)
             .withClaim("userId", userId)
+            .withIssuedAt(Date())
             .withExpiresAt(Date(System.currentTimeMillis() + 3600000L * 24 * 30)) // 30 days
             .sign(Algorithm.HMAC256(refreshSecret))
 
@@ -46,6 +47,19 @@ class JwtTokenProvider : TokenProvider {
                 .build()
             val decodedJWT = verifier.verify(token)
             decodedJWT.getClaim("userId").asString()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override fun getRefreshTokenIssuedAt(token: String): Long? {
+        return try {
+            val verifier = JWT
+                .require(Algorithm.HMAC256(refreshSecret))
+                .withAudience(jwtAudience)
+                .withIssuer(jwtDomain)
+                .build()
+            verifier.verify(token).issuedAt?.time
         } catch (e: Exception) {
             null
         }

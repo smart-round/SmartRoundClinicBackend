@@ -15,4 +15,6 @@ data class AuthToken(
 interface TokenProvider {
     fun generateTokens(userId: String, role: String, permissions: List<String> = emptyList()): AuthToken
     fun verifyRefreshToken(token: String): String?
+    /** Epoch millis the given (already-valid) refresh token was issued at, or null if undecodable. */
+    fun getRefreshTokenIssuedAt(token: String): Long?
 }

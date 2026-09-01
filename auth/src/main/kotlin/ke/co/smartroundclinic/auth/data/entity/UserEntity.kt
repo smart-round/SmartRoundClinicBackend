@@ -25,6 +25,8 @@ data class UserEntity(
     val updatedAt: String? = null,
     /** Set when the user's presence WebSocket disconnects — the moment they were last known online. */
     val lastSeenAt: String? = null,
+    /** Epoch millis. Tokens issued before this are treated as revoked — stamped when an admin suspends/deactivates the account. */
+    val tokensValidAfter: Long? = null,
 ) {
 
     enum class Gender {

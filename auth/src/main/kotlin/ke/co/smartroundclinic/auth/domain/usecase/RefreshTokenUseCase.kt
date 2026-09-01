@@ -1,6 +1,7 @@
 package ke.co.smartroundclinic.auth.domain.usecase
 
 import io.ktor.http.HttpStatusCode
+import ke.co.smartroundclinic.auth.data.entity.UserEntity
 import ke.co.smartroundclinic.auth.domain.repository.AuthToken
 import ke.co.smartroundclinic.auth.domain.repository.TokenProvider
 import ke.co.smartroundclinic.auth.domain.repository.TokenRepository
@@ -30,6 +31,22 @@ class RefreshTokenUseCase(
             val user = userResult.data
                 ?: return@withContext Resource.Error<AuthToken?>(message = "User not found")
                     .toDefaultResponse(failedStatusCode = HttpStatusCode.Unauthorized.value) { null }
+
+            if (user.accountStatus == UserEntity.AccountStatus.SUSPENDED) {
+                return@withContext Resource.Error<AuthToken?>(message = "Your account has been suspended. Please contact support.")
+                    .toDefaultResponse(failedStatusCode = HttpStatusCode.Unauthorized.value) { null }
+            }
+            if (user.accountStatus == UserEntity.AccountStatus.INACTIVE) {
+                return@withContext Resource.Error<AuthToken?>(message = "Your account is inactive. Please contact support.")
+                    .toDefaultResponse(failedStatusCode = HttpStatusCode.Unauthorized.value) { null }
+            }
+
+            val tokenIssuedAt = tokenProvider.getRefreshTokenIssuedAt(refreshToken)
+            val tokensValidAfter = user.tokensValidAfter
+            if (tokensValidAfter != null && (tokenIssuedAt == null || tokenIssuedAt < tokensValidAfter)) {
+                return@withContext Resource.Error<AuthToken?>(message = "Token has been revoked")
+                    .toDefaultResponse(failedStatusCode = HttpStatusCode.Unauthorized.value) { null }
+            }
 
             val newTokens = tokenProvider.generateTokens(userId = user.id, role = user.role.name)
                 .copy(

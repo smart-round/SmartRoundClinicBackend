@@ -382,6 +382,10 @@ class UserRepositoryImpl(
             accountStatus?.let { updates.add(Updates.set(UserEntity::accountStatus.name, it.name)) }
             verificationStatus?.let { updates.add(Updates.set(UserEntity::verificationStatus.name, it.name)) }
             if (updates.isEmpty()) return@withContext Resource.Error("At least one field must be provided")
+            // Revoke all previously issued refresh tokens in one shot — refresh checks tokenIssuedAt against this.
+            if (accountStatus == UserEntity.AccountStatus.SUSPENDED || accountStatus == UserEntity.AccountStatus.INACTIVE) {
+                updates.add(Updates.set(UserEntity::tokensValidAfter.name, System.currentTimeMillis()))
+            }
             updates.add(Updates.set(UserEntity::updatedAt.name, Clock.System.now().toString()))
             collection.updateOne(Filters.eq(UserEntity::id.name, userId), Updates.combine(updates))
             val updated = collection.find(Filters.eq(UserEntity::id.name, userId)).firstOrNull()
